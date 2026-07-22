@@ -128,4 +128,111 @@ router.get('/overview', (req: Request, res: Response) => {
   })
 })
 
+/** 支部书记/管理员：查看下级（本支部党员）测验成绩 */
+router.get('/member-scores', (req: Request, res: Response) => {
+  if (!requireRole(req, ['admin', 'secretary'])) {
+    res.status(403).json({ success: false, error: '无权限访问' })
+    return
+  }
+
+  const { role, userId } = getUserContext(req)
+  const orgUnitId =
+    role === 'admin'
+      ? req.query.orgUnitId
+        ? String(req.query.orgUnitId)
+        : null
+      : getOrgUnitIdForUser(userId)
+
+  if (role === 'secretary' && !orgUnitId) {
+    res.status(400).json({ success: false, error: '未绑定所属支部' })
+    return
+  }
+
+  const orgName = orgUnitId
+    ? String((db.prepare('SELECT name FROM org_units WHERE id = ?').get(orgUnitId) as any)?.name ?? '')
+    : '全部组织'
+
+  const members = (
+    orgUnitId
+      ? (db
+          .prepare(
+            `SELECT id, name, username, org_unit_id, created_at
+             FROM users
+             WHERE org_unit_id = ? AND role = 'member'
+             ORDER BY name ASC`,
+          )
+          .all(orgUnitId) as any[])
+      : (db
+          .prepare(
+            `SELECT id, name, username, org_unit_id, created_at
+             FROM users
+             WHERE role = 'member'
+             ORDER BY name ASC`,
+          )
+          .all() as any[])
+  )
+
+  const attemptStmt = db.prepare(
+    `SELECT ea.total_score as total_score, ea.is_pass as is_pass, ea.created_at as created_at,
+            e.title as exam_title
+     FROM exam_attempts ea
+     LEFT JOIN exams e ON e.id = ea.exam_id
+     WHERE ea.user_id = ?
+     ORDER BY ea.created_at DESC`,
+  )
+
+  const list = members.map((m) => {
+    const attempts = attemptStmt.all(String(m.id)) as any[]
+    const attemptCount = attempts.length
+    const avgScore =
+      attemptCount > 0
+        ? Math.round(attempts.reduce((a, b) => a + Number(b.total_score ?? 0), 0) / attemptCount)
+        : null
+    const passCount = attempts.filter((a) => Number(a.is_pass ?? 0) === 1).length
+    const latest = attempts[0] ?? null
+
+    return {
+      userId: String(m.id),
+      name: String(m.name),
+      username: String(m.username ?? ''),
+      orgUnitId: String(m.org_unit_id),
+      attemptCount,
+      avgScore,
+      passCount,
+      passRate: attemptCount > 0 ? Math.round((passCount / attemptCount) * 100) : null,
+      latestScore: latest ? Number(latest.total_score ?? 0) : null,
+      latestIsPass: latest ? Number(latest.is_pass ?? 0) === 1 : null,
+      latestExamTitle: latest?.exam_title ? String(latest.exam_title) : null,
+      latestAt: latest?.created_at ? String(latest.created_at) : null,
+    }
+  })
+
+  const scored = list.filter((x) => x.attemptCount > 0)
+  const allAttempts = scored.reduce((a, b) => a + b.attemptCount, 0)
+  const avgScore =
+    scored.length > 0
+      ? Math.round(scored.reduce((a, b) => a + Number(b.avgScore ?? 0), 0) / scored.length)
+      : 0
+  const passRate =
+    allAttempts > 0
+      ? Math.round((scored.reduce((a, b) => a + b.passCount, 0) / allAttempts) * 100)
+      : 0
+
+  res.status(200).json({
+    success: true,
+    data: {
+      orgUnitId,
+      orgName,
+      summary: {
+        memberCount: list.length,
+        attemptedMemberCount: scored.length,
+        attemptCount: allAttempts,
+        avgScore,
+        passRate,
+      },
+      members: list,
+    },
+  })
+})
+
 export default router

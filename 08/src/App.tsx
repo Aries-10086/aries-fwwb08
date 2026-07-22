@@ -1,12 +1,14 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom'
 import Home from '@/pages/Home'
 import Login from '@/pages/Login'
+import Register from '@/pages/Register'
 import LoginRoles from '@/pages/LoginRoles'
 import MobileHome from '@/pages/MobileHome'
 import ContentDetail from '@/pages/ContentDetail'
 import MobileExams from '@/pages/MobileExams'
 import MobileExamTake from '@/pages/MobileExamTake'
 import MobileReport from '@/pages/MobileReport'
+import SecretaryScores from '@/pages/SecretaryScores'
 import AdminDashboard from '@/pages/AdminDashboard'
 import AdminOrg from '@/pages/AdminOrg'
 import AdminUsers from '@/pages/AdminUsers'
@@ -25,6 +27,7 @@ export default function App() {
         <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/login" element={<Login />} />
+          <Route path="/register" element={<Register />} />
           <Route path="/login/roles" element={<LoginRoles />} />
 
           <Route path="/m/home" element={<MobileHome />} />
@@ -32,6 +35,7 @@ export default function App() {
           <Route path="/m/exams" element={<MobileExams />} />
           <Route path="/m/exam/:examId" element={<MobileExamTake />} />
           <Route path="/m/report" element={<MobileReport />} />
+          <Route path="/m/scores" element={<SecretaryScores />} />
 
           <Route path="/admin/dashboard" element={<AdminDashboard />} />
           <Route path="/admin/org" element={<AdminOrg />} />

@@ -1,10 +1,12 @@
 import { useEffect, useMemo, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useLocation, useNavigate } from 'react-router-dom'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/Card'
 import { Button } from '@/components/Button'
 import { apiFetch } from '@/utils/api'
 import { useAuthStore } from '@/store/auth'
 import { Network, Plus, RotateCw, Trash2 } from 'lucide-react'
+
+type OrgMember = { id: string; name: string; role: string }
 
 type Org = {
   id: string
@@ -16,10 +18,18 @@ type Org = {
     avgExamScore: number
     completionRate: number
   }
+  members: OrgMember[]
+}
+
+const roleLabels: Record<string, string> = {
+  member: '党员',
+  secretary: '支部书记',
+  admin: '系统管理员',
 }
 
 export default function AdminOrg() {
   const nav = useNavigate()
+  const location = useLocation()
   const { user } = useAuthStore()
   const [items, setItems] = useState<Org[]>([])
   const [loading, setLoading] = useState(false)
@@ -47,7 +57,7 @@ export default function AdminOrg() {
 
   useEffect(() => {
     load()
-  }, [])
+  }, [location.pathname])
 
   const roots = useMemo(() => items.filter((x) => !x.parentId), [items])
   const childrenByParent = useMemo(() => {
@@ -188,6 +198,24 @@ export default function AdminOrg() {
                               <div className="mt-2 text-lg font-bold tracking-[-0.04em] text-[#171717]">{value}</div>
                             </div>
                           ))}
+                        </div>
+                        <div className="mt-4">
+                          <div className="text-[11px] uppercase tracking-[0.24em] text-[#8c2424]/60">组织成员</div>
+                          {c.members.length > 0 ? (
+                            <div className="mt-2 flex flex-wrap gap-2">
+                              {c.members.map((member) => (
+                                <div
+                                  key={member.id}
+                                  className="inline-flex items-center gap-2 rounded-full bg-white px-3 py-1.5 text-xs shadow-[inset_0_0_0_1px_rgba(0,0,0,0.06)]"
+                                >
+                                  <span className="font-medium text-[#171717]">{member.name}</span>
+                                  <span className="text-black/45">{roleLabels[member.role] ?? member.role}</span>
+                                </div>
+                              ))}
+                            </div>
+                          ) : (
+                            <div className="mt-2 text-sm text-black/45">暂无成员，请在「人员管理」中为该组织添加人员</div>
+                          )}
                         </div>
                       </div>
                     ))}

@@ -1,11 +1,16 @@
 import { Router, type Request, type Response } from 'express'
 import { nanoid } from 'nanoid'
 import { db, nowIso, audit } from '../db.js'
-import { getUserContext, requireRole } from '../utils/http.js'
+import { getUserContext, requireAuth, requireRole, rejectUnauthorized } from '../utils/http.js'
 
 const router = Router()
 
 router.get('/', (req: Request, res: Response) => {
+  if (!requireAuth(req)) {
+    rejectUnauthorized(res)
+    return
+  }
+
   const rows = db
     .prepare('SELECT id, name, parent_id, created_at FROM org_units ORDER BY created_at ASC')
     .all() as any[]
@@ -14,7 +19,10 @@ router.get('/', (req: Request, res: Response) => {
     .prepare('SELECT org_unit_id, COUNT(1) as c FROM learning_tasks GROUP BY org_unit_id')
     .all() as any[]
   const memberCountRows = db
-    .prepare("SELECT org_unit_id, COUNT(1) as c FROM users WHERE role IN ('member','secretary') GROUP BY org_unit_id")
+    .prepare('SELECT org_unit_id, COUNT(1) as c FROM users GROUP BY org_unit_id')
+    .all() as any[]
+  const memberRows = db
+    .prepare('SELECT id, name, role, org_unit_id FROM users ORDER BY created_at ASC')
     .all() as any[]
   const scoreRows = db
     .prepare(
@@ -29,10 +37,17 @@ router.get('/', (req: Request, res: Response) => {
   const taskCountByOrg = new Map<string, number>()
   const memberCountByOrg = new Map<string, number>()
   const avgScoreByOrg = new Map<string, number>()
+  const membersByOrg = new Map<string, Array<{ id: string; name: string; role: string }>>()
 
   for (const r of taskCountRows) taskCountByOrg.set(String(r.org_unit_id), Number(r.c ?? 0))
   for (const r of memberCountRows) memberCountByOrg.set(String(r.org_unit_id), Number(r.c ?? 0))
   for (const r of scoreRows) avgScoreByOrg.set(String(r.org_unit_id), Math.round(Number(r.avg_score ?? 0)))
+  for (const r of memberRows) {
+    const orgUnitId = String(r.org_unit_id)
+    const list = membersByOrg.get(orgUnitId) ?? []
+    list.push({ id: String(r.id), name: String(r.name), role: String(r.role) })
+    membersByOrg.set(orgUnitId, list)
+  }
 
   function latestTaskCompletionRate(orgUnitId: string) {
     const users = db
@@ -71,9 +86,19 @@ router.get('/', (req: Request, res: Response) => {
       avgExamScore: avgScoreByOrg.get(String(r.id)) ?? 0,
       completionRate: latestTaskCompletionRate(String(r.id)),
     },
+    members: membersByOrg.get(String(r.id)) ?? [],
   }))
 
-  res.status(200).json({ success: true, data })
+  const { role, orgUnitId } = getUserContext(req)
+  let scoped = data
+  if (role !== 'admin') {
+    // 非管理员仅可见自己支部及上级组织，且仅本支部展示成员名单
+    scoped = data
+      .filter((x) => x.id === orgUnitId || (!x.parentId && data.some((c) => c.id === orgUnitId && c.parentId === x.id)))
+      .map((x) => (x.id === orgUnitId ? x : { ...x, members: [], stats: { ...x.stats, memberCount: x.id === orgUnitId ? x.stats.memberCount : 0 } }))
+  }
+
+  res.status(200).json({ success: true, data: scoped })
 })
 
 router.post('/', (req: Request, res: Response) => {

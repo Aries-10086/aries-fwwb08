@@ -13,6 +13,7 @@ import {
   BrainCircuit,
   GraduationCap,
   Sparkles,
+  BarChart3,
 } from 'lucide-react'
 
 const adminNav = [
@@ -27,6 +28,13 @@ const adminNav = [
   { to: '/admin/ai-query', label: 'AI 查询', icon: BrainCircuit },
 ] as const
 
+const secretaryNav = [
+  { to: '/m/scores', label: '支部成绩', icon: BarChart3 },
+  { to: '/m/home', label: '学习', icon: BookOpen },
+  { to: '/m/exams', label: '测验', icon: ClipboardList },
+  { to: '/m/report', label: 'AI 报告', icon: Sparkles },
+] as const
+
 const memberNav = [
   { to: '/m/home', label: '学习', icon: BookOpen },
   { to: '/m/exams', label: '测验', icon: ClipboardList },
@@ -36,9 +44,10 @@ const memberNav = [
 export function AppShell({ children }: { children: React.ReactNode }) {
   const { user, logout } = useAuthStore()
   const location = useLocation()
-  const nav = user?.role === 'admin' ? adminNav : user ? memberNav : []
-  const roleName = user?.role === 'admin' ? '管理中枢' : user ? '党员端' : '访客入口'
-  const showLoginEntry = !user && !location.pathname.startsWith('/login')
+  const nav =
+    user?.role === 'admin' ? adminNav : user?.role === 'secretary' ? secretaryNav : user ? memberNav : []
+  const roleName =
+    user?.role === 'admin' ? '管理中枢' : user?.role === 'secretary' ? '支部端' : user ? '党员端' : '访客入口'
 
   return (
     <div className="min-h-screen text-[#171717]">
@@ -74,12 +83,6 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 <LogOut className="h-4 w-4" />
                 退出
               </Button>
-            ) : showLoginEntry ? (
-              <Link to="/login">
-                <Button variant="secondary" className="px-4">
-                  登录
-                </Button>
-              </Link>
             ) : null}
           </div>
         </div>
