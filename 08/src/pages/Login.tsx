@@ -2,22 +2,26 @@ import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { Button } from '@/components/Button'
 import { useAuthStore } from '@/store/auth'
-import { ArrowRight, Shield } from 'lucide-react'
+import { ArrowRight, Lock, UserRound } from 'lucide-react'
 
 export default function Login() {
   const nav = useNavigate()
   const { login } = useAuthStore()
+  const [username, setUsername] = useState('')
+  const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  async function onLogin() {
+  async function onSubmit(e: React.FormEvent) {
+    e.preventDefault()
     setError(null)
     setLoading(true)
     try {
-      await login('admin')
-      nav('/admin/dashboard')
-    } catch (e: any) {
-      setError(e?.message ?? '登录失败')
+      await login(username.trim(), password)
+      const role = useAuthStore.getState().user?.role
+      nav(role === 'admin' ? '/admin/dashboard' : '/m/home')
+    } catch (err: any) {
+      setError(err?.message ?? '登录失败')
     } finally {
       setLoading(false)
     }
@@ -26,35 +30,84 @@ export default function Login() {
   return (
     <div className="flex min-h-[72vh] items-center">
       <section className="w-full rounded-[28px] bg-[#b91c1c] px-6 py-8 shadow-[0_22px_70px_rgba(185,28,28,0.22)] md:px-10">
-        <div className="mx-auto max-w-3xl">
-          <div className="text-center">
+        <div className="mx-auto grid max-w-5xl gap-8 md:grid-cols-12 md:items-center">
+          <div className="md:col-span-6">
             <div className="inline-flex items-center gap-2 rounded-full bg-white/14 px-4 py-2 text-xs font-semibold uppercase tracking-[0.32em] text-white shadow-[inset_0_0_0_1px_rgba(255,255,255,0.18)]">
-              Welcome
+              Secure Access
             </div>
-            <h1 className="mt-4 text-4xl font-black tracking-[-0.06em] text-white md:text-6xl">
-              进入数智党校学习系统
+            <h1 className="mt-4 text-4xl font-black tracking-[-0.06em] text-white md:text-5xl">
+              账号密码登录
             </h1>
-            <p className="mx-auto mt-4 max-w-2xl text-sm leading-7 text-white/85 md:text-[15px]">
-              这是演示版登录入口。当前阶段不做账号校验，点击登录后将以系统管理员身份进入，直接查看组织、内容、任务、题库与统计等功能闭环。
+            <p className="mt-4 max-w-xl text-sm leading-7 text-white/85 md:text-[15px]">
+              使用账号与密码进入系统。管理员进入后台治理，党员与支部书记进入学习端。没有账号可先注册。
             </p>
-            {error && (
-              <div className="mx-auto mt-6 max-w-xl rounded-2xl bg-white/12 px-4 py-3 text-white shadow-[inset_0_0_0_1px_rgba(255,255,255,0.18)]">
-                {error}
+          </div>
+
+          <div className="md:col-span-6">
+            <form
+              onSubmit={onSubmit}
+              className="rounded-[24px] bg-white px-6 py-7 shadow-[0_18px_50px_rgba(0,0,0,0.12)]"
+            >
+              <div className="text-xs font-semibold uppercase tracking-[0.28em] text-[#8c2424]/70">
+                Sign In
               </div>
-            )}
-            <div className="mt-7 flex flex-wrap items-center justify-center gap-3">
-              <Button onClick={() => onLogin()} disabled={loading} className="px-7">
-                <Shield className="h-4 w-4" />
+              <h2 className="mt-2 text-2xl font-bold tracking-[-0.04em] text-[#171717]">登录数智党校</h2>
+
+              <div className="mt-6 grid gap-4">
+                <label className="grid gap-1.5 text-sm">
+                  <span className="field-label">账号</span>
+                  <div className="input-shell flex items-center gap-2 px-3">
+                    <UserRound className="h-4 w-4 text-[#8c2424]" />
+                    <input
+                      value={username}
+                      onChange={(e) => setUsername(e.target.value)}
+                      className="w-full bg-transparent py-2.5 outline-none"
+                      placeholder="请输入账号"
+                      autoComplete="username"
+                      required
+                    />
+                  </div>
+                </label>
+                <label className="grid gap-1.5 text-sm">
+                  <span className="field-label">密码</span>
+                  <div className="input-shell flex items-center gap-2 px-3">
+                    <Lock className="h-4 w-4 text-[#8c2424]" />
+                    <input
+                      type="password"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      className="w-full bg-transparent py-2.5 outline-none"
+                      placeholder="请输入密码"
+                      autoComplete="current-password"
+                      required
+                    />
+                  </div>
+                </label>
+              </div>
+
+              {error && (
+                <div className="mt-4 rounded-2xl bg-[#b91c1c]/10 px-4 py-3 text-sm text-[#7f1d1d] shadow-[inset_0_0_0_1px_rgba(185,28,28,0.16)]">
+                  {error}
+                </div>
+              )}
+
+              <Button type="submit" disabled={loading || !username.trim() || !password} className="mt-6 w-full px-7">
                 {loading ? '登录中…' : '登录'}
                 <ArrowRight className="h-4 w-4" />
               </Button>
-              <Link
-                to="/login/roles"
-                className="text-sm font-semibold text-white underline decoration-white/35 underline-offset-4 hover:decoration-white/70"
-              >
-                切换身份（高级）
-              </Link>
-            </div>
+
+              <div className="mt-4 text-center text-xs text-black/45">
+                还没有账号？{' '}
+                <Link to="/register" className="font-semibold text-[#8c2424] underline-offset-2 hover:underline">
+                  立即注册
+                </Link>
+                <span className="mx-2 text-black/25">·</span>
+                返回{' '}
+                <Link to="/" className="font-semibold text-[#8c2424] underline-offset-2 hover:underline">
+                  首页
+                </Link>
+              </div>
+            </form>
           </div>
         </div>
       </section>

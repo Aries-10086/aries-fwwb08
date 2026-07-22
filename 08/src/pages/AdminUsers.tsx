@@ -8,7 +8,7 @@ import { useAuthStore } from '@/store/auth'
 import { Upload, Plus, RotateCw, Users, PencilLine, Trash2, Search, Save } from 'lucide-react'
 
 type Org = { id: string; name: string; parentId: string | null }
-type User = { id: string; name: string; role: string; orgUnitId: string; createdAt: string }
+type User = { id: string; name: string; username: string; role: string; orgUnitId: string; createdAt: string }
 
 export default function AdminUsers() {
   const nav = useNavigate()
@@ -18,12 +18,14 @@ export default function AdminUsers() {
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [csvText, setCsvText] = useState('name,role,orgUnitName\n张三,member,第三党支部\n李四,member,第三党支部')
+  const [csvText, setCsvText] = useState(
+    'name,username,password,role,orgUnitName\n张三,zhangsan,Pass1234,member,第三党支部\n李四,lisi,Pass1234,member,第三党支部',
+  )
   const [saving, setSaving] = useState(false)
   const [filters, setFilters] = useState({ name: '', role: '', orgUnitId: '' })
   const [importFileName, setImportFileName] = useState('')
 
-  const [form, setForm] = useState({ name: '', role: 'member', orgUnitId: 'org_branch_3' })
+  const [form, setForm] = useState({ name: '', username: '', password: '', role: 'member', orgUnitId: 'org_branch_3' })
 
   useEffect(() => {
     if (!user) nav('/login')
@@ -62,10 +64,22 @@ export default function AdminUsers() {
 
   useEffect(() => {
     if (!selected) {
-      setForm({ name: '', role: 'member', orgUnitId: orgs.find((o) => o.parentId)?.id ?? 'org_branch_3' })
+      setForm({
+        name: '',
+        username: '',
+        password: '',
+        role: 'member',
+        orgUnitId: orgs.find((o) => o.parentId)?.id ?? 'org_branch_3',
+      })
       return
     }
-    setForm({ name: selected.name, role: selected.role, orgUnitId: selected.orgUnitId })
+    setForm({
+      name: selected.name,
+      username: selected.username ?? '',
+      password: '',
+      role: selected.role,
+      orgUnitId: selected.orgUnitId,
+    })
   }, [selectedId, orgs])
 
   async function create() {
@@ -74,7 +88,7 @@ export default function AdminUsers() {
     try {
       await apiFetch<{ id: string }>('/api/users', { method: 'POST', body: JSON.stringify(form) })
       setSelectedId(null)
-      setForm((p) => ({ ...p, name: '' }))
+      setForm((p) => ({ ...p, name: '', username: '', password: '' }))
       await load()
     } catch (e: any) {
       setError(e?.message ?? '创建失败')
@@ -200,6 +214,27 @@ export default function AdminUsers() {
                 />
               </label>
               <label className="grid gap-1 text-sm">
+                <span className="field-label">登录账号</span>
+                <input
+                  value={form.username}
+                  onChange={(e) => setForm((p) => ({ ...p, username: e.target.value }))}
+                  className="input-shell"
+                  placeholder="例如：zhangsan"
+                  autoComplete="off"
+                />
+              </label>
+              <label className="grid gap-1 text-sm">
+                <span className="field-label">{selected ? '重置密码（留空则不改）' : '登录密码'}</span>
+                <input
+                  type="password"
+                  value={form.password}
+                  onChange={(e) => setForm((p) => ({ ...p, password: e.target.value }))}
+                  className="input-shell"
+                  placeholder={selected ? '不修改请留空' : '至少 6 位'}
+                  autoComplete="new-password"
+                />
+              </label>
+              <label className="grid gap-1 text-sm">
                 <span className="field-label">角色</span>
                 <select
                   value={form.role}
@@ -230,7 +265,10 @@ export default function AdminUsers() {
               <div className="flex flex-wrap gap-2">
                 {selected ? (
                   <>
-                    <Button onClick={() => update()} disabled={!form.name.trim() || saving}>
+                    <Button
+                      onClick={() => update()}
+                      disabled={!form.name.trim() || !form.username.trim() || saving}
+                    >
                       <Save className="h-4 w-4" />
                       保存
                     </Button>
@@ -238,14 +276,23 @@ export default function AdminUsers() {
                       variant="secondary"
                       onClick={() => {
                         setSelectedId(null)
-                        setForm({ name: '', role: 'member', orgUnitId: orgs.find((o) => o.parentId)?.id ?? 'org_branch_3' })
+                        setForm({
+                          name: '',
+                          username: '',
+                          password: '',
+                          role: 'member',
+                          orgUnitId: orgs.find((o) => o.parentId)?.id ?? 'org_branch_3',
+                        })
                       }}
                     >
                       新建模式
                     </Button>
                   </>
                 ) : (
-                  <Button onClick={() => create()} disabled={!form.name.trim() || saving}>
+                  <Button
+                    onClick={() => create()}
+                    disabled={!form.name.trim() || !form.username.trim() || form.password.length < 6 || saving}
+                  >
                     <Users className="h-4 w-4" />
                     创建
                   </Button>
@@ -265,7 +312,7 @@ export default function AdminUsers() {
           <CardContent>
             <div className="grid gap-3">
               <div className="text-xs text-black/60">
-                支持 CSV 或从 Excel 直接复制粘贴的制表符内容。列名支持：name/姓名、role/角色、orgUnitId/支部ID、orgUnitName/支部。
+                支持 CSV 或从 Excel 直接复制粘贴的制表符内容。列名支持：name/姓名、username/账号/用户名、password/密码（必填且至少 6 位）、role/角色、orgUnitId/支部ID、orgUnitName/支部。
               </div>
               <label className="grid gap-2 text-sm">
                 <span className="field-label">上传文件（.xlsx/.xls/.csv）</span>
@@ -313,7 +360,9 @@ export default function AdminUsers() {
               >
                 <button className="text-left" onClick={() => setSelectedId(u.id)}>
                   <div className="text-sm font-medium text-[#171717]">{u.name}</div>
-                  <div className="mt-1 text-xs text-black/45">{u.id}</div>
+                  <div className="mt-1 text-xs text-black/45">
+                    {u.username ? `@${u.username}` : u.id}
+                  </div>
                 </button>
                 <div className="text-xs text-black/60">{u.role}</div>
                 <div className="text-xs text-black/60">{orgName.get(u.orgUnitId) ?? u.orgUnitId}</div>

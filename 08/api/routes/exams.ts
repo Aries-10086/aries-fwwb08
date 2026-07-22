@@ -1,7 +1,7 @@
 import { Router, type Request, type Response } from 'express'
 import { nanoid } from 'nanoid'
 import { db, nowIso, audit } from '../db.js'
-import { getUserContext, requireRole } from '../utils/http.js'
+import { getUserContext, requireAuth, requireRole, rejectUnauthorized } from '../utils/http.js'
 import { parseJson, json } from '../utils/json.js'
 import type { QuestionType } from '../../shared/types.js'
 
@@ -46,6 +46,11 @@ function getPaperWithQuestions(paperId: string) {
 }
 
 router.get('/', (req: Request, res: Response) => {
+  if (!requireAuth(req)) {
+    rejectUnauthorized(res)
+    return
+  }
+
   const { role, userId } = getUserContext(req)
 
   if (role === 'admin') {
@@ -97,6 +102,11 @@ router.get('/', (req: Request, res: Response) => {
 })
 
 router.get('/:id', (req: Request, res: Response) => {
+  if (!requireAuth(req)) {
+    rejectUnauthorized(res)
+    return
+  }
+
   const { role, userId } = getUserContext(req)
   const id = String(req.params.id)
 

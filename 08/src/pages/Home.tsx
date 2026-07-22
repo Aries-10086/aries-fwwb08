@@ -25,14 +25,9 @@ export default function Home() {
             <p className="page-subtitle max-w-2xl">
               围绕组织管理、学习任务、测验考试、统计分析与 AI 能力构建完整闭环，既有庄重的品牌气质，也有面向日常运营的数智效率。
             </p>
-            <div className="mt-8 flex flex-wrap gap-3">
+            <div className="mt-8 flex justify-center">
               <Link to={go}>
-                <Button className="px-6">进入系统</Button>
-              </Link>
-              <Link to="/login/roles">
-                <Button variant="secondary" className="px-6">
-                  切换身份
-                </Button>
+                <Button className="px-6">{user ? '进入系统' : '账号登录'}</Button>
               </Link>
             </div>
             <div className="mt-8 grid gap-3 text-sm md:grid-cols-3">

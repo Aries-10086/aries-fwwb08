@@ -1,7 +1,8 @@
 import { Router, type Request, type Response } from 'express'
 import { nanoid } from 'nanoid'
 import { db, nowIso, audit } from '../db.js'
-import { getUserContext, requireRole } from '../utils/http.js'
+import { getUserContext, requireAuth, requireRole, rejectUnauthorized, rejectForbidden } from '../utils/http.js'
+import { hashPassword, normalizeUsername } from '../utils/password.js'
 
 const router = Router()
 
@@ -24,7 +25,23 @@ function parseTabular(text: string) {
   return rows
 }
 
+function assertUsernameAvailable(username: string, excludeId?: string) {
+  const row = excludeId
+    ? (db.prepare('SELECT id FROM users WHERE lower(username) = ? AND id != ?').get(username, excludeId) as any)
+    : (db.prepare('SELECT id FROM users WHERE lower(username) = ?').get(username) as any)
+  return !row
+}
+
 router.get('/', (req: Request, res: Response) => {
+  if (!requireRole(req, ['admin'])) {
+    if (!requireAuth(req)) {
+      rejectUnauthorized(res)
+      return
+    }
+    rejectForbidden(res, '仅管理员可查看人员列表')
+    return
+  }
+
   const name = req.query.name ? String(req.query.name) : null
   const role = req.query.role ? String(req.query.role) : null
   const orgUnitId = req.query.orgUnitId ? String(req.query.orgUnitId) : null
@@ -33,8 +50,8 @@ router.get('/', (req: Request, res: Response) => {
   const params: any[] = []
 
   if (name) {
-    where.push('name LIKE ?')
-    params.push(`%${name}%`)
+    where.push('(name LIKE ? OR username LIKE ?)')
+    params.push(`%${name}%`, `%${name}%`)
   }
   if (role) {
     where.push('role = ?')
@@ -49,7 +66,7 @@ router.get('/', (req: Request, res: Response) => {
 
   const rows = db
     .prepare(
-      `SELECT id, name, role, org_unit_id, created_at
+      `SELECT id, name, username, role, org_unit_id, created_at
        FROM users
        ${whereSql}
        ORDER BY created_at DESC
@@ -60,6 +77,7 @@ router.get('/', (req: Request, res: Response) => {
   const data = rows.map((r) => ({
     id: r.id,
     name: r.name,
+    username: r.username ?? '',
     role: r.role,
     orgUnitId: r.org_unit_id,
     createdAt: r.created_at,
@@ -77,17 +95,39 @@ router.post('/', (req: Request, res: Response) => {
   const { userId } = getUserContext(req)
   const id = `u_${nanoid(10)}`
   const ts = nowIso()
+  const name = String(req.body?.name ?? '').trim()
+  const username = normalizeUsername(String(req.body?.username ?? ''))
+  const password = String(req.body?.password ?? '')
+  const roleRaw = String(req.body?.role ?? 'member')
+  const role = ['member', 'secretary', 'admin'].includes(roleRaw) ? roleRaw : ''
+  const orgUnitId = String(req.body?.orgUnitId ?? '')
 
-  db.prepare('INSERT INTO users (id, name, role, org_unit_id, created_at) VALUES (?, ?, ?, ?, ?)')
-    .run(
-      id,
-      String(req.body?.name ?? ''),
-      String(req.body?.role ?? 'member'),
-      String(req.body?.orgUnitId ?? ''),
-      ts,
-    )
+  if (!name) {
+    res.status(400).json({ success: false, error: '请填写姓名' })
+    return
+  }
+  if (!username) {
+    res.status(400).json({ success: false, error: '请填写登录账号' })
+    return
+  }
+  if (!role) {
+    res.status(400).json({ success: false, error: '角色无效' })
+    return
+  }
+  if (password.length < 6) {
+    res.status(400).json({ success: false, error: '密码至少 6 位' })
+    return
+  }
+  if (!assertUsernameAvailable(username)) {
+    res.status(400).json({ success: false, error: '账号已存在' })
+    return
+  }
 
-  audit(userId || 'u_admin_demo', 'users.create', { id })
+  db.prepare(
+    'INSERT INTO users (id, name, username, password_hash, role, org_unit_id, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)',
+  ).run(id, name, username, hashPassword(password), role, orgUnitId, ts)
+
+  audit(userId || 'u_admin_demo', 'users.create', { id, username })
   res.status(200).json({ success: true, data: { id } })
 })
 
@@ -99,16 +139,49 @@ router.put('/:id', (req: Request, res: Response) => {
 
   const { userId } = getUserContext(req)
   const id = String(req.params.id)
+  const name = String(req.body?.name ?? '').trim()
+  const username = normalizeUsername(String(req.body?.username ?? ''))
+  const password = String(req.body?.password ?? '')
+  const roleRaw = String(req.body?.role ?? 'member')
+  const role = ['member', 'secretary', 'admin'].includes(roleRaw) ? roleRaw : ''
+  const orgUnitId = String(req.body?.orgUnitId ?? '')
 
-  db.prepare('UPDATE users SET name = ?, role = ?, org_unit_id = ? WHERE id = ?')
-    .run(
-      String(req.body?.name ?? ''),
-      String(req.body?.role ?? 'member'),
-      String(req.body?.orgUnitId ?? ''),
+  if (!name) {
+    res.status(400).json({ success: false, error: '请填写姓名' })
+    return
+  }
+  if (!username) {
+    res.status(400).json({ success: false, error: '请填写登录账号' })
+    return
+  }
+  if (!role) {
+    res.status(400).json({ success: false, error: '角色无效' })
+    return
+  }
+  if (!assertUsernameAvailable(username, id)) {
+    res.status(400).json({ success: false, error: '账号已存在' })
+    return
+  }
+
+  if (password) {
+    if (password.length < 6) {
+      res.status(400).json({ success: false, error: '密码至少 6 位' })
+      return
+    }
+    db.prepare(
+      'UPDATE users SET name = ?, username = ?, password_hash = ?, role = ?, org_unit_id = ? WHERE id = ?',
+    ).run(name, username, hashPassword(password), role, orgUnitId, id)
+  } else {
+    db.prepare('UPDATE users SET name = ?, username = ?, role = ?, org_unit_id = ? WHERE id = ?').run(
+      name,
+      username,
+      role,
+      orgUnitId,
       id,
     )
+  }
 
-  audit(userId || 'u_admin_demo', 'users.update', { id })
+  audit(userId || 'u_admin_demo', 'users.update', { id, username })
   res.status(200).json({ success: true })
 })
 
@@ -157,7 +230,7 @@ router.post('/import', (req: Request, res: Response) => {
   for (const o of orgRows) orgByName.set(String(o.name), String(o.id))
 
   const insert = db.prepare(
-    'INSERT INTO users (id, name, role, org_unit_id, created_at) VALUES (?, ?, ?, ?, ?)',
+    'INSERT INTO users (id, name, username, password_hash, role, org_unit_id, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)',
   )
 
   const ts = nowIso()
@@ -169,14 +242,28 @@ router.post('/import', (req: Request, res: Response) => {
 
   rows.forEach((r, idx) => {
     const name = String(r.name ?? r.姓名 ?? '').trim()
-    const role = String(r.role ?? r.角色 ?? 'member').trim()
+    const roleRaw = String(r.role ?? r.角色 ?? 'member').trim()
+    const role = ['member', 'secretary', 'admin'].includes(roleRaw) ? roleRaw : ''
+    const usernameRaw = String(r.username ?? r.账号 ?? r.用户名 ?? '').trim()
+    const password = String(r.password ?? r.密码 ?? '').trim()
     const orgUnitIdRaw = String(r.orgUnitId ?? r.支部ID ?? '').trim()
     const orgNameRaw = String(r.orgUnitName ?? r.支部 ?? '').trim()
     const orgUnitId = orgUnitIdRaw || (orgNameRaw ? orgByName.get(orgNameRaw) ?? '' : '')
+    const username = normalizeUsername(usernameRaw || `user_${nanoid(6)}`)
 
     if (!name) {
       result.failed += 1
       result.errors.push({ line: idx + 2, reason: '缺少 name/姓名' })
+      return
+    }
+    if (!role) {
+      result.failed += 1
+      result.errors.push({ line: idx + 2, reason: '角色无效（仅支持 member/secretary/admin）' })
+      return
+    }
+    if (password.length < 6) {
+      result.failed += 1
+      result.errors.push({ line: idx + 2, reason: '缺少 password/密码或不足 6 位（禁止默认弱密码）' })
       return
     }
     if (!orgUnitId) {
@@ -184,9 +271,14 @@ router.post('/import', (req: Request, res: Response) => {
       result.errors.push({ line: idx + 2, reason: '缺少 orgUnitId/支部ID 或 orgUnitName/支部' })
       return
     }
+    if (!assertUsernameAvailable(username)) {
+      result.failed += 1
+      result.errors.push({ line: idx + 2, reason: `账号已存在：${username}` })
+      return
+    }
 
     const id = `u_${nanoid(10)}`
-    insert.run(id, name, role, orgUnitId, ts)
+    insert.run(id, name, username, hashPassword(password), role, orgUnitId, ts)
     result.ok += 1
   })
 

@@ -71,7 +71,7 @@ router.post('/recommend', async (req: Request, res: Response) => {
   }
 
   const { userId } = getUserContext(req)
-  const targetUserId = String(req.body?.userId ?? userId)
+  const targetUserId = userId
   const weak = topWeakCategories(targetUserId)
   const done = completedContentIds(targetUserId)
 
@@ -244,7 +244,8 @@ router.post('/report', async (req: Request, res: Response) => {
   }
 
   const { userId } = getUserContext(req)
-  const targetUserId = String(req.body?.userId ?? userId)
+  // 禁止通过 body.userId 越权查看他人报告
+  const targetUserId = userId
 
   const durationRow = db
     .prepare('SELECT SUM(duration_ms) as s FROM learning_records WHERE user_id = ?')

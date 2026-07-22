@@ -1,15 +1,108 @@
-import type { Request } from 'express'
+import type { Request, Response, NextFunction } from 'express'
 import type { UserRole } from '../../shared/types.js'
+import { db } from '../db.js'
+import { extractBearerToken, verifyAccessToken } from './token.js'
+
+export type AuthContext = {
+  userId: string
+  role: UserRole
+  orgUnitId: string
+  username: string
+  name: string
+}
+
+declare global {
+  namespace Express {
+    interface Request {
+      auth?: AuthContext | null
+    }
+  }
+}
+
+const VALID_ROLES: UserRole[] = ['member', 'secretary', 'admin']
+
+function loadUser(userId: string): AuthContext | null {
+  const row = db
+    .prepare('SELECT id, name, username, role, org_unit_id FROM users WHERE id = ?')
+    .get(userId) as any
+  if (!row?.id) return null
+  const role = String(row.role) as UserRole
+  if (!VALID_ROLES.includes(role)) return null
+  return {
+    userId: String(row.id),
+    name: String(row.name ?? ''),
+    username: String(row.username ?? ''),
+    role,
+    orgUnitId: String(row.org_unit_id ?? ''),
+  }
+}
+
+/** 从 Authorization Bearer 解析用户；角色一律以数据库为准，忽略客户端 x-role */
+export function attachAuth(req: Request, _res: Response, next: NextFunction) {
+  req.auth = null
+  const token = extractBearerToken(req)
+  if (!token) {
+    next()
+    return
+  }
+  const payload = verifyAccessToken(token)
+  if (!payload?.sub) {
+    next()
+    return
+  }
+  req.auth = loadUser(payload.sub)
+  next()
+}
 
 export function getUserContext(req: Request) {
-  const userId = String(req.headers['x-user-id'] ?? '')
-  const role = String(req.headers['x-role'] ?? '') as UserRole
-  const orgUnitId = String(req.headers['x-org-unit-id'] ?? '')
-  return { userId, role, orgUnitId }
+  return {
+    userId: req.auth?.userId ?? '',
+    role: (req.auth?.role ?? '') as UserRole,
+    orgUnitId: req.auth?.orgUnitId ?? '',
+  }
+}
+
+export function isAuthenticated(req: Request) {
+  return Boolean(req.auth?.userId)
+}
+
+export function requireAuth(req: Request) {
+  return isAuthenticated(req)
 }
 
 export function requireRole(req: Request, roles: UserRole[]) {
-  const { role } = getUserContext(req)
-  return roles.includes(role)
+  if (!req.auth?.userId) return false
+  return roles.includes(req.auth.role)
 }
 
+export function rejectUnauthorized(res: Response, message = '请先登录') {
+  res.status(401).json({ success: false, error: message })
+}
+
+export function rejectForbidden(res: Response, message = '无权限访问') {
+  res.status(403).json({ success: false, error: message })
+}
+
+/** 路由级：必须登录 */
+export function ensureAuth(req: Request, res: Response, next: NextFunction) {
+  if (!requireAuth(req)) {
+    rejectUnauthorized(res)
+    return
+  }
+  next()
+}
+
+/** 路由级：必须具备角色之一 */
+export function ensureRole(...roles: UserRole[]) {
+  return (req: Request, res: Response, next: NextFunction) => {
+    if (!requireAuth(req)) {
+      rejectUnauthorized(res)
+      return
+    }
+    if (!requireRole(req, roles)) {
+      rejectForbidden(res)
+      return
+    }
+    next()
+  }
+}

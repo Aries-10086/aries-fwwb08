@@ -1,7 +1,7 @@
 import { Router, type Request, type Response } from 'express'
 import { nanoid } from 'nanoid'
 import { db, nowIso, audit } from '../db.js'
-import { getUserContext, requireRole } from '../utils/http.js'
+import { getUserContext, requireAuth, requireRole, rejectUnauthorized } from '../utils/http.js'
 
 const router = Router()
 
@@ -16,6 +16,11 @@ function getContentIdsForTask(taskId: string) {
 }
 
 router.get('/', (req: Request, res: Response) => {
+  if (!requireAuth(req)) {
+    rejectUnauthorized(res)
+    return
+  }
+
   const { role, userId } = getUserContext(req)
   const orgUnitIdParam = req.query.orgUnitId ? String(req.query.orgUnitId) : null
 
@@ -25,6 +30,12 @@ router.get('/', (req: Request, res: Response) => {
       : role === 'secretary' || role === 'member'
         ? getOrgUnitIdForUser(userId)
         : null
+
+  // 非管理员必须绑定支部，避免未登录/未知角色拉全量
+  if (role !== 'admin' && !orgUnitId) {
+    res.status(200).json({ success: true, data: [] })
+    return
+  }
 
   const where: string[] = []
   const params: any[] = []
@@ -86,6 +97,11 @@ router.post('/', (req: Request, res: Response) => {
 })
 
 router.get('/:id', (req: Request, res: Response) => {
+  if (!requireAuth(req)) {
+    rejectUnauthorized(res)
+    return
+  }
+
   const { role, userId } = getUserContext(req)
   const id = String(req.params.id)
 
