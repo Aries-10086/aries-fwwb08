@@ -1,0 +1,84 @@
+支部书记 + 功能 · 更改计划
+================================
+
+一、目标
+--------
+支部书记登录后，可查看本支部（自己所属组织）下级党员的测验成绩信息，
+便于掌握支部学习与考试情况。不开放管理后台全量权限。
+
+二、现状
+--------
+1. 支部书记当前与党员共用移动端：学习 / 测验 / AI 报告。
+2. 后端已有 /api/stats/overview，书记可按本支部聚合查看均分、通过率等，
+   但前端未提供「下级成绩明细」入口。
+3. 成绩数据在 exam_attempts（总分、是否通过、时间），关联 users / exams。
+
+三、需求范围（本期）
+--------------------
+【做】
+- 支部书记可查看本支部党员列表及其测验成绩汇总/明细。
+- 数据范围严格限定为：书记所属 org_unit_id 下的 role=member 人员。
+- 导航增加「支部成绩」入口；页面展示汇总指标 + 成员成绩表。
+
+【不做（本期）】
+- 不开放组织/人员/题库等管理后台菜单给书记。
+- 不修改管理员看板逻辑（可复用接口，管理员可选看某支部）。
+- 不改登录/注册体系。
+
+四、技术方案
+------------
+1. 后端 API
+   - 新增 GET /api/stats/member-scores
+   - 权限：secretary / admin
+   - secretary：强制按当前用户 org_unit_id 过滤
+   - admin：可选 query.orgUnitId；不传则全库党员
+   - 返回字段建议：
+     · 汇总：memberCount, attemptCount, avgScore, passRate
+     · 列表每项：userId, name, username,
+       attemptCount, avgScore, latestScore, latestExamTitle,
+       latestIsPass, latestAt, passCount
+
+2. 前端页面
+   - 新增 src/pages/SecretaryScores.tsx（路由 /m/scores）
+   - 展示：本支部汇总卡片 + 成员成绩表格/列表
+   - 空态：暂无党员或暂无考试记录时友好提示
+
+3. 导航与路由
+   - AppShell：支部书记使用独立导航
+     学习 | 测验 | 支部成绩 | AI 报告
+   - App.tsx 增加 Route /m/scores
+   - 角色文案：支部书记显示「支部端」而非笼统「党员端」
+
+4. 权限校验
+   - 前端：非 secretary/admin 访问 /m/scores 时跳回学习首页
+   - 后端：非授权角色 403
+
+五、验收标准
+------------
+1. secretary / secretary123 登录后可见「支部成绩」菜单。
+2. 打开后能看到本支部党员成绩；其他支部数据不可见。
+3. member 账号看不到该菜单；直接访问 /m/scores 会被拦回。
+4. 某党员有多次考试时，展示均分与最近一次成绩。
+5. 本支部无考试记录时页面不报错，显示空态。
+
+六、执行顺序
+------------
+1. 写本计划文件（本文件）✅
+2. 实现后端 /api/stats/member-scores ✅
+3. 实现前端 SecretaryScores 页面 ✅
+4. 调整 AppShell 导航与 App 路由 ✅
+5. 本地用支部书记账号验证 ✅
+
+执行结果（已完成）
+------------------
+- 计划文件：支部书记+功能.txt
+- API：GET /api/stats/member-scores（书记仅本支部；管理员可看全部）
+- 页面：/m/scores「支部成绩」
+- 导航：书记端 = 学习 | 测验 | 支部成绩 | AI 报告
+- 验证账号：secretary / secretary123
+
+七、风险与说明
+--------------
+- 「下级」按同一党支部成员理解（扁平支部结构）；若未来多级组织，
+  再扩展为递归下级 org。
+- 成绩以 exam_attempts.total_score 为准，与现有测验提交逻辑一致。

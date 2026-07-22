@@ -1,0 +1,13 @@
+数智党校学习系统 · 测试账号密码
+
+系统管理员
+账号：admin
+密码：admin123
+
+支部书记
+账号：secretary
+密码：secretary123
+
+党员
+账号：member
+密码：member123
