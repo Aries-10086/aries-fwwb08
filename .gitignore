@@ -1,0 +1,29 @@
+# Dependencies
+node_modules/
+
+# Build outputs
+dist/
+build/
+.vite/
+*.tsbuildinfo
+
+# Environment and secrets
+.env
+.env.*
+!.env.example
+credentials.json
+*.pem
+*.key
+**/secrets/
+
+# OS and editor
+.DS_Store
+Thumbs.db
+
+# Logs and coverage
+*.log
+npm-debug.log*
+coverage/
+
+# Local tooling
+.trae/
