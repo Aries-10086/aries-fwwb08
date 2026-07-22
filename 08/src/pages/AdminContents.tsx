@@ -2,9 +2,18 @@ import { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/Card'
 import { Button } from '@/components/Button'
-import { apiFetch } from '@/utils/api'
+import { apiFetch, apiUpload } from '@/utils/api'
 import { useAuthStore } from '@/store/auth'
-import { BookOpen, Save, RotateCw, Trash2 } from 'lucide-react'
+import { withAccessToken } from '@/utils/fileLink'
+import { BookOpen, FileUp, Paperclip, Save, RotateCw, Trash2, X } from 'lucide-react'
+
+type Attachment = {
+  id: string
+  name: string
+  url: string
+  size: number
+  mime: string
+}
 
 type Content = {
   id: string
@@ -13,18 +22,26 @@ type Content = {
   body: string
   category: string
   tags: string[]
+  attachments: Attachment[]
   isPublic: boolean
   updatedAt: string
 }
 
+function formatSize(size: number) {
+  if (size < 1024) return `${size} B`
+  if (size < 1024 * 1024) return `${(size / 1024).toFixed(1)} KB`
+  return `${(size / (1024 * 1024)).toFixed(1)} MB`
+}
+
 export default function AdminContents() {
   const nav = useNavigate()
-  const { user } = useAuthStore()
+  const { user, token } = useAuthStore()
   const [items, setItems] = useState<Content[]>([])
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
   const [saving, setSaving] = useState(false)
+  const [uploading, setUploading] = useState(false)
 
   const selected = useMemo(() => items.find((x) => x.id === selectedId) ?? null, [items, selectedId])
 
@@ -35,6 +52,7 @@ export default function AdminContents() {
     category: '',
     tags: '',
     isPublic: false,
+    attachments: [] as Attachment[],
   })
 
   useEffect(() => {
@@ -48,7 +66,7 @@ export default function AdminContents() {
     try {
       const data = await apiFetch<Content[]>('/api/contents')
       setItems(data)
-      setSelectedId(data[0]?.id ?? null)
+      setSelectedId((prev) => (prev && data.some((x) => x.id === prev) ? prev : data[0]?.id ?? null))
     } catch (e: any) {
       setError(e?.message ?? '加载失败')
     } finally {
@@ -61,7 +79,10 @@ export default function AdminContents() {
   }, [])
 
   useEffect(() => {
-    if (!selected) return
+    if (!selected) {
+      setForm((p) => ({ ...p, attachments: p.attachments }))
+      return
+    }
     setForm({
       type: selected.type,
       title: selected.title,
@@ -69,6 +90,7 @@ export default function AdminContents() {
       category: selected.category,
       tags: (selected.tags ?? []).join(','),
       isPublic: selected.isPublic,
+      attachments: selected.attachments ?? [],
     })
   }, [selectedId])
 
@@ -87,6 +109,7 @@ export default function AdminContents() {
           .map((s) => s.trim())
           .filter(Boolean),
         isPublic: form.isPublic,
+        attachments: form.attachments,
       }
       await apiFetch<void>(`/api/contents/${selected.id}`, { method: 'PUT', body: JSON.stringify(body) })
       await load()
@@ -111,6 +134,7 @@ export default function AdminContents() {
           .map((s) => s.trim())
           .filter(Boolean),
         isPublic: form.isPublic,
+        attachments: form.attachments,
       }
       const res = await apiFetch<{ id: string }>('/api/contents', { method: 'POST', body: JSON.stringify(body) })
       await load()
@@ -136,13 +160,33 @@ export default function AdminContents() {
     }
   }
 
+  async function onUploadFile(file: File | null) {
+    if (!file) return
+    setUploading(true)
+    setError(null)
+    try {
+      const att = await apiUpload<Attachment>('/api/contents/upload', file)
+      setForm((p) => ({ ...p, attachments: [...p.attachments, att] }))
+    } catch (e: any) {
+      setError(e?.message ?? '上传失败')
+    } finally {
+      setUploading(false)
+    }
+  }
+
+  function removeAttachment(id: string) {
+    setForm((p) => ({ ...p, attachments: p.attachments.filter((a) => a.id !== id) }))
+  }
+
   return (
     <div className="grid gap-6">
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
           <div className="page-eyebrow">Content Studio</div>
           <h1 className="page-title text-3xl md:text-4xl">学习内容</h1>
-          <div className="page-subtitle mt-2 max-w-2xl">统一维护文章和视频内容，并控制公共内容可见性，形成稳定的学习供给库。</div>
+          <div className="page-subtitle mt-2 max-w-2xl">
+            统一维护文章和视频内容，支持上传附件文件，并控制公共内容可见性。
+          </div>
         </div>
         <div className="flex items-center gap-2">
           <Button variant="ghost" onClick={() => load()} disabled={loading}>
@@ -193,7 +237,10 @@ export default function AdminContents() {
                     <div className="text-sm font-medium">{c.title}</div>
                     <div className="text-xs opacity-80">{c.isPublic ? '公共' : '非公共'}</div>
                   </div>
-                  <div className="mt-1 text-xs opacity-80">{c.category} · {c.type}</div>
+                  <div className="mt-1 text-xs opacity-80">
+                    {c.category} · {c.type}
+                    {(c.attachments?.length ?? 0) > 0 ? ` · 附件 ${c.attachments.length}` : ''}
+                  </div>
                 </button>
               ))}
               {items.length === 0 && <div className="py-10 text-sm text-zinc-400">暂无内容</div>}
@@ -267,6 +314,65 @@ export default function AdminContents() {
                   className="input-shell w-full resize-none px-4 py-3 text-black/80"
                 />
               </label>
+
+              <div className="grid gap-3 rounded-2xl bg-[#8c2424]/5 px-4 py-4 shadow-[inset_0_0_0_1px_rgba(140,36,36,0.08)]">
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <div>
+                    <div className="flex items-center gap-2 text-sm font-semibold text-[#171717]">
+                      <Paperclip className="h-4 w-4 text-[#8c2424]" />
+                      附件文件
+                    </div>
+                    <div className="mt-1 text-xs text-black/50">
+                      支持 PDF / Office / 图片 / 视频 / ZIP 等，单文件最大 50MB。上传后请点击「保存」写入内容。
+                    </div>
+                  </div>
+                  <label className="inline-flex cursor-pointer items-center gap-2">
+                    <input
+                      type="file"
+                      className="hidden"
+                      disabled={uploading}
+                      onChange={async (e) => {
+                        await onUploadFile(e.target.files?.[0] ?? null)
+                        e.currentTarget.value = ''
+                      }}
+                    />
+                    <span className="inline-flex items-center gap-2 rounded-full bg-[#8c2424] px-4 py-2 text-sm font-semibold text-white shadow-[0_10px_20px_rgba(140,36,36,0.18)]">
+                      <FileUp className="h-4 w-4" />
+                      {uploading ? '上传中…' : '上传文件'}
+                    </span>
+                  </label>
+                </div>
+
+                <div className="grid gap-2">
+                  {form.attachments.map((att) => (
+                    <div
+                      key={att.id}
+                      className="flex items-center justify-between gap-3 rounded-xl bg-white px-3 py-3 shadow-[inset_0_0_0_1px_rgba(0,0,0,0.06)]"
+                    >
+                      <a
+                        href={withAccessToken(att.url, token)}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="min-w-0 flex-1 truncate text-sm font-medium text-[#8c2424] hover:underline"
+                      >
+                        {att.name}
+                      </a>
+                      <div className="shrink-0 text-xs text-black/45">{formatSize(att.size)}</div>
+                      <button
+                        type="button"
+                        onClick={() => removeAttachment(att.id)}
+                        className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-[#b91c1c]/10 text-[#8c2424] hover:bg-[#b91c1c]/16"
+                        title="移除附件"
+                      >
+                        <X className="h-4 w-4" />
+                      </button>
+                    </div>
+                  ))}
+                  {form.attachments.length === 0 && (
+                    <div className="py-4 text-center text-sm text-black/40">暂无附件，点击右上角上传</div>
+                  )}
+                </div>
+              </div>
             </div>
           </CardContent>
         </Card>

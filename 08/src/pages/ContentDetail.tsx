@@ -4,7 +4,16 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/Card'
 import { Button } from '@/components/Button'
 import { apiFetch } from '@/utils/api'
 import { useAuthStore } from '@/store/auth'
-import { ArrowLeft, CheckCircle2, Clock } from 'lucide-react'
+import { withAccessToken } from '@/utils/fileLink'
+import { ArrowLeft, CheckCircle2, Clock, Paperclip } from 'lucide-react'
+
+type Attachment = {
+  id: string
+  name: string
+  url: string
+  size: number
+  mime: string
+}
 
 type Content = {
   id: string
@@ -13,13 +22,14 @@ type Content = {
   body: string
   category: string
   tags: string[]
+  attachments?: Attachment[]
   isPublic: boolean
 }
 
 export default function ContentDetail() {
   const nav = useNavigate()
   const { id } = useParams()
-  const { user } = useAuthStore()
+  const { user, token } = useAuthStore()
   const [content, setContent] = useState<Content | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [completed, setCompleted] = useState(false)
@@ -84,13 +94,15 @@ export default function ContentDetail() {
               </Button>
             </Link>
             <Button
+              variant={completed ? 'success' : 'primary'}
+              disabled={completed}
               onClick={async () => {
                 setCompleted(true)
                 await record(true)
               }}
             >
               <CheckCircle2 className="h-4 w-4" />
-              标记完成
+              {completed ? '已完成' : '标记完成'}
             </Button>
           </div>
         </div>
@@ -128,6 +140,25 @@ export default function ContentDetail() {
               <div className="whitespace-pre-wrap rounded-[24px] bg-white/90 px-5 py-5 text-sm leading-8 text-black/75 shadow-[inset_0_0_0_1px_rgba(0,0,0,0.06)]">
                 {content.body}
               </div>
+              {(content.attachments?.length ?? 0) > 0 && (
+                <div className="grid gap-2">
+                  <div className="flex items-center gap-2 text-sm font-semibold text-[#171717]">
+                    <Paperclip className="h-4 w-4 text-[#8c2424]" />
+                    附件下载
+                  </div>
+                  {content.attachments!.map((att) => (
+                    <a
+                      key={att.id}
+                      href={withAccessToken(att.url, token)}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="list-surface text-sm text-[#8c2424] hover:bg-[#8c2424]/5"
+                    >
+                      {att.name}
+                    </a>
+                  ))}
+                </div>
+              )}
               <div className="flex flex-wrap gap-2">
                 {(content.tags ?? []).map((t) => (
                   <span key={t} className="data-pill">
