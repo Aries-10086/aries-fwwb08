@@ -84,13 +84,13 @@ export default function AdminAIQuery() {
   return (
     <div className="grid gap-6">
       <div className="hero-frame px-6 py-7 md:px-8">
-        <div className="page-eyebrow">AI Query Console</div>
+        <div className="page-eyebrow">AI 查询</div>
         <h1 className="page-title text-3xl md:text-5xl">自然语言数据查询</h1>
         <div className="page-subtitle mt-2 max-w-2xl">用一句自然语言直接提问组织运营数据，由系统自动生成解释文本和图表，减少后台统计的切换成本。</div>
       </div>
 
       {error && (
-        <div className="rounded-2xl bg-[#b91c1c]/10 px-4 py-3 text-[#7f1d1d] shadow-[inset_0_0_0_1px_rgba(185,28,28,0.16)]">
+        <div className="rounded-2xl bg-[#a31828]/10 px-4 py-3 text-[#7a1020] shadow-[inset_0_0_0_1px_rgba(185,28,28,0.16)]">
           {error}
         </div>
       )}
@@ -98,7 +98,7 @@ export default function AdminAIQuery() {
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <BrainCircuit className="h-5 w-5 text-[#8c2424]" />
+            <BrainCircuit className="h-5 w-5 text-[#a31828]" />
             提问
           </CardTitle>
         </CardHeader>
@@ -115,7 +115,7 @@ export default function AdminAIQuery() {
                 <button
                   key={t}
                   onClick={() => setQuestion(t)}
-                  className="data-pill hover:bg-[#8c2424]/10"
+                  className="data-pill hover:bg-[#a31828]/10"
                 >
                   {t}
                 </button>

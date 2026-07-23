@@ -158,9 +158,9 @@ export default function AdminQuestions() {
     <div className="grid gap-6">
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <div className="text-sm text-zinc-400">管理后台</div>
-          <h1 className="mt-2 text-2xl font-[850] tracking-[-0.05em] text-zinc-50">题库管理</h1>
-          <div className="mt-2 text-sm text-zinc-300/90">单选 / 多选 / 判断题</div>
+          <div className="page-eyebrow">管理后台</div>
+          <h1 className="page-title text-3xl md:text-4xl">题库管理</h1>
+          <div className="page-subtitle mt-2">单选 / 多选 / 判断题</div>
         </div>
         <div className="flex items-center gap-2">
           <Button variant="ghost" onClick={() => load()} disabled={loading}>
@@ -179,7 +179,7 @@ export default function AdminQuestions() {
       </div>
 
       {error && (
-        <div className="rounded-lg bg-rose-500/10 px-4 py-3 text-rose-200 shadow-[0_0_0_1px_rgba(244,63,94,0.25)]">
+        <div className="border border-[rgba(163,24,40,0.2)] bg-[rgba(163,24,40,0.08)] px-4 py-3 text-[#7a1020]">
           {error}
         </div>
       )}
@@ -187,7 +187,7 @@ export default function AdminQuestions() {
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <Upload className="h-5 w-5 text-[#8c2424]" />
+            <Upload className="h-5 w-5 text-[#a31828]" />
             题库批量导入
           </CardTitle>
         </CardHeader>
@@ -205,7 +205,7 @@ export default function AdminQuestions() {
                   await onImportFile(e.target.files?.[0] ?? null)
                   e.currentTarget.value = ''
                 }}
-                className="input-shell cursor-pointer file:mr-3 file:rounded-full file:border-0 file:bg-[#8c2424] file:px-4 file:py-2 file:text-sm file:font-semibold file:text-white"
+                className="input-shell cursor-pointer file:mr-3 file:rounded-full file:border-0 file:bg-[#a31828] file:px-4 file:py-2 file:text-sm file:font-semibold file:text-white"
               />
               {importFileName ? <div className="text-xs text-black/55">已载入：{importFileName}</div> : null}
             </label>
@@ -238,8 +238,8 @@ export default function AdminQuestions() {
                   onClick={() => setSelectedId(q.id)}
                   className={[
                     'w-full rounded-lg px-4 py-3 text-left transition',
-                    'shadow-[inset_0_0_0_1px_rgba(255,255,255,0.10)]',
-                    selectedId === q.id ? 'bg-amber-300/90 text-zinc-950' : 'bg-white/5 text-zinc-200 hover:bg-white/10',
+                    'border border-[rgba(14,17,22,0.1)]',
+                    selectedId === q.id ? 'bg-[#a31828] text-white' : 'list-surface text-[#0e1116] hover:bg-[rgba(163,24,40,0.04)]',
                   ].join(' ')}
                 >
                   <div className="flex items-center justify-between gap-2">
@@ -249,7 +249,7 @@ export default function AdminQuestions() {
                   <div className="mt-1 line-clamp-2 text-xs opacity-80">{q.stem}</div>
                 </button>
               ))}
-              {items.length === 0 && <div className="py-10 text-sm text-zinc-400">暂无题目</div>}
+              {items.length === 0 && <div className="py-10 text-sm text-[rgba(14,17,22,0.4)]">暂无题目</div>}
             </div>
           </CardContent>
         </Card>
@@ -263,11 +263,11 @@ export default function AdminQuestions() {
               <div className="grid gap-4">
                 <div className="grid gap-3 md:grid-cols-3">
                   <label className="grid gap-1 text-sm">
-                    <span className="text-xs text-zinc-400">题型</span>
+                    <span className="text-xs text-[rgba(14,17,22,0.45)]">题型</span>
                     <select
                       value={form.type}
                       onChange={(e) => setForm((p) => ({ ...p, type: e.target.value as any }))}
-                      className="rounded-lg bg-black/30 px-3 py-2 text-sm shadow-[inset_0_0_0_1px_rgba(255,255,255,0.12)] outline-none"
+                      className="input-shell"
                     >
                       <option value="single">单选</option>
                       <option value="multiple">多选</option>
@@ -275,48 +275,48 @@ export default function AdminQuestions() {
                     </select>
                   </label>
                   <label className="grid gap-1 text-sm md:col-span-2">
-                    <span className="text-xs text-zinc-400">分类</span>
+                    <span className="text-xs text-[rgba(14,17,22,0.45)]">分类</span>
                     <input
                       value={form.category}
                       onChange={(e) => setForm((p) => ({ ...p, category: e.target.value }))}
-                      className="rounded-lg bg-black/30 px-3 py-2 text-sm shadow-[inset_0_0_0_1px_rgba(255,255,255,0.12)] outline-none"
+                      className="input-shell"
                     />
                   </label>
                 </div>
 
                 <label className="grid gap-1 text-sm">
-                  <span className="text-xs text-zinc-400">题干</span>
+                  <span className="text-xs text-[rgba(14,17,22,0.45)]">题干</span>
                   <textarea
                     value={form.stem}
                     onChange={(e) => setForm((p) => ({ ...p, stem: e.target.value }))}
                     rows={5}
-                    className="w-full resize-none rounded-lg bg-black/30 px-3 py-2 text-sm text-zinc-100 shadow-[inset_0_0_0_1px_rgba(255,255,255,0.12)] outline-none"
+                    className="w-full resize-none rounded-lg input-shell text-sm outline-none"
                   />
                 </label>
 
                 <div className="grid gap-3 md:grid-cols-2">
                   <label className="grid gap-1 text-sm">
-                    <span className="text-xs text-zinc-400">optionsJson（单选/多选用）</span>
+                    <span className="text-xs text-[rgba(14,17,22,0.45)]">optionsJson（单选/多选用）</span>
                     <textarea
                       value={form.optionsJson}
                       onChange={(e) => setForm((p) => ({ ...p, optionsJson: e.target.value }))}
                       rows={8}
-                      className="w-full resize-none rounded-lg bg-black/30 px-3 py-2 font-mono text-xs text-zinc-100 shadow-[inset_0_0_0_1px_rgba(255,255,255,0.12)] outline-none"
+                      className="w-full resize-none rounded-lg input-shell font-mono text-xs outline-none"
                     />
                   </label>
                   <label className="grid gap-1 text-sm">
-                    <span className="text-xs text-zinc-400">answerKeyJson</span>
+                    <span className="text-xs text-[rgba(14,17,22,0.45)]">answerKeyJson</span>
                     <textarea
                       value={form.answerKeyJson}
                       onChange={(e) => setForm((p) => ({ ...p, answerKeyJson: e.target.value }))}
                       rows={8}
-                      className="w-full resize-none rounded-lg bg-black/30 px-3 py-2 font-mono text-xs text-zinc-100 shadow-[inset_0_0_0_1px_rgba(255,255,255,0.12)] outline-none"
+                      className="w-full resize-none rounded-lg input-shell font-mono text-xs outline-none"
                     />
                   </label>
                 </div>
               </div>
             ) : (
-              <div className="py-10 text-sm text-zinc-400">请选择题目</div>
+              <div className="py-10 text-sm text-[rgba(14,17,22,0.4)]">请选择题目</div>
             )}
           </CardContent>
         </Card>

@@ -182,7 +182,7 @@ export default function AdminContents() {
     <div className="grid gap-6">
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <div className="page-eyebrow">Content Studio</div>
+          <div className="page-eyebrow">内容管理</div>
           <h1 className="page-title text-3xl md:text-4xl">学习内容</h1>
           <div className="page-subtitle mt-2 max-w-2xl">
             统一维护文章和视频内容，支持上传附件文件，并控制公共内容可见性。
@@ -209,7 +209,7 @@ export default function AdminContents() {
       </div>
 
       {error && (
-        <div className="rounded-2xl bg-[#b91c1c]/10 px-4 py-3 text-[#7f1d1d] shadow-[inset_0_0_0_1px_rgba(185,28,28,0.16)]">
+        <div className="rounded-2xl bg-[#a31828]/10 px-4 py-3 text-[#7a1020] shadow-[inset_0_0_0_1px_rgba(185,28,28,0.16)]">
           {error}
         </div>
       )}
@@ -229,8 +229,8 @@ export default function AdminContents() {
                     'w-full rounded-2xl px-4 py-3 text-left transition',
                     'shadow-[inset_0_0_0_1px_rgba(0,0,0,0.08)]',
                     selectedId === c.id
-                      ? 'bg-[linear-gradient(135deg,#b91c1c_0%,#8c2424_55%,#450a0a_100%)] text-white'
-                      : 'bg-white/90 text-black/80 hover:bg-[#8c2424]/5',
+                      ? 'bg-[linear-gradient(135deg,#a31828_0%,#a31828_55%,#450a0a_100%)] text-white'
+                      : 'bg-white/90 text-black/80 hover:bg-[#a31828]/5',
                   ].join(' ')}
                 >
                   <div className="flex items-center justify-between gap-2">
@@ -243,7 +243,7 @@ export default function AdminContents() {
                   </div>
                 </button>
               ))}
-              {items.length === 0 && <div className="py-10 text-sm text-zinc-400">暂无内容</div>}
+              {items.length === 0 && <div className="py-10 text-sm text-[rgba(14,17,22,0.4)]">暂无内容</div>}
             </div>
           </CardContent>
         </Card>
@@ -300,7 +300,7 @@ export default function AdminContents() {
                   type="checkbox"
                   checked={form.isPublic}
                   onChange={(e) => setForm((p) => ({ ...p, isPublic: e.target.checked }))}
-                  className="accent-[#8c2424]"
+                  className="accent-[#a31828]"
                 />
                 标记为公共内容
               </label>
@@ -315,11 +315,11 @@ export default function AdminContents() {
                 />
               </label>
 
-              <div className="grid gap-3 rounded-2xl bg-[#8c2424]/5 px-4 py-4 shadow-[inset_0_0_0_1px_rgba(140,36,36,0.08)]">
+              <div className="grid gap-3 rounded-2xl bg-[#a31828]/5 px-4 py-4 shadow-[inset_0_0_0_1px_rgba(140,36,36,0.08)]">
                 <div className="flex flex-wrap items-center justify-between gap-3">
                   <div>
-                    <div className="flex items-center gap-2 text-sm font-semibold text-[#171717]">
-                      <Paperclip className="h-4 w-4 text-[#8c2424]" />
+                    <div className="flex items-center gap-2 text-sm font-semibold text-[#0e1116]">
+                      <Paperclip className="h-4 w-4 text-[#a31828]" />
                       附件文件
                     </div>
                     <div className="mt-1 text-xs text-black/50">
@@ -336,7 +336,7 @@ export default function AdminContents() {
                         e.currentTarget.value = ''
                       }}
                     />
-                    <span className="inline-flex items-center gap-2 rounded-full bg-[#8c2424] px-4 py-2 text-sm font-semibold text-white shadow-[0_10px_20px_rgba(140,36,36,0.18)]">
+                    <span className="inline-flex items-center gap-2 rounded-full bg-[#a31828] px-4 py-2 text-sm font-semibold text-white shadow-[0_10px_20px_rgba(140,36,36,0.18)]">
                       <FileUp className="h-4 w-4" />
                       {uploading ? '上传中…' : '上传文件'}
                     </span>
@@ -353,7 +353,7 @@ export default function AdminContents() {
                         href={withAccessToken(att.url, token)}
                         target="_blank"
                         rel="noreferrer"
-                        className="min-w-0 flex-1 truncate text-sm font-medium text-[#8c2424] hover:underline"
+                        className="min-w-0 flex-1 truncate text-sm font-medium text-[#a31828] hover:underline"
                       >
                         {att.name}
                       </a>
@@ -361,7 +361,7 @@ export default function AdminContents() {
                       <button
                         type="button"
                         onClick={() => removeAttachment(att.id)}
-                        className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-[#b91c1c]/10 text-[#8c2424] hover:bg-[#b91c1c]/16"
+                        className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-[#a31828]/10 text-[#a31828] hover:bg-[#a31828]/16"
                         title="移除附件"
                       >
                         <X className="h-4 w-4" />

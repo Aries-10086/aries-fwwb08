@@ -58,23 +58,21 @@ export default function MobileReport() {
       xAxis: {
         type: 'category',
         data: ['学习时长', '完成条目', '测验均分', '通过次数'],
-        axisLabel: { color: 'rgba(228,228,231,0.8)', fontSize: 11 },
-        axisLine: { lineStyle: { color: 'rgba(255,255,255,0.10)' } },
+        axisLabel: { color: 'rgba(14,17,22,0.55)', fontSize: 11 },
+        axisLine: { lineStyle: { color: 'rgba(14,17,22,0.12)' } },
       },
       yAxis: {
         type: 'value',
-        axisLabel: { color: 'rgba(228,228,231,0.6)', fontSize: 11 },
-        splitLine: { lineStyle: { color: 'rgba(255,255,255,0.06)' } },
+        axisLabel: { color: 'rgba(14,17,22,0.45)', fontSize: 11 },
+        splitLine: { lineStyle: { color: 'rgba(14,17,22,0.06)' } },
       },
       series: [
         {
           type: 'bar',
           data: values,
           itemStyle: {
-            color: 'rgba(252,211,77,0.90)',
-            borderRadius: [8, 8, 0, 0],
-            shadowColor: 'rgba(252,211,77,0.18)',
-            shadowBlur: 16,
+            color: '#a31828',
+            borderRadius: [4, 4, 0, 0],
           },
         },
       ],
@@ -82,20 +80,20 @@ export default function MobileReport() {
   }, [report])
 
   const badge = useMemo(() => {
-    if (!report) return 'bg-white/10 text-zinc-200'
-    if (report.score >= 85) return 'bg-amber-300/90 text-zinc-950'
-    if (report.score >= 70) return 'bg-cyan-300/90 text-zinc-950'
-    if (report.score >= 55) return 'bg-white/10 text-zinc-200'
-    return 'bg-rose-500/20 text-rose-200'
+    if (!report) return 'bg-[rgba(14,17,22,0.06)] text-[rgba(14,17,22,0.7)]'
+    if (report.score >= 85) return 'bg-[#a31828] text-white'
+    if (report.score >= 70) return 'bg-[#8a6a2f] text-white'
+    if (report.score >= 55) return 'bg-[rgba(14,17,22,0.06)] text-[rgba(14,17,22,0.7)]'
+    return 'bg-rose-500/20 text-[#7a1020]'
   }, [report])
 
   return (
     <div className="grid gap-6">
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <div className="text-sm text-zinc-400">党员端</div>
-          <h1 className="mt-2 text-2xl font-[850] tracking-[-0.05em] text-zinc-50">AI 综合评价报告</h1>
-          <div className="mt-2 text-sm text-zinc-300/90">评分 + 评语 + 改进建议</div>
+          <div className="page-eyebrow">党员端</div>
+          <h1 className="page-title text-3xl md:text-4xl">AI 综合评价报告</h1>
+          <div className="page-subtitle mt-2">评分 + 评语 + 改进建议</div>
         </div>
         <div className="flex items-center gap-2">
           <Link to="/m/home">
@@ -109,7 +107,7 @@ export default function MobileReport() {
       </div>
 
       {error && (
-        <div className="rounded-lg bg-rose-500/10 px-4 py-3 text-rose-200 shadow-[0_0_0_1px_rgba(244,63,94,0.25)]">
+        <div className="border border-[rgba(163,24,40,0.2)] bg-[rgba(163,24,40,0.08)] px-4 py-3 text-[#7a1020]">
           {error}
         </div>
       )}
@@ -119,11 +117,11 @@ export default function MobileReport() {
           <CardHeader>
             <CardTitle className="flex items-center justify-between gap-3">
               <span className="flex items-center gap-2">
-                <Sparkles className="h-5 w-5 text-amber-200/90" />
+                <Sparkles className="h-5 w-5 text-[#a31828]" />
                 综合评分
               </span>
               {report && (
-                <span className={`rounded-full px-3 py-1 text-xs font-medium shadow-[inset_0_0_0_1px_rgba(255,255,255,0.12)] ${badge}`}>
+                <span className={`rounded-full px-3 py-1 text-xs font-medium border border-[rgba(14,17,22,0.1)] ${badge}`}>
                   {report.level}
                 </span>
               )}
@@ -133,16 +131,16 @@ export default function MobileReport() {
             {report ? (
               <div className="grid gap-4">
                 <div className="flex items-end gap-3">
-                  <div className="text-5xl font-[900] tracking-[-0.06em] text-zinc-50">{report.score}</div>
-                  <div className="pb-2 text-sm text-zinc-400">/ 100</div>
+                  <div className="metric-value text-5xl text-[#0e1116]">{report.score}</div>
+                  <div className="pb-2 page-eyebrow">/ 100</div>
                 </div>
-                <div className="rounded-lg bg-white/5 px-4 py-3 text-sm text-zinc-200 shadow-[inset_0_0_0_1px_rgba(255,255,255,0.10)] leading-relaxed">
+                <div className="list-surface text-sm leading-relaxed text-[rgba(14,17,22,0.75)]">
                   {report.comment}
                 </div>
-                <div className="text-xs text-zinc-500">生成时间：{new Date(report.generatedAt).toLocaleString()}</div>
+                <div className="text-xs text-[rgba(14,17,22,0.45)]">生成时间：{new Date(report.generatedAt).toLocaleString()}</div>
               </div>
             ) : (
-              <div className="py-10 text-sm text-zinc-400">生成中…</div>
+              <div className="py-10 page-eyebrow">生成中…</div>
             )}
           </CardContent>
         </Card>

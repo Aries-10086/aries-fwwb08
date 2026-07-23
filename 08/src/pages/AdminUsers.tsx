@@ -148,13 +148,13 @@ export default function AdminUsers() {
     <div className="grid gap-6">
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <div className="page-eyebrow">User Administration</div>
+          <div className="page-eyebrow">人员管理</div>
           <h1 className="page-title text-3xl md:text-4xl">人员管理</h1>
           <div className="page-subtitle mt-2 max-w-2xl">支持单人创建与批量导入，把组织成员和角色分配统一收入口径一致的管理流程。</div>
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <div className="input-shell flex items-center gap-2 px-3 py-2">
-            <Search className="h-4 w-4 text-[#8c2424]" />
+            <Search className="h-4 w-4 text-[#a31828]" />
             <input
               value={filters.name}
               onChange={(e) => setFilters((p) => ({ ...p, name: e.target.value }))}
@@ -190,7 +190,7 @@ export default function AdminUsers() {
       </div>
 
       {error && (
-        <div className="rounded-2xl bg-[#b91c1c]/10 px-4 py-3 text-[#7f1d1d] shadow-[inset_0_0_0_1px_rgba(185,28,28,0.16)]">
+        <div className="rounded-2xl bg-[#a31828]/10 px-4 py-3 text-[#7a1020] shadow-[inset_0_0_0_1px_rgba(185,28,28,0.16)]">
           {error}
         </div>
       )}
@@ -199,7 +199,7 @@ export default function AdminUsers() {
         <Card className="md:col-span-5">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              {selected ? <PencilLine className="h-5 w-5 text-[#8c2424]" /> : <Plus className="h-5 w-5 text-[#8c2424]" />}
+              {selected ? <PencilLine className="h-5 w-5 text-[#a31828]" /> : <Plus className="h-5 w-5 text-[#a31828]" />}
               {selected ? '编辑人员' : '新增人员'}
             </CardTitle>
           </CardHeader>
@@ -305,7 +305,7 @@ export default function AdminUsers() {
         <Card className="md:col-span-7">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <Upload className="h-5 w-5 text-[#8c2424]" />
+              <Upload className="h-5 w-5 text-[#a31828]" />
               批量导入（Excel/CSV 粘贴）
             </CardTitle>
           </CardHeader>
@@ -323,7 +323,7 @@ export default function AdminUsers() {
                     await onImportFile(e.target.files?.[0] ?? null)
                     e.currentTarget.value = ''
                   }}
-                  className="input-shell cursor-pointer file:mr-3 file:rounded-full file:border-0 file:bg-[#8c2424] file:px-4 file:py-2 file:text-sm file:font-semibold file:text-white"
+                  className="input-shell cursor-pointer file:mr-3 file:rounded-full file:border-0 file:bg-[#a31828] file:px-4 file:py-2 file:text-sm file:font-semibold file:text-white"
                 />
                 {importFileName ? <div className="text-xs text-black/55">已载入：{importFileName}</div> : null}
               </label>
@@ -354,12 +354,12 @@ export default function AdminUsers() {
                 className={[
                   'grid items-center gap-3 rounded-2xl px-4 py-4 transition',
                   'shadow-[inset_0_0_0_1px_rgba(0,0,0,0.06)]',
-                  selectedId === u.id ? 'bg-[#8c2424]/6' : 'bg-white/90',
+                  selectedId === u.id ? 'bg-[#a31828]/6' : 'bg-white/90',
                   'md:grid-cols-[1.4fr_0.8fr_1.2fr_0.9fr_auto]',
                 ].join(' ')}
               >
                 <button className="text-left" onClick={() => setSelectedId(u.id)}>
-                  <div className="text-sm font-medium text-[#171717]">{u.name}</div>
+                  <div className="text-sm font-medium text-[#0e1116]">{u.name}</div>
                   <div className="mt-1 text-xs text-black/45">
                     {u.username ? `@${u.username}` : u.id}
                   </div>

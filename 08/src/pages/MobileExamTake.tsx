@@ -80,11 +80,11 @@ export default function MobileExamTake() {
     <div className="grid gap-6">
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <div className="text-sm text-zinc-400">党员端</div>
-          <h1 className="mt-2 text-2xl font-[850] tracking-[-0.05em] text-zinc-50">
+          <div className="page-eyebrow">党员端</div>
+          <h1 className="page-title text-3xl md:text-4xl">
             {exam?.title ?? '测验'}
           </h1>
-          {exam && <div className="mt-2 text-sm text-zinc-300/90">{exam.durationMin} 分钟 · 及格 {exam.passScore} 分</div>}
+          {exam && <div className="page-subtitle mt-2">{exam.durationMin} 分钟 · 及格 {exam.passScore} 分</div>}
         </div>
         <Link to="/m/exams">
           <Button variant="secondary">
@@ -95,7 +95,7 @@ export default function MobileExamTake() {
       </div>
 
       {error && (
-        <div className="rounded-lg bg-rose-500/10 px-4 py-3 text-rose-200 shadow-[0_0_0_1px_rgba(244,63,94,0.25)]">
+        <div className="border border-[rgba(163,24,40,0.2)] bg-[rgba(163,24,40,0.08)] px-4 py-3 text-[#7a1020]">
           {error}
         </div>
       )}
@@ -104,24 +104,24 @@ export default function MobileExamTake() {
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <CheckCircle2 className="h-5 w-5 text-amber-200/90" />
+              <CheckCircle2 className="h-5 w-5 text-[#a31828]" />
               已交卷
             </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="grid gap-3">
-              <div className="rounded-lg bg-white/5 px-4 py-3 text-sm text-zinc-200 shadow-[inset_0_0_0_1px_rgba(255,255,255,0.10)]">
-                总分：<span className="font-semibold text-zinc-50">{result.totalScore}</span> / 100 ·
-                结果：<span className={result.isPass ? 'text-amber-200' : 'text-rose-200'}>{result.isPass ? '通过' : '未通过'}</span>
+              <div className="list-surface text-sm text-[rgba(14,17,22,0.75)]">
+                总分：<span className="font-semibold text-[#0e1116]">{result.totalScore}</span> / 100 ·
+                结果：<span className={result.isPass ? 'text-[#a31828]' : 'text-[#7a1020]'}>{result.isPass ? '通过' : '未通过'}</span>
               </div>
               <div className="grid gap-2">
                 {(result.details ?? []).map((d: any) => (
                   <div
                     key={d.questionId}
-                    className="flex items-center justify-between rounded-lg bg-white/5 px-4 py-3 text-sm shadow-[inset_0_0_0_1px_rgba(255,255,255,0.08)]"
+                    className="flex items-center justify-between rounded-lg bg-white px-4 py-3 text-sm border border-[rgba(14,17,22,0.1)]"
                   >
-                    <div className="text-zinc-200">{d.questionId}</div>
-                    <div className="text-zinc-100">{d.score}/{d.maxScore}</div>
+                    <div className="text-[rgba(14,17,22,0.75)]">{d.questionId}</div>
+                    <div className="text-[#0e1116]">{d.score}/{d.maxScore}</div>
                   </div>
                 ))}
               </div>
@@ -139,14 +139,14 @@ export default function MobileExamTake() {
           <CardContent>
             <div className="grid gap-6">
               {qs.map((q, idx) => (
-                <div key={q.id} className="rounded-xl bg-white/5 p-4 shadow-[inset_0_0_0_1px_rgba(255,255,255,0.10)]">
+                <div key={q.id} className="list-surface p-4">
                   <div className="flex items-center justify-between gap-3">
-                    <div className="text-sm font-medium text-zinc-100">
+                    <div className="text-sm font-medium text-[#0e1116]">
                       {idx + 1}. {q.stem}
                     </div>
-                    <div className="text-xs text-amber-200/90">分值 {q.score}</div>
+                    <div className="text-xs text-[#a31828]">分值 {q.score}</div>
                   </div>
-                  <div className="mt-1 text-xs text-zinc-500">{q.category}</div>
+                  <div className="mt-1 text-xs text-[rgba(14,17,22,0.45)]">{q.category}</div>
 
                   {q.type === 'tf' && (
                     <div className="mt-3 grid grid-cols-2 gap-2">
@@ -156,8 +156,8 @@ export default function MobileExamTake() {
                           onClick={() => setAnswers((p) => ({ ...p, [q.id]: it.value }))}
                           className={[
                             'rounded-lg px-4 py-3 text-left text-sm transition',
-                            'shadow-[inset_0_0_0_1px_rgba(255,255,255,0.10)]',
-                            answers[q.id] === it.value ? 'bg-amber-300/90 text-zinc-950' : 'bg-black/30 text-zinc-200 hover:bg-white/10',
+                            'border border-[rgba(14,17,22,0.1)]',
+                            answers[q.id] === it.value ? 'bg-[#a31828] text-white' : 'bg-white text-[#0e1116] hover:bg-[rgba(163,24,40,0.04)]',
                           ].join(' ')}
                         >
                           {it.label}
@@ -179,7 +179,7 @@ export default function MobileExamTake() {
                         return (
                           <label
                             key={op.key}
-                            className="flex cursor-pointer items-start gap-3 rounded-lg bg-black/30 px-4 py-3 shadow-[inset_0_0_0_1px_rgba(255,255,255,0.10)] hover:bg-white/10 transition"
+                            className="flex cursor-pointer items-start gap-3 rounded-lg bg-white px-4 py-3 border border-[rgba(14,17,22,0.1)] hover:bg-[rgba(163,24,40,0.04)] transition"
                           >
                             <input
                               type={q.type === 'single' ? 'radio' : 'checkbox'}
@@ -197,8 +197,8 @@ export default function MobileExamTake() {
                               className="mt-1 accent-amber-300"
                             />
                             <div>
-                              <div className="text-xs text-zinc-500">{op.key}</div>
-                              <div className="text-sm text-zinc-200">{op.text}</div>
+                              <div className="text-xs text-[rgba(14,17,22,0.45)]">{op.key}</div>
+                              <div className="text-sm text-[rgba(14,17,22,0.75)]">{op.text}</div>
                             </div>
                           </label>
                         )
@@ -208,7 +208,7 @@ export default function MobileExamTake() {
                 </div>
               ))}
 
-              {qs.length === 0 && <div className="py-10 text-sm text-zinc-400">暂无题目</div>}
+              {qs.length === 0 && <div className="py-10 text-sm text-[rgba(14,17,22,0.4)]">暂无题目</div>}
 
               <Button onClick={() => submit()} disabled={submitting || qs.length === 0} className="w-full">
                 {submitting ? (

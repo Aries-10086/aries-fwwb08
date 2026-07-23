@@ -1,28 +1,44 @@
-@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;700;900&family=Noto+Serif+SC:wght@500;700;900&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;600;700&family=Noto+Serif+SC:wght@600;700;900&family=ZCOOL+XiaoWei&display=swap');
 
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 :root {
-  font-family: "Noto Sans SC", "PingFang SC", "Hiragino Sans GB", sans-serif;
-  line-height: 1.5;
-  font-weight: 400;
-  color: #171717;
-  background: #fbfbfc;
-  --bg: #fbfbfc;
-  --panel: rgba(255, 255, 255, 0.92);
-  --panel-strong: #ffffff;
-  --panel-soft: rgba(140, 36, 36, 0.06);
-  --line: rgba(140, 36, 36, 0.16);
-  --line-strong: rgba(140, 36, 36, 0.28);
-  --text-main: #171717;
-  --text-soft: rgba(23, 23, 23, 0.72);
-  --text-dim: rgba(23, 23, 23, 0.52);
-  --accent: #8c2424;
-  --accent-strong: #b91c1c;
-  --accent-ink: #3a0c0c;
+  /* 金石印信 × 冷石秩序 */
+  --font-display: "ZCOOL XiaoWei", "Noto Serif SC", "Songti SC", serif;
+  --font-serif: "Noto Serif SC", "Songti SC", serif;
+  --font-sans: "Noto Sans SC", "PingFang SC", "Hiragino Sans GB", sans-serif;
 
+  --ink: #0e1116;
+  --ink-soft: rgba(14, 17, 22, 0.72);
+  --ink-dim: rgba(14, 17, 22, 0.48);
+  --stone: #e8ebef;
+  --stone-deep: #d4dae2;
+  --paper: #f3f5f7;
+  --panel: rgba(255, 255, 255, 0.88);
+  --panel-strong: #ffffff;
+  --seal: #a31828;
+  --seal-deep: #7a1020;
+  --seal-ink: #4a0a14;
+  --brass: #8a6a2f;
+  --brass-soft: rgba(138, 106, 47, 0.55);
+  --line: rgba(14, 17, 22, 0.1);
+  --line-seal: rgba(163, 24, 40, 0.22);
+
+  --bg: var(--paper);
+  --text-main: var(--ink);
+  --text-soft: var(--ink-soft);
+  --text-dim: var(--ink-dim);
+  --accent: var(--seal);
+  --accent-strong: #c41e3a;
+  --accent-ink: var(--seal-ink);
+
+  font-family: var(--font-sans);
+  line-height: 1.55;
+  font-weight: 400;
+  color: var(--ink);
+  background: var(--paper);
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
@@ -37,59 +53,62 @@ body {
 body {
   margin: 0;
   min-width: 320px;
-  background: var(--bg);
-  color: var(--text-main);
+  background: var(--paper);
+  color: var(--ink);
   position: relative;
 }
 
+/* 冷石纸纹 + 朱砂光晕 */
 body::before,
 body::after {
   content: "";
   position: fixed;
   inset: 0;
   pointer-events: none;
+  z-index: 0;
 }
 
 body::before {
   background:
-    linear-gradient(rgba(0, 0, 0, 0.035) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(0, 0, 0, 0.035) 1px, transparent 1px);
-  background-size: 140px 140px;
-  mask-image: radial-gradient(circle at 50% 24%, black 46%, transparent 92%);
-  opacity: 0.55;
+    radial-gradient(ellipse 80% 50% at 50% -8%, rgba(163, 24, 40, 0.14), transparent 55%),
+    radial-gradient(ellipse 40% 35% at 100% 20%, rgba(138, 106, 47, 0.06), transparent 50%),
+    radial-gradient(ellipse 45% 40% at 0% 80%, rgba(163, 24, 40, 0.05), transparent 45%),
+    linear-gradient(180deg, #f6f7f9 0%, #eef1f4 48%, #e8ebef 100%);
 }
 
 body::after {
-  background:
-    radial-gradient(circle at 50% -10%, rgba(140, 36, 36, 0.22), transparent 40%),
-    radial-gradient(circle at 12% 16%, rgba(185, 28, 28, 0.14), transparent 30%),
-    radial-gradient(circle at 92% 10%, rgba(140, 36, 36, 0.12), transparent 26%);
-  opacity: 1;
+  opacity: 0.4;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.55'/%3E%3C/svg%3E");
+  background-size: 180px 180px;
+  mix-blend-mode: multiply;
 }
 
 #root {
   min-height: 100%;
+  position: relative;
+  z-index: 1;
 }
 
 h1,
 h2,
 h3 {
-  font-family: "Noto Serif SC", "Songti SC", serif;
+  font-family: var(--font-serif);
+  letter-spacing: 0.02em;
 }
 
 ::selection {
-  background: rgba(140, 36, 36, 0.18);
-  color: #171717;
+  background: rgba(163, 24, 40, 0.18);
+  color: var(--ink);
 }
 
 * {
   scrollbar-width: thin;
-  scrollbar-color: rgba(140, 36, 36, 0.35) transparent;
+  scrollbar-color: rgba(163, 24, 40, 0.35) transparent;
 }
 
 *::-webkit-scrollbar {
-  width: 10px;
-  height: 10px;
+  width: 8px;
+  height: 8px;
 }
 
 *::-webkit-scrollbar-track {
@@ -97,10 +116,42 @@ h3 {
 }
 
 *::-webkit-scrollbar-thumb {
-  background: rgba(140, 36, 36, 0.22);
+  background: rgba(163, 24, 40, 0.25);
   border: 2px solid transparent;
-  border-radius: 999px;
+  border-radius: 4px;
   background-clip: padding-box;
+}
+
+@keyframes rise-in {
+  from {
+    opacity: 0;
+    transform: translateY(18px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes seal-breathe {
+  0%,
+  100% {
+    opacity: 0.12;
+    transform: scale(1) rotate(-8deg);
+  }
+  50% {
+    opacity: 0.2;
+    transform: scale(1.03) rotate(-6deg);
+  }
+}
+
+@keyframes rule-draw {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
+  }
 }
 
 @layer base {
@@ -111,95 +162,140 @@ h3 {
   input,
   select,
   textarea {
-    color: var(--text-main);
+    color: var(--ink);
   }
 
   input::placeholder,
   textarea::placeholder {
-    color: rgba(23, 23, 23, 0.35);
+    color: rgba(14, 17, 22, 0.32);
   }
 }
 
 @layer components {
+  .font-display {
+    font-family: var(--font-display);
+  }
+
+  .font-serif {
+    font-family: var(--font-serif);
+  }
+
+  .rise-in {
+    animation: rise-in 0.7s cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+
+  .rise-in-delay-1 {
+    animation-delay: 0.1s;
+  }
+
+  .rise-in-delay-2 {
+    animation-delay: 0.2s;
+  }
+
+  .rise-in-delay-3 {
+    animation-delay: 0.32s;
+  }
+
+  .rise-in-delay-4 {
+    animation-delay: 0.44s;
+  }
+
   .page-eyebrow {
-    @apply inline-flex items-center gap-2 rounded-full px-4 py-2 text-xs font-semibold uppercase tracking-[0.32em];
-    background: linear-gradient(135deg, rgba(140, 36, 36, 0.09), rgba(255, 255, 255, 0.72));
-    color: rgba(58, 12, 12, 0.86);
-    box-shadow: inset 0 0 0 1px rgba(140, 36, 36, 0.18);
+    @apply inline-flex items-center gap-2 text-[11px] font-semibold tracking-[0.28em];
+    color: var(--seal);
+    font-family: var(--font-sans);
+  }
+
+  .page-eyebrow::before {
+    content: "";
+    display: block;
+    width: 18px;
+    height: 2px;
+    background: var(--seal);
   }
 
   .page-title {
-    @apply mt-3 text-3xl font-black tracking-[-0.06em] md:text-5xl;
-    color: var(--text-main);
+    @apply mt-3 text-3xl font-bold md:text-5xl;
+    font-family: var(--font-serif);
+    color: var(--ink);
+    letter-spacing: 0.04em;
+    line-height: 1.2;
   }
 
   .page-subtitle {
     @apply mt-3 max-w-3xl text-sm leading-7 md:text-[15px];
-    color: var(--text-soft);
+    color: var(--ink-soft);
   }
 
   .section-title {
-    @apply text-lg font-bold tracking-[-0.04em];
-    color: var(--text-main);
+    @apply text-lg font-bold;
+    font-family: var(--font-serif);
+    color: var(--ink);
+    letter-spacing: 0.04em;
   }
 
   .section-note {
     @apply text-xs;
-    color: var(--text-dim);
+    color: var(--ink-dim);
   }
 
   .decorative-rule {
     height: 1px;
-    background: linear-gradient(90deg, transparent, rgba(140, 36, 36, 0.42), transparent);
+    background: linear-gradient(90deg, var(--seal), rgba(163, 24, 40, 0.15), transparent);
+    transform-origin: left center;
+    animation: rule-draw 0.9s cubic-bezier(0.22, 1, 0.36, 1) both;
   }
 
   .panel-muted {
-    background: linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(255, 255, 255, 0.92));
-    box-shadow:
-      inset 0 0 0 1px rgba(0, 0, 0, 0.06),
-      0 18px 40px rgba(17, 17, 17, 0.06);
+    background: rgba(255, 255, 255, 0.72);
+    border: 1px solid var(--line);
   }
 
   .data-pill {
-    @apply inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs;
-    background: rgba(140, 36, 36, 0.06);
-    color: rgba(58, 12, 12, 0.78);
-    box-shadow: inset 0 0 0 1px rgba(140, 36, 36, 0.16);
+    @apply inline-flex items-center gap-2 px-2.5 py-1 text-xs;
+    background: rgba(163, 24, 40, 0.06);
+    color: var(--seal-ink);
+    border: 1px solid var(--line-seal);
+    border-radius: 4px;
   }
 
   .list-surface {
-    @apply rounded-2xl px-4 py-3 transition;
-    background: linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(255, 255, 255, 0.92));
-    box-shadow:
-      inset 0 0 0 1px rgba(0, 0, 0, 0.06),
-      0 18px 42px rgba(17, 17, 17, 0.08);
+    @apply px-4 py-3 transition;
+    background: rgba(255, 255, 255, 0.78);
+    border: 1px solid var(--line);
+    border-radius: 8px;
+  }
+
+  .list-surface:hover {
+    border-color: var(--line-seal);
+    background: rgba(163, 24, 40, 0.03);
   }
 
   .field-label {
-    @apply text-[11px] font-semibold uppercase tracking-[0.26em];
-    color: rgba(140, 36, 36, 0.62);
+    @apply text-[11px] font-semibold tracking-[0.2em];
+    color: var(--seal);
   }
 
   .input-shell {
-    @apply rounded-2xl border-0 px-4 py-3 text-sm outline-none transition;
-    background: rgba(255, 255, 255, 0.96);
-    box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.10);
+    @apply border-0 px-4 py-3 text-sm outline-none transition;
+    background: rgba(255, 255, 255, 0.95);
+    border-radius: 8px;
+    box-shadow: inset 0 0 0 1px var(--line);
   }
 
-  .input-shell:focus {
+  .input-shell:focus,
+  .input-shell:focus-within {
     box-shadow:
-      inset 0 0 0 1px rgba(140, 36, 36, 0.42),
-      0 0 0 4px rgba(140, 36, 36, 0.10);
+      inset 0 0 0 1px rgba(163, 24, 40, 0.45),
+      0 0 0 3px rgba(163, 24, 40, 0.1);
   }
 
   .hero-frame {
     position: relative;
     overflow: hidden;
-    border-radius: 28px;
-    background: linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(255, 255, 255, 0.9));
-    box-shadow:
-      inset 0 0 0 1px rgba(0, 0, 0, 0.08),
-      0 34px 90px rgba(17, 17, 17, 0.10);
+    border-radius: 12px;
+    background: rgba(255, 255, 255, 0.7);
+    border: 1px solid var(--line);
   }
 
   .hero-frame::before {
@@ -207,14 +303,106 @@ h3 {
     position: absolute;
     inset: 0;
     background:
-      radial-gradient(circle at 50% -40%, rgba(140, 36, 36, 0.18), transparent 55%),
-      radial-gradient(circle at 14% 30%, rgba(185, 28, 28, 0.10), transparent 46%),
-      linear-gradient(135deg, rgba(140, 36, 36, 0.06), transparent 52%);
+      linear-gradient(135deg, rgba(163, 24, 40, 0.05), transparent 42%),
+      radial-gradient(circle at 92% 8%, rgba(138, 106, 47, 0.08), transparent 40%);
     pointer-events: none;
   }
 
   .metric-value {
-    @apply text-3xl font-black tracking-[-0.06em];
-    color: var(--accent);
+    @apply text-3xl font-bold tracking-wide;
+    font-family: var(--font-serif);
+    color: var(--seal);
+  }
+
+  /* 全出血英雄区 */
+  .hero-bleed {
+    position: relative;
+    overflow: hidden;
+    min-height: min(78vh, 720px);
+    display: flex;
+    align-items: flex-end;
+    background:
+      linear-gradient(160deg, #5c0d18 0%, #a31828 42%, #7a1020 72%, #3d0810 100%);
+    color: #fff;
+  }
+
+  .hero-bleed::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background:
+      linear-gradient(90deg, rgba(14, 17, 22, 0.55) 0%, rgba(14, 17, 22, 0.2) 48%, transparent 70%),
+      repeating-linear-gradient(
+        -18deg,
+        transparent 0,
+        transparent 28px,
+        rgba(255, 255, 255, 0.03) 28px,
+        rgba(255, 255, 255, 0.03) 29px
+      );
+    pointer-events: none;
+  }
+
+  .hero-bleed::after {
+    content: "印";
+    position: absolute;
+    right: 6%;
+    top: 18%;
+    font-family: var(--font-display);
+    font-size: clamp(8rem, 22vw, 16rem);
+    line-height: 1;
+    color: rgba(255, 255, 255, 0.1);
+    border: 6px solid rgba(255, 255, 255, 0.12);
+    padding: 0.12em 0.18em;
+    animation: seal-breathe 8s ease-in-out infinite;
+    pointer-events: none;
+    user-select: none;
+  }
+
+  .brand-mark {
+    font-family: var(--font-display);
+    letter-spacing: 0.12em;
+  }
+
+  .nav-link {
+    @apply relative inline-flex items-center gap-2 px-3 py-2 text-sm transition;
+    color: var(--ink-soft);
+    border-radius: 6px;
+  }
+
+  .nav-link:hover {
+    color: var(--seal);
+    background: rgba(163, 24, 40, 0.05);
+  }
+
+  .nav-link-active {
+    color: var(--seal);
+    background: rgba(163, 24, 40, 0.08);
+    font-weight: 600;
+  }
+
+  .nav-link-active::after {
+    content: "";
+    position: absolute;
+    left: 12px;
+    right: 12px;
+    bottom: 4px;
+    height: 2px;
+    background: var(--seal);
+  }
+
+  .auth-panel {
+    background: rgba(255, 255, 255, 0.96);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 12px;
+    box-shadow: 0 24px 60px rgba(14, 17, 22, 0.22);
+  }
+
+  .section-block {
+    @apply py-10 md:py-14;
+  }
+
+  .section-kicker {
+    @apply text-[11px] font-semibold tracking-[0.28em];
+    color: var(--brass);
   }
 }

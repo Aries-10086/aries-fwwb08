@@ -106,9 +106,9 @@ export default function AdminExams() {
     <div className="grid gap-6">
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <div className="text-sm text-zinc-400">管理后台</div>
-          <h1 className="mt-2 text-2xl font-[850] tracking-[-0.05em] text-zinc-50">测验发布</h1>
-          <div className="mt-2 text-sm text-zinc-300/90">基于试卷发布测验并指定支部对象</div>
+          <div className="page-eyebrow">管理后台</div>
+          <h1 className="page-title text-3xl md:text-4xl">测验发布</h1>
+          <div className="page-subtitle mt-2">基于试卷发布测验并指定支部对象</div>
         </div>
         <Button variant="ghost" onClick={() => load()} disabled={loading}>
           <RotateCw className={loading ? 'h-4 w-4 animate-spin' : 'h-4 w-4'} />
@@ -117,7 +117,7 @@ export default function AdminExams() {
       </div>
 
       {error && (
-        <div className="rounded-lg bg-rose-500/10 px-4 py-3 text-rose-200 shadow-[0_0_0_1px_rgba(244,63,94,0.25)]">
+        <div className="border border-[rgba(163,24,40,0.2)] bg-[rgba(163,24,40,0.08)] px-4 py-3 text-[#7a1020]">
           {error}
         </div>
       )}
@@ -126,18 +126,18 @@ export default function AdminExams() {
         <Card className="md:col-span-5">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <Plus className="h-5 w-5 text-amber-200/90" />
+              <Plus className="h-5 w-5 text-[#a31828]" />
               新建测验
             </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="grid gap-3">
               <label className="grid gap-1 text-sm">
-                <span className="text-xs text-zinc-400">支部</span>
+                <span className="text-xs text-[rgba(14,17,22,0.45)]">支部</span>
                 <select
                   value={form.orgUnitId}
                   onChange={(e) => setForm((p) => ({ ...p, orgUnitId: e.target.value }))}
-                  className="rounded-lg bg-black/30 px-3 py-2 text-sm shadow-[inset_0_0_0_1px_rgba(255,255,255,0.12)] outline-none"
+                  className="input-shell"
                 >
                   {orgs
                     .filter((o) => o.parentId)
@@ -149,11 +149,11 @@ export default function AdminExams() {
                 </select>
               </label>
               <label className="grid gap-1 text-sm">
-                <span className="text-xs text-zinc-400">试卷</span>
+                <span className="text-xs text-[rgba(14,17,22,0.45)]">试卷</span>
                 <select
                   value={form.paperId}
                   onChange={(e) => setForm((p) => ({ ...p, paperId: e.target.value }))}
-                  className="rounded-lg bg-black/30 px-3 py-2 text-sm shadow-[inset_0_0_0_1px_rgba(255,255,255,0.12)] outline-none"
+                  className="input-shell"
                 >
                   {papers.map((p) => (
                     <option key={p.id} value={p.id}>
@@ -163,38 +163,38 @@ export default function AdminExams() {
                 </select>
               </label>
               <label className="grid gap-1 text-sm">
-                <span className="text-xs text-zinc-400">标题</span>
+                <span className="text-xs text-[rgba(14,17,22,0.45)]">标题</span>
                 <input
                   value={form.title}
                   onChange={(e) => setForm((p) => ({ ...p, title: e.target.value }))}
-                  className="rounded-lg bg-black/30 px-3 py-2 text-sm shadow-[inset_0_0_0_1px_rgba(255,255,255,0.12)] outline-none"
+                  className="input-shell"
                 />
               </label>
               <div className="grid gap-3 md:grid-cols-3">
                 <label className="grid gap-1 text-sm">
-                  <span className="text-xs text-zinc-400">时长</span>
+                  <span className="text-xs text-[rgba(14,17,22,0.45)]">时长</span>
                   <input
                     type="number"
                     value={form.durationMin}
                     onChange={(e) => setForm((p) => ({ ...p, durationMin: Number(e.target.value) }))}
-                    className="rounded-lg bg-black/30 px-3 py-2 text-sm shadow-[inset_0_0_0_1px_rgba(255,255,255,0.12)] outline-none"
+                    className="input-shell"
                   />
                 </label>
                 <label className="grid gap-1 text-sm">
-                  <span className="text-xs text-zinc-400">及格线</span>
+                  <span className="text-xs text-[rgba(14,17,22,0.45)]">及格线</span>
                   <input
                     type="number"
                     value={form.passScore}
                     onChange={(e) => setForm((p) => ({ ...p, passScore: Number(e.target.value) }))}
-                    className="rounded-lg bg-black/30 px-3 py-2 text-sm shadow-[inset_0_0_0_1px_rgba(255,255,255,0.12)] outline-none"
+                    className="input-shell"
                   />
                 </label>
                 <label className="grid gap-1 text-sm">
-                  <span className="text-xs text-zinc-400">状态</span>
+                  <span className="text-xs text-[rgba(14,17,22,0.45)]">状态</span>
                   <select
                     value={form.status}
                     onChange={(e) => setForm((p) => ({ ...p, status: e.target.value as any }))}
-                    className="rounded-lg bg-black/30 px-3 py-2 text-sm shadow-[inset_0_0_0_1px_rgba(255,255,255,0.12)] outline-none"
+                    className="input-shell"
                   >
                     <option value="draft">草稿</option>
                     <option value="published">已发布</option>
@@ -219,17 +219,17 @@ export default function AdminExams() {
               {items.map((e) => (
                 <div
                   key={e.id}
-                  className="rounded-xl bg-white/5 p-4 shadow-[inset_0_0_0_1px_rgba(255,255,255,0.10)]"
+                  className="list-surface p-4"
                 >
                   <div className="flex flex-wrap items-start justify-between gap-3">
                     <div>
-                      <div className="text-sm font-medium text-zinc-100">{e.title}</div>
-                      <div className="mt-1 text-xs text-zinc-500">
+                      <div className="text-sm font-medium text-[#0e1116]">{e.title}</div>
+                      <div className="mt-1 text-xs text-[rgba(14,17,22,0.45)]">
                         {orgById.get(e.orgUnitId) ?? e.orgUnitId} · {paperById.get(e.paperId) ?? e.paperId}
                       </div>
                     </div>
                     <div className="flex items-center gap-2">
-                      <span className="rounded-full bg-white/5 px-3 py-1 text-xs text-zinc-200 shadow-[inset_0_0_0_1px_rgba(255,255,255,0.10)]">
+                      <span className="data-pill">
                         {e.status}
                       </span>
                       <Button variant="secondary" className="px-3" onClick={() => updateStatus(e, 'published')}>
@@ -240,10 +240,10 @@ export default function AdminExams() {
                       </Button>
                     </div>
                   </div>
-                  <div className="mt-3 text-xs text-zinc-500">{e.durationMin} 分钟 · 及格 {e.passScore} 分</div>
+                  <div className="mt-3 text-xs text-[rgba(14,17,22,0.45)]">{e.durationMin} 分钟 · 及格 {e.passScore} 分</div>
                 </div>
               ))}
-              {items.length === 0 && <div className="py-10 text-sm text-zinc-400">暂无测验</div>}
+              {items.length === 0 && <div className="py-10 text-sm text-[rgba(14,17,22,0.4)]">暂无测验</div>}
             </div>
           </CardContent>
         </Card>

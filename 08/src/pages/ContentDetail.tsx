@@ -82,7 +82,7 @@ export default function ContentDetail() {
       <div className="hero-frame px-6 py-7 md:px-8">
         <div className="flex flex-wrap items-end justify-between gap-4">
           <div>
-            <div className="page-eyebrow">Learning Content</div>
+            <div className="page-eyebrow">学习内容</div>
             <h1 className="page-title text-3xl md:text-5xl">{content?.title ?? '加载中…'}</h1>
             {content && <div className="page-subtitle mt-2 max-w-2xl">{content.category}</div>}
           </div>
@@ -109,7 +109,7 @@ export default function ContentDetail() {
       </div>
 
       {error && (
-        <div className="rounded-2xl bg-[#b91c1c]/10 px-4 py-3 text-[#7f1d1d] shadow-[inset_0_0_0_1px_rgba(185,28,28,0.16)]">
+        <div className="rounded-2xl bg-[#a31828]/10 px-4 py-3 text-[#7a1020] shadow-[inset_0_0_0_1px_rgba(185,28,28,0.16)]">
           {error}
         </div>
       )}
@@ -119,7 +119,7 @@ export default function ContentDetail() {
           <CardTitle className="flex items-center justify-between gap-3">
             <span>{content?.type === 'video' ? '视频内容' : '文章内容'}</span>
             <span className="data-pill">
-              <Clock className="h-3 w-3 text-[#8c2424]" />
+              <Clock className="h-3 w-3 text-[#a31828]" />
               学习时长将自动统计
             </span>
           </CardTitle>
@@ -131,7 +131,7 @@ export default function ContentDetail() {
                 <a
                   href={videoUrl}
                   target="_blank"
-                  className="list-surface text-sm text-black/75 hover:bg-[#8c2424]/5"
+                  className="list-surface text-sm text-black/75 hover:bg-[#a31828]/5"
                   rel="noreferrer"
                 >
                   打开视频链接：{videoUrl}
@@ -142,8 +142,8 @@ export default function ContentDetail() {
               </div>
               {(content.attachments?.length ?? 0) > 0 && (
                 <div className="grid gap-2">
-                  <div className="flex items-center gap-2 text-sm font-semibold text-[#171717]">
-                    <Paperclip className="h-4 w-4 text-[#8c2424]" />
+                  <div className="flex items-center gap-2 text-sm font-semibold text-[#0e1116]">
+                    <Paperclip className="h-4 w-4 text-[#a31828]" />
                     附件下载
                   </div>
                   {content.attachments!.map((att) => (
@@ -152,7 +152,7 @@ export default function ContentDetail() {
                       href={withAccessToken(att.url, token)}
                       target="_blank"
                       rel="noreferrer"
-                      className="list-surface text-sm text-[#8c2424] hover:bg-[#8c2424]/5"
+                      className="list-surface text-sm text-[#a31828] hover:bg-[#a31828]/5"
                     >
                       {att.name}
                     </a>
@@ -168,7 +168,7 @@ export default function ContentDetail() {
               </div>
             </div>
           ) : (
-            <div className="py-10 text-sm text-zinc-400">暂无内容</div>
+            <div className="py-10 text-sm text-[rgba(14,17,22,0.4)]">暂无内容</div>
           )}
         </CardContent>
       </Card>

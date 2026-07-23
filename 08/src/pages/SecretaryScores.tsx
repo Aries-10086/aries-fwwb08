@@ -73,7 +73,7 @@ export default function SecretaryScores() {
     <div className="grid gap-6">
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <div className="page-eyebrow">Branch Scores</div>
+          <div className="page-eyebrow">支部成绩</div>
           <h1 className="page-title text-3xl md:text-4xl">支部成绩</h1>
           <div className="page-subtitle mt-2 max-w-2xl">
             查看本支部下级党员的测验成绩汇总与明细
@@ -87,7 +87,7 @@ export default function SecretaryScores() {
       </div>
 
       {error && (
-        <div className="rounded-2xl bg-[#b91c1c]/10 px-4 py-3 text-[#7f1d1d] shadow-[inset_0_0_0_1px_rgba(185,28,28,0.16)]">
+        <div className="rounded-2xl bg-[#a31828]/10 px-4 py-3 text-[#7a1020] shadow-[inset_0_0_0_1px_rgba(185,28,28,0.16)]">
           {error}
         </div>
       )}
@@ -103,11 +103,11 @@ export default function SecretaryScores() {
           return (
             <Card key={String(label)}>
               <CardContent className="pt-5">
-                <div className="flex items-center gap-2 text-[11px] uppercase tracking-[0.24em] text-[#8c2424]/60">
+                <div className="flex items-center gap-2 text-[11px] uppercase tracking-[0.24em] text-[#a31828]/60">
                   <I className="h-3.5 w-3.5" />
                   {label as string}
                 </div>
-                <div className="mt-3 text-3xl font-bold tracking-[-0.04em] text-[#171717]">{value as string}</div>
+                <div className="mt-3 text-3xl font-bold tracking-[-0.04em] text-[#0e1116]">{value as string}</div>
               </CardContent>
             </Card>
           )
@@ -126,7 +126,7 @@ export default function SecretaryScores() {
                 className="grid gap-3 rounded-2xl bg-white/90 px-4 py-4 shadow-[inset_0_0_0_1px_rgba(0,0,0,0.06)] md:grid-cols-[1.3fr_0.7fr_0.7fr_1.4fr]"
               >
                 <div>
-                  <div className="text-sm font-medium text-[#171717]">{m.name}</div>
+                  <div className="text-sm font-medium text-[#0e1116]">{m.name}</div>
                   <div className="mt-1 text-xs text-black/45">{m.username ? `@${m.username}` : m.userId}</div>
                 </div>
                 <div className="text-sm text-black/70">
@@ -152,7 +152,7 @@ export default function SecretaryScores() {
                           'ml-2 rounded-full px-2 py-0.5 text-[11px] font-medium',
                           m.latestIsPass
                             ? 'bg-emerald-500/10 text-emerald-700'
-                            : 'bg-[#b91c1c]/10 text-[#8c2424]',
+                            : 'bg-[#a31828]/10 text-[#a31828]',
                         ].join(' ')}
                       >
                         {m.latestIsPass ? '通过' : '未通过'}

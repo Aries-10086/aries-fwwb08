@@ -74,23 +74,21 @@ export default function AdminDashboard() {
       xAxis: {
         type: 'category',
         data: ['学习时长(小时)', '任务完成率(%)', '测验均分', '通过率(%)'],
-        axisLabel: { color: 'rgba(228,228,231,0.75)', fontSize: 11 },
-        axisLine: { lineStyle: { color: 'rgba(255,255,255,0.10)' } },
+        axisLabel: { color: 'rgba(14,17,22,0.55)', fontSize: 11 },
+        axisLine: { lineStyle: { color: 'rgba(14,17,22,0.12)' } },
       },
       yAxis: {
         type: 'value',
-        axisLabel: { color: 'rgba(228,228,231,0.55)', fontSize: 11 },
-        splitLine: { lineStyle: { color: 'rgba(255,255,255,0.06)' } },
+        axisLabel: { color: 'rgba(14,17,22,0.45)', fontSize: 11 },
+        splitLine: { lineStyle: { color: 'rgba(14,17,22,0.06)' } },
       },
       series: [
         {
           type: 'bar',
           data: [d.durationHours, d.latestTaskCompletionRate, d.avgExamScore, d.passRate],
           itemStyle: {
-            color: 'rgba(140,36,36,0.82)',
-            borderRadius: [8, 8, 0, 0],
-            shadowColor: 'rgba(140,36,36,0.18)',
-            shadowBlur: 16,
+            color: '#a31828',
+            borderRadius: [4, 4, 0, 0],
           },
         },
       ],
@@ -102,9 +100,11 @@ export default function AdminDashboard() {
       <div className="hero-frame px-6 py-7 md:px-8">
         <div className="flex flex-wrap items-end justify-between gap-4">
           <div>
-            <div className="page-eyebrow">Admin Overview</div>
-            <h1 className="page-title text-3xl md:text-5xl">统计看板</h1>
-            <div className="page-subtitle mt-2 max-w-2xl">学习、任务与测验数据统一沉淀，为组织管理提供持续可读的经营视角。</div>
+            <div className="page-eyebrow">管理中枢</div>
+            <h1 className="page-title text-3xl md:text-4xl">统计看板</h1>
+            <div className="page-subtitle mt-2 max-w-2xl">
+              学习、任务与测验数据统一沉淀，为组织管理提供持续可读的视角。
+            </div>
           </div>
           <div className="flex flex-wrap items-center gap-2">
             <select value={orgUnitId} onChange={(e) => setOrgUnitId(e.target.value)} className="input-shell min-w-[180px]">
@@ -129,9 +129,9 @@ export default function AdminDashboard() {
               ['测验均分', `${data.avgExamScore}`],
               ['通过率', `${data.passRate}%`],
             ].map(([label, value]) => (
-              <div key={label} className="panel-muted rounded-2xl px-4 py-4">
-                <div className="text-xs uppercase tracking-[0.28em] text-[#8c2424]/60">{label}</div>
-                <div className="mt-3 text-3xl font-black tracking-[-0.06em] text-[#171717]">{value}</div>
+              <div key={label} className="panel-muted px-4 py-4">
+                <div className="text-[11px] tracking-[0.2em] text-[#a31828]">{label}</div>
+                <div className="metric-value mt-3 text-[#0e1116]">{value}</div>
               </div>
             ))}
           </div>
@@ -139,7 +139,7 @@ export default function AdminDashboard() {
       </div>
 
       {error && (
-        <div className="rounded-2xl bg-[#b91c1c]/10 px-4 py-3 text-[#7f1d1d] shadow-[inset_0_0_0_1px_rgba(185,28,28,0.16)]">
+        <div className="border border-[rgba(163,24,40,0.2)] bg-[rgba(163,24,40,0.08)] px-4 py-3 text-[#7a1020]">
           {error}
         </div>
       )}
@@ -148,19 +148,19 @@ export default function AdminDashboard() {
         <Card className="md:col-span-7">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <BarChart3 className="h-5 w-5 text-[#8c2424]" />
+              <BarChart3 className="h-5 w-5 text-[#a31828]" />
               总览指标
             </CardTitle>
           </CardHeader>
           <CardContent>
-            {data ? <Chart option={option} height={320} /> : <div className="py-10 text-sm text-zinc-400">暂无数据</div>}
+            {data ? <Chart option={option} height={320} /> : <div className="py-10 text-sm text-[rgba(14,17,22,0.4)]">暂无数据</div>}
           </CardContent>
         </Card>
 
         <Card className="md:col-span-5">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <Sparkles className="h-5 w-5 text-[#8c2424]" />
+              <Sparkles className="h-5 w-5 text-[#a31828]" />
               支部测验均分排行
             </CardTitle>
           </CardHeader>
@@ -170,16 +170,18 @@ export default function AdminDashboard() {
                 {data.rank.map((r) => (
                   <div key={r.orgUnitId} className="list-surface flex items-center justify-between gap-3">
                     <div>
-                      <div className="text-sm font-medium text-[#171717]">{r.orgName}</div>
-                      <div className="mt-1 text-xs text-black/60">支部综合表现</div>
+                      <div className="text-sm font-medium text-[#0e1116]">{r.orgName}</div>
+                      <div className="mt-1 text-xs text-[rgba(14,17,22,0.55)]">支部综合表现</div>
                     </div>
-                    <div className="text-sm font-semibold text-[#171717]">{r.avgScore}</div>
+                    <div className="font-serif text-lg font-bold text-[#a31828]">{r.avgScore}</div>
                   </div>
                 ))}
-                {data.rank.length === 0 && <div className="py-8 text-sm text-zinc-400">暂无排行数据（先完成测验）</div>}
+                {data.rank.length === 0 && (
+                  <div className="py-8 text-sm text-[rgba(14,17,22,0.4)]">暂无排行数据（先完成测验）</div>
+                )}
               </div>
             ) : (
-              <div className="py-10 text-sm text-zinc-400">暂无数据</div>
+              <div className="py-10 text-sm text-[rgba(14,17,22,0.4)]">暂无数据</div>
             )}
           </CardContent>
         </Card>
