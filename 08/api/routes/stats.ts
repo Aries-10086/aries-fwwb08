@@ -235,4 +235,180 @@ router.get('/member-scores', (req: Request, res: Response) => {
   })
 })
 
+/** 支部书记完整数据看板：时长、任务完成率、测验、成员明细 */
+router.get('/branch-dashboard', (req: Request, res: Response) => {
+  if (!requireRole(req, ['admin', 'secretary'])) {
+    res.status(403).json({ success: false, error: '无权限访问' })
+    return
+  }
+
+  const { role, userId } = getUserContext(req)
+  const orgUnitId =
+    role === 'admin'
+      ? req.query.orgUnitId
+        ? String(req.query.orgUnitId)
+        : getOrgUnitIdForUser(userId) || null
+      : getOrgUnitIdForUser(userId)
+
+  if (!orgUnitId) {
+    res.status(400).json({ success: false, error: '未指定支部（书记须绑定所属支部）' })
+    return
+  }
+
+  const orgName = String((db.prepare('SELECT name FROM org_units WHERE id = ?').get(orgUnitId) as any)?.name ?? '')
+
+  const members = db
+    .prepare(
+      `SELECT id, name, username FROM users
+       WHERE org_unit_id = ? AND role = 'member'
+       ORDER BY name ASC`,
+    )
+    .all(orgUnitId) as any[]
+
+  const memberCount = members.length
+
+  const durationRow = db
+    .prepare(
+      `SELECT SUM(lr.duration_ms) as s
+       FROM learning_records lr
+       JOIN users u ON u.id = lr.user_id
+       WHERE u.org_unit_id = ? AND u.role = 'member'`,
+    )
+    .get(orgUnitId) as any
+  const durationMs = Number(durationRow?.s ?? 0)
+  const durationHours = Math.round((durationMs / 3600000) * 10) / 10
+
+  const examRows = db
+    .prepare(
+      `SELECT ea.total_score as total_score, ea.is_pass as is_pass
+       FROM exam_attempts ea
+       JOIN users u ON u.id = ea.user_id
+       WHERE u.org_unit_id = ? AND u.role = 'member'`,
+    )
+    .all(orgUnitId) as any[]
+
+  const avgExamScore =
+    examRows.length > 0
+      ? Math.round(examRows.reduce((a, b) => a + Number(b.total_score ?? 0), 0) / examRows.length)
+      : 0
+  const passRate =
+    examRows.length > 0
+      ? Math.round((examRows.filter((r) => Number(r.is_pass ?? 0) === 1).length / examRows.length) * 100)
+      : 0
+
+  const tasks = db
+    .prepare(
+      `SELECT id, title, due_at, created_at FROM learning_tasks
+       WHERE org_unit_id = ? ORDER BY created_at DESC LIMIT 50`,
+    )
+    .all(orgUnitId) as any[]
+
+  const completedByUser = new Map<string, Set<string>>()
+  const durationByUser = new Map<string, number>()
+  for (const m of members) {
+    completedByUser.set(String(m.id), userCompletedContents(String(m.id)))
+    const d = db
+      .prepare('SELECT COALESCE(SUM(duration_ms), 0) as s FROM learning_records WHERE user_id = ?')
+      .get(String(m.id)) as any
+    durationByUser.set(String(m.id), Number(d?.s ?? 0))
+  }
+
+  const taskStats = tasks.map((t) => {
+    const cids = taskContentIds(String(t.id))
+    const completedMemberCount =
+      memberCount === 0 || cids.length === 0
+        ? 0
+        : members.filter((m) => {
+            const done = completedByUser.get(String(m.id))!
+            return cids.every((cid) => done.has(cid))
+          }).length
+    return {
+      id: String(t.id),
+      title: String(t.title),
+      dueAt: t.due_at ? String(t.due_at) : null,
+      contentIds: cids,
+      contentCount: cids.length,
+      completedMemberCount,
+      completionRate: memberCount > 0 ? Math.round((completedMemberCount / memberCount) * 100) : 0,
+    }
+  })
+
+  const latestTaskCompletionRate = taskStats[0]?.completionRate ?? 0
+  const overallTaskCompletionRate =
+    taskStats.length > 0
+      ? Math.round(taskStats.reduce((a, b) => a + b.completionRate, 0) / taskStats.length)
+      : 0
+
+  const allContentIds = [...new Set(taskStats.flatMap((t) => t.contentIds))]
+  const membersFullyDone =
+    allContentIds.length === 0 || memberCount === 0
+      ? 0
+      : members.filter((m) => {
+          const done = completedByUser.get(String(m.id))!
+          return allContentIds.every((cid) => done.has(cid))
+        }).length
+  const contentCompletionRate =
+    allContentIds.length === 0 || memberCount === 0
+      ? 0
+      : Math.round((membersFullyDone / memberCount) * 100)
+
+  const attemptStmt = db.prepare(
+    `SELECT COUNT(1) as c, AVG(total_score) as avg_score,
+            SUM(CASE WHEN is_pass = 1 THEN 1 ELSE 0 END) as pass_c
+     FROM exam_attempts WHERE user_id = ?`,
+  )
+
+  const memberRows = members.map((m) => {
+    const uid = String(m.id)
+    const done = completedByUser.get(uid)!
+    const dur = durationByUser.get(uid) ?? 0
+    const att = attemptStmt.get(uid) as any
+    const attemptCount = Number(att?.c ?? 0)
+    const completedContentCount = done.size
+    const taskDoneCount =
+      taskStats.length === 0
+        ? 0
+        : taskStats.filter((t) => t.contentIds.length > 0 && t.contentIds.every((cid) => done.has(cid)))
+            .length
+
+    return {
+      userId: uid,
+      name: String(m.name),
+      username: String(m.username ?? ''),
+      durationMs: dur,
+      durationHours: Math.round((dur / 3600000) * 10) / 10,
+      completedContentCount,
+      taskCompletedCount: taskDoneCount,
+      taskCount: taskStats.length,
+      taskCompletionRate:
+        taskStats.length > 0 ? Math.round((taskDoneCount / taskStats.length) * 100) : 0,
+      attemptCount,
+      avgScore: attemptCount > 0 ? Math.round(Number(att?.avg_score ?? 0)) : null,
+      passCount: Number(att?.pass_c ?? 0),
+    }
+  })
+
+  res.status(200).json({
+    success: true,
+    data: {
+      orgUnitId,
+      orgName,
+      summary: {
+        memberCount,
+        durationHours,
+        avgExamScore,
+        passRate,
+        attemptCount: examRows.length,
+        taskCount: taskStats.length,
+        latestTaskCompletionRate,
+        overallTaskCompletionRate,
+        contentCompletionRate,
+        requiredContentCount: allContentIds.length,
+      },
+      tasks: taskStats.map(({ contentIds: _cids, ...rest }) => rest),
+      members: memberRows,
+    },
+  })
+})
+
 export default router
