@@ -198,4 +198,30 @@ router.post('/change-password', async (req: Request, res: Response): Promise<voi
   res.status(200).json({ success: true })
 })
 
+/** 更新个人资料（姓名） */
+router.put('/profile', async (req: Request, res: Response): Promise<void> => {
+  if (!requireAuth(req)) {
+    rejectUnauthorized(res)
+    return
+  }
+
+  const { userId } = getUserContext(req)
+  const name = String(req.body?.name ?? '').trim()
+  if (!name || name.length < 2) {
+    res.status(400).json({ success: false, error: '姓名至少 2 个字符' })
+    return
+  }
+  if (name.length > 40) {
+    res.status(400).json({ success: false, error: '姓名过长' })
+    return
+  }
+
+  db.prepare('UPDATE users SET name = ? WHERE id = ?').run(name, userId)
+  const user = db
+    .prepare('SELECT id, name, username, role, org_unit_id FROM users WHERE id = ?')
+    .get(userId) as any
+  audit(userId, 'auth.update_profile', { name })
+  res.status(200).json({ success: true, data: { user: toAuthUser(user) } })
+})
+
 export default router

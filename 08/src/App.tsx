@@ -7,10 +7,12 @@ import MobileHome from '@/pages/MobileHome'
 import ContentDetail from '@/pages/ContentDetail'
 import MobileExams from '@/pages/MobileExams'
 import MobileExamTake from '@/pages/MobileExamTake'
+import MobileExamResult from '@/pages/MobileExamResult'
 import MobileReport from '@/pages/MobileReport'
 import SecretaryScores from '@/pages/SecretaryScores'
 import SecretaryDashboard from '@/pages/SecretaryDashboard'
 import ChangePassword from '@/pages/ChangePassword'
+import AccountCenter from '@/pages/AccountCenter'
 import AdminDashboard from '@/pages/AdminDashboard'
 import AdminOrg from '@/pages/AdminOrg'
 import AdminUsers from '@/pages/AdminUsers'
@@ -36,9 +38,11 @@ export default function App() {
           <Route path="/m/content/:id" element={<ContentDetail />} />
           <Route path="/m/exams" element={<MobileExams />} />
           <Route path="/m/exam/:examId" element={<MobileExamTake />} />
+          <Route path="/m/exam-result/:attemptId" element={<MobileExamResult />} />
           <Route path="/m/report" element={<MobileReport />} />
           <Route path="/m/scores" element={<SecretaryScores />} />
           <Route path="/m/dashboard" element={<SecretaryDashboard />} />
+          <Route path="/account" element={<AccountCenter />} />
           <Route path="/account/password" element={<ChangePassword />} />
 
           <Route path="/admin/dashboard" element={<AdminDashboard />} />

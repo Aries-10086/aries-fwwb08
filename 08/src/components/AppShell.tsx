@@ -13,7 +13,7 @@ import {
   BrainCircuit,
   BarChart3,
   Sparkles,
-  KeyRound,
+  UserRound,
 } from 'lucide-react'
 
 const adminNav = [
@@ -26,7 +26,7 @@ const adminNav = [
   { to: '/admin/papers', label: '试卷', icon: FileText },
   { to: '/admin/exams', label: '测验', icon: ClipboardList },
   { to: '/admin/ai-query', label: 'AI 查询', icon: BrainCircuit },
-  { to: '/account/password', label: '改密', icon: KeyRound },
+  { to: '/account', label: '我的', icon: UserRound },
 ] as const
 
 const secretaryNav = [
@@ -36,14 +36,14 @@ const secretaryNav = [
   { to: '/m/home', label: '学习', icon: BookOpen },
   { to: '/m/exams', label: '测验', icon: ClipboardList },
   { to: '/m/report', label: 'AI 报告', icon: Sparkles },
-  { to: '/account/password', label: '改密', icon: KeyRound },
+  { to: '/account', label: '我的', icon: UserRound },
 ] as const
 
 const memberNav = [
   { to: '/m/home', label: '学习', icon: BookOpen },
   { to: '/m/exams', label: '测验', icon: ClipboardList },
   { to: '/m/report', label: 'AI 报告', icon: Sparkles },
-  { to: '/account/password', label: '改密', icon: KeyRound },
+  { to: '/account', label: '我的', icon: UserRound },
 ] as const
 
 export function AppShell({ children }: { children: React.ReactNode }) {

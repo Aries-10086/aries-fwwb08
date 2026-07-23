@@ -56,10 +56,10 @@ export default function ChangePassword() {
           <h1 className="page-title text-3xl md:text-4xl">修改密码</h1>
           <div className="page-subtitle mt-2 max-w-2xl">验证原密码后设置新密码，至少 6 位</div>
         </div>
-        <Link to={user?.role === 'admin' ? '/admin/dashboard' : '/m/home'}>
+        <Link to="/account">
           <Button variant="secondary">
             <ArrowLeft className="h-4 w-4" />
-            返回
+            返回个人中心
           </Button>
         </Link>
       </div>
