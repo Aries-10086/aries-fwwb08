@@ -6,25 +6,9 @@ import { apiFetch } from '@/utils/api'
 import { useAuthStore } from '@/store/auth'
 import { withAccessToken } from '@/utils/fileLink'
 import { ArrowLeft, CheckCircle2, Clock, Paperclip } from 'lucide-react'
+import type { Content, ContentAttachment } from '../../shared/types'
 
-type Attachment = {
-  id: string
-  name: string
-  url: string
-  size: number
-  mime: string
-}
-
-type Content = {
-  id: string
-  type: 'article' | 'video'
-  title: string
-  body: string
-  category: string
-  tags: string[]
-  attachments?: Attachment[]
-  isPublic: boolean
-}
+type Attachment = ContentAttachment
 
 function toEmbedUrl(url: string): { kind: 'iframe' | 'video'; src: string } | null {
   try {

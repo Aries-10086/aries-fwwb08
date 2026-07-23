@@ -6,26 +6,9 @@ import { apiFetch, apiUpload } from '@/utils/api'
 import { useAuthStore } from '@/store/auth'
 import { withAccessToken } from '@/utils/fileLink'
 import { BookOpen, FileUp, Paperclip, Save, RotateCw, Trash2, X } from 'lucide-react'
+import type { Content, ContentAttachment } from '../../shared/types'
 
-type Attachment = {
-  id: string
-  name: string
-  url: string
-  size: number
-  mime: string
-}
-
-type Content = {
-  id: string
-  type: 'article' | 'video'
-  title: string
-  body: string
-  category: string
-  tags: string[]
-  attachments: Attachment[]
-  isPublic: boolean
-  updatedAt: string
-}
+type Attachment = ContentAttachment
 
 function formatSize(size: number) {
   if (size < 1024) return `${size} B`

@@ -7,6 +7,9 @@ import { fileURLToPath } from 'url'
 import { db, nowIso, audit } from '../db.js'
 import { getUserContext, requireAuth, requireRole, rejectUnauthorized } from '../utils/http.js'
 import { json, parseJson } from '../utils/json.js'
+import type { ContentAttachment } from '../../shared/types.js'
+
+export type { ContentAttachment }
 
 const router = Router()
 
@@ -15,14 +18,6 @@ const __dirname = path.dirname(__filename)
 export const uploadsDir = path.resolve(__dirname, '../uploads')
 
 if (!fs.existsSync(uploadsDir)) fs.mkdirSync(uploadsDir, { recursive: true })
-
-export type ContentAttachment = {
-  id: string
-  name: string
-  url: string
-  size: number
-  mime: string
-}
 
 const ALLOWED_EXT = new Set([
   '.pdf',

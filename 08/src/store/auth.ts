@@ -1,14 +1,9 @@
 import { create } from 'zustand'
+import type { User, UserRole } from '../../shared/types'
 
-export type UserRole = 'member' | 'secretary' | 'admin'
-
-export interface AuthUser {
-  id: string
-  name: string
-  username?: string
-  role: UserRole
-  orgUnitId: string
-}
+export type { UserRole }
+/** 登录态用户；与 shared/types.User 对齐（username 必填） */
+export type AuthUser = User
 
 export interface RegisterPayload {
   name: string

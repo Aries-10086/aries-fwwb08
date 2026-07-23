@@ -8,7 +8,9 @@ import { useAuthStore } from '@/store/auth'
 import { Upload, Plus, RotateCw, Users, PencilLine, Trash2, Search, Save } from 'lucide-react'
 
 type Org = { id: string; name: string; parentId: string | null }
-type User = { id: string; name: string; username: string; role: string; orgUnitId: string; createdAt: string }
+import type { User as SharedUser } from '../../shared/types'
+
+type User = SharedUser
 
 export default function AdminUsers() {
   const nav = useNavigate()
