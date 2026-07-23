@@ -8,7 +8,17 @@ import { ClipboardList, Pencil, Plus, RotateCw, Trash2 } from 'lucide-react'
 
 type Org = { id: string; name: string; parentId: string | null }
 type Content = { id: string; title: string; category: string; isPublic: boolean }
-type Task = { id: string; orgUnitId: string; title: string; dueAt: string | null; contentIds: string[] }
+type Task = {
+  id: string
+  orgUnitId: string
+  title: string
+  dueAt: string | null
+  contentIds: string[]
+  contents?: Array<{ id: string; title: string; type: string; isCompleted: boolean }>
+  branchMemberCount?: number | null
+  branchCompletedMemberCount?: number | null
+  branchCompletionRate?: number | null
+}
 
 function toDatetimeLocal(iso: string | null) {
   if (!iso) return ''
@@ -251,7 +261,11 @@ export default function AdminTasks() {
           </CardHeader>
           <CardContent>
             <div className="grid gap-2">
-              {tasks.map((t) => (
+              {tasks.map((t) => {
+                const branchRate = t.branchCompletionRate ?? 0
+                const branchDone = t.branchCompletedMemberCount ?? 0
+                const branchTotal = t.branchMemberCount ?? 0
+                return (
                 <div
                   key={t.id}
                   className="rounded-xl bg-white/90 p-4 shadow-[inset_0_0_0_1px_rgba(0,0,0,0.06)]"
@@ -262,6 +276,9 @@ export default function AdminTasks() {
                       <div className="mt-1 text-xs text-zinc-500">
                         {orgById.get(t.orgUnitId)?.name ?? t.orgUnitId}
                         {t.dueAt ? ` · 截止 ${new Date(t.dueAt).toLocaleString()}` : ''}
+                        {branchTotal > 0
+                          ? ` · 支部完成 ${branchDone}/${branchTotal}（${branchRate}%）`
+                          : ''}
                       </div>
                     </div>
                     <div className="flex gap-2">
@@ -275,18 +292,39 @@ export default function AdminTasks() {
                       </Button>
                     </div>
                   </div>
+                  {branchTotal > 0 && (
+                    <div className="mt-3">
+                      <div className="mb-1 flex justify-between text-[11px] text-[rgba(14,17,22,0.45)]">
+                        <span>支部完成进度</span>
+                        <span className="font-medium text-[#a31828]">{branchRate}%</span>
+                      </div>
+                      <div className="h-2 overflow-hidden rounded-full bg-[rgba(14,17,22,0.06)]">
+                        <div
+                          className="h-full rounded-full bg-[#a31828] transition-all"
+                          style={{ width: `${Math.min(100, Math.max(0, branchRate))}%` }}
+                        />
+                      </div>
+                    </div>
+                  )}
                   <div className="mt-3 grid gap-2 md:grid-cols-2">
-                    {t.contentIds.map((cid) => (
+                    {(t.contents?.length
+                      ? t.contents.map((c) => ({ id: c.id, title: c.title }))
+                      : t.contentIds.map((cid) => ({
+                          id: cid,
+                          title: contentById.get(cid)?.title ?? cid,
+                        }))
+                    ).map((c) => (
                       <div
-                        key={cid}
+                        key={c.id}
                         className="rounded-lg bg-white px-4 py-3 text-sm text-[#0e1116] shadow-[inset_0_0_0_1px_rgba(0,0,0,0.06)]"
                       >
-                        {contentById.get(cid)?.title ?? cid}
+                        {c.title}
                       </div>
                     ))}
                   </div>
                 </div>
-              ))}
+                )
+              })}
               {tasks.length === 0 && <div className="py-10 text-sm text-zinc-400">暂无任务</div>}
             </div>
           </CardContent>

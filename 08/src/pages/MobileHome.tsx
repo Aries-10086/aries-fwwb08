@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/Card'
 import { Button } from '@/components/Button'
 import { apiFetch } from '@/utils/api'
 import { useAuthStore } from '@/store/auth'
-import { ArrowRight, BookOpen, ClipboardList, Search, Sparkles } from 'lucide-react'
+import { ArrowRight, BookOpen, CheckCircle2, Circle, ClipboardList, Search, Sparkles } from 'lucide-react'
 
 type Content = {
   id: string
@@ -15,11 +15,23 @@ type Content = {
   isPublic: boolean
 }
 
+type TaskContentItem = {
+  id: string
+  title: string
+  type: string
+  isCompleted: boolean
+}
+
 type Task = {
   id: string
   title: string
   dueAt: string | null
   contentIds: string[]
+  contents?: TaskContentItem[]
+  completedCount?: number
+  totalCount?: number
+  progressPercent?: number
+  isCompleted?: boolean
 }
 
 type ProgressItem = {
@@ -172,21 +184,72 @@ export default function MobileHome() {
           <CardContent>
             <div className="grid gap-3">
               {tasks.map((t) => {
-                const doneInTask = t.contentIds.filter((cid) => completedSet.has(cid)).length
+                const items =
+                  t.contents && t.contents.length > 0
+                    ? t.contents
+                    : t.contentIds.map((cid) => ({
+                        id: cid,
+                        title: cid,
+                        type: 'article',
+                        isCompleted: completedSet.has(cid),
+                      }))
+                const total = t.totalCount ?? items.length
+                const done = t.completedCount ?? items.filter((x) => x.isCompleted).length
+                const percent = t.progressPercent ?? (total > 0 ? Math.round((done / total) * 100) : 0)
+                const allDone = t.isCompleted ?? (total > 0 && done === total)
                 return (
                   <div key={t.id} className="list-surface">
-                    <div className="text-sm font-medium text-[#0e1116]">{t.title}</div>
-                    <div className="mt-1 text-xs text-[rgba(14,17,22,0.55)]">
-                      进度 {doneInTask}/{t.contentIds.length}
-                      {t.dueAt ? ` · 截止 ${new Date(t.dueAt).toLocaleDateString()}` : ''}
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-2">
+                          {allDone ? (
+                            <CheckCircle2 className="h-4 w-4 shrink-0 text-[#1f6b4a]" />
+                          ) : (
+                            <Circle className="h-4 w-4 shrink-0 text-[rgba(14,17,22,0.28)]" />
+                          )}
+                          <div className="truncate text-sm font-medium text-[#0e1116]">{t.title}</div>
+                        </div>
+                        <div className="mt-1 text-xs text-[rgba(14,17,22,0.55)]">
+                          {allDone ? '已完成' : `进度 ${done}/${total}`}
+                          {t.dueAt ? ` · 截止 ${new Date(t.dueAt).toLocaleDateString()}` : ''}
+                        </div>
+                      </div>
+                      <div className="shrink-0 text-sm font-semibold text-[#a31828]">{percent}%</div>
                     </div>
-                    <div className="mt-3 flex flex-wrap gap-2">
-                      {t.contentIds.slice(0, 3).map((cid) => (
-                        <Link key={cid} to={`/m/content/${cid}`}>
-                          <Button variant="ghost" className="px-3 py-1.5 text-xs">
-                            {completedSet.has(cid) ? '已学 · 打开' : '打开内容'}
-                            <ArrowRight className="h-3 w-3" />
-                          </Button>
+                    <div className="mt-3 h-2 overflow-hidden rounded-full bg-[rgba(14,17,22,0.06)]">
+                      <div
+                        className={[
+                          'h-full rounded-full transition-all',
+                          allDone ? 'bg-[#1f6b4a]' : 'bg-[#a31828]',
+                        ].join(' ')}
+                        style={{ width: `${Math.min(100, Math.max(0, percent))}%` }}
+                      />
+                    </div>
+                    <div className="mt-3 grid gap-2">
+                      {items.map((item) => (
+                        <Link
+                          key={item.id}
+                          to={`/m/content/${item.id}`}
+                          className={[
+                            'flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition',
+                            'shadow-[inset_0_0_0_1px_rgba(14,17,22,0.06)]',
+                            item.isCompleted
+                              ? 'bg-[rgba(31,107,74,0.06)] hover:bg-[rgba(31,107,74,0.1)]'
+                              : 'bg-white/80 hover:bg-[rgba(163,24,40,0.05)]',
+                          ].join(' ')}
+                        >
+                          {item.isCompleted ? (
+                            <CheckCircle2 className="h-4 w-4 shrink-0 text-[#1f6b4a]" />
+                          ) : (
+                            <Circle className="h-4 w-4 shrink-0 text-[rgba(14,17,22,0.28)]" />
+                          )}
+                          <div className="min-w-0 flex-1">
+                            <div className="truncate text-[#0e1116]">{item.title}</div>
+                            <div className="mt-0.5 text-[11px] text-[rgba(14,17,22,0.45)]">
+                              {item.isCompleted ? '已完成' : '未完成'} · {item.type === 'video' ? '视频' : '文章'}
+                            </div>
+                          </div>
+                          <ArrowRight className="h-3.5 w-3.5 shrink-0 text-[rgba(14,17,22,0.35)]" />
                         </Link>
                       ))}
                     </div>
