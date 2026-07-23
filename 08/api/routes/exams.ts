@@ -101,6 +101,179 @@ function mapExamRow(r: any, extra?: Record<string, unknown>) {
   }
 }
 
+function formatAnswerLabel(
+  type: QuestionType,
+  value: any,
+  options: Array<{ key: string; text: string }> | null,
+): string {
+  if (value === null || value === undefined || value === '') return '未作答'
+  if (type === 'tf') {
+    if (typeof value === 'boolean') return value ? '正确' : '错误'
+    if (value === 'true' || value === '1') return '正确'
+    if (value === 'false' || value === '0') return '错误'
+    return String(value)
+  }
+  const optMap = new Map((options ?? []).map((o) => [String(o.key), o.text]))
+  const keys = Array.isArray(value) ? value.map(String) : [String(value)]
+  return keys
+    .map((k) => {
+      const text = optMap.get(k)
+      return text ? `${k}. ${text}` : k
+    })
+    .join('；')
+}
+
+function scoreAnswer(type: QuestionType, expected: any, answer: any, maxScore: number) {
+  if (type === 'single') {
+    return expected && answer && String(expected) === String(answer) ? maxScore : 0
+  }
+  if (type === 'tf') {
+    return typeof expected === 'boolean' && typeof answer === 'boolean' && expected === answer ? maxScore : 0
+  }
+  if (type === 'multiple') {
+    const exp = Array.isArray(expected) ? expected.map(String).sort().join('|') : ''
+    const got = Array.isArray(answer) ? answer.map(String).sort().join('|') : ''
+    return exp && got && exp === got ? maxScore : 0
+  }
+  return 0
+}
+
+function buildAttemptReview(attemptId: string, requesterId: string, role: string) {
+  const attempt = db
+    .prepare(
+      `SELECT ea.id, ea.exam_id, ea.user_id, ea.total_score, ea.is_pass, ea.created_at,
+              e.title as exam_title, e.pass_score, e.org_unit_id, e.paper_id, e.status
+       FROM exam_attempts ea
+       JOIN exams e ON e.id = ea.exam_id
+       WHERE ea.id = ?`,
+    )
+    .get(attemptId) as any
+
+  if (!attempt) return { ok: false as const, status: 404, error: '成绩不存在' }
+
+  const ownerId = String(attempt.user_id)
+  if (role !== 'admin' && ownerId !== requesterId) {
+    // 书记可看本支部成员成绩回顾
+    if (role === 'secretary') {
+      const ownOrg = getOrgUnitIdForUser(requesterId)
+      if (!ownOrg || String(attempt.org_unit_id) !== ownOrg) {
+        return { ok: false as const, status: 403, error: '无权限查看该成绩' }
+      }
+    } else {
+      return { ok: false as const, status: 403, error: '无权限查看该成绩' }
+    }
+  }
+
+  const answers = db
+    .prepare(
+      `SELECT ea.question_id, ea.answer_json, ea.score,
+              q.type, q.category, q.stem, q.options_json, q.answer_key_json,
+              pq.score as max_score, pq.order_no
+       FROM exam_answers ea
+       JOIN questions q ON q.id = ea.question_id
+       LEFT JOIN paper_questions pq ON pq.paper_id = ? AND pq.question_id = ea.question_id
+       WHERE ea.attempt_id = ?
+       ORDER BY COALESCE(pq.order_no, 0) ASC`,
+    )
+    .all(String(attempt.paper_id), attemptId) as any[]
+
+  const details = answers.map((row, idx) => {
+    const type = String(row.type) as QuestionType
+    const options = parseJson<Array<{ key: string; text: string }>>(row.options_json)
+    const expected = parseJson<any>(row.answer_key_json ?? null)
+    const userAnswer = parseJson<any>(row.answer_json ?? null)
+    const maxScore = Number(row.max_score ?? 0)
+    const score = Number(row.score ?? 0)
+    const isCorrect = score >= maxScore && maxScore > 0
+    return {
+      orderNo: Number(row.order_no ?? idx + 1),
+      questionId: String(row.question_id),
+      type,
+      category: String(row.category ?? ''),
+      stem: String(row.stem ?? ''),
+      options,
+      userAnswer,
+      correctAnswer: expected,
+      userAnswerLabel: formatAnswerLabel(type, userAnswer, options),
+      correctAnswerLabel: formatAnswerLabel(type, expected, options),
+      score,
+      maxScore,
+      isCorrect,
+    }
+  })
+
+  const wrongCount = details.filter((d) => !d.isCorrect).length
+  const correctCount = details.filter((d) => d.isCorrect).length
+
+  return {
+    ok: true as const,
+    data: {
+      attemptId: String(attempt.id),
+      examId: String(attempt.exam_id),
+      examTitle: String(attempt.exam_title ?? '测验'),
+      userId: ownerId,
+      totalScore: Number(attempt.total_score ?? 0),
+      passScore: Number(attempt.pass_score ?? 60),
+      isPass: Number(attempt.is_pass ?? 0) === 1,
+      createdAt: String(attempt.created_at),
+      correctCount,
+      wrongCount,
+      details,
+      wrongDetails: details.filter((d) => !d.isCorrect),
+    },
+  }
+}
+
+/** 我的全部历史成绩 */
+router.get('/attempts/mine', (req: Request, res: Response) => {
+  if (!requireRole(req, ['member', 'secretary', 'admin'])) {
+    res.status(403).json({ success: false, error: '未登录' })
+    return
+  }
+
+  const { userId } = getUserContext(req)
+  const rows = db
+    .prepare(
+      `SELECT ea.id, ea.exam_id, ea.total_score, ea.is_pass, ea.created_at,
+              e.title as exam_title, e.pass_score
+       FROM exam_attempts ea
+       LEFT JOIN exams e ON e.id = ea.exam_id
+       WHERE ea.user_id = ?
+       ORDER BY ea.created_at DESC
+       LIMIT 100`,
+    )
+    .all(userId) as any[]
+
+  res.status(200).json({
+    success: true,
+    data: rows.map((r) => ({
+      id: String(r.id),
+      examId: String(r.exam_id),
+      examTitle: r.exam_title ? String(r.exam_title) : '测验',
+      totalScore: Number(r.total_score ?? 0),
+      passScore: r.pass_score != null ? Number(r.pass_score) : null,
+      isPass: Number(r.is_pass ?? 0) === 1,
+      createdAt: String(r.created_at),
+    })),
+  })
+})
+
+/** 单次成绩详情（含错题回顾） */
+router.get('/attempts/:attemptId', (req: Request, res: Response) => {
+  if (!requireRole(req, ['member', 'secretary', 'admin'])) {
+    res.status(403).json({ success: false, error: '未登录' })
+    return
+  }
+
+  const { userId, role } = getUserContext(req)
+  const review = buildAttemptReview(String(req.params.attemptId), userId, role)
+  if (!review.ok) {
+    res.status(review.status).json({ success: false, error: review.error })
+    return
+  }
+  res.status(200).json({ success: true, data: review.data })
+})
+
 router.get('/', (req: Request, res: Response) => {
   if (!requireAuth(req)) {
     rejectUnauthorized(res)
@@ -348,7 +521,7 @@ router.post('/:id/submit', (req: Request, res: Response) => {
 
   const exam = db
     .prepare(
-      'SELECT id, org_unit_id, paper_id, duration_min, pass_score, max_attempts, status FROM exams WHERE id = ?',
+      'SELECT id, org_unit_id, paper_id, title, duration_min, pass_score, max_attempts, status FROM exams WHERE id = ?',
     )
     .get(examId) as any
 
@@ -411,26 +584,46 @@ router.post('/:id/submit', (req: Request, res: Response) => {
   const submitted: Record<string, any> = req.body?.answers ?? {}
 
   let totalScore = 0
-  const details: Array<{ questionId: string; score: number; maxScore: number }> = []
+  const details: Array<{
+    questionId: string
+    type: QuestionType
+    category: string
+    stem: string
+    options: any
+    userAnswer: any
+    correctAnswer: any
+    userAnswerLabel: string
+    correctAnswerLabel: string
+    score: number
+    maxScore: number
+    isCorrect: boolean
+    orderNo: number
+  }> = []
 
   for (const q of paper.questions) {
     const answer = submitted[q.id]
     const row = db.prepare('SELECT answer_key_json FROM questions WHERE id = ?').get(q.id) as any
     const expected = parseJson<any>(row?.answer_key_json ?? null)
-
-    let score = 0
-    if (q.type === 'single') {
-      score = expected && answer && String(expected) === String(answer) ? q.score : 0
-    } else if (q.type === 'tf') {
-      score = typeof expected === 'boolean' && typeof answer === 'boolean' && expected === answer ? q.score : 0
-    } else if (q.type === 'multiple') {
-      const exp = Array.isArray(expected) ? expected.map(String).sort().join('|') : ''
-      const got = Array.isArray(answer) ? answer.map(String).sort().join('|') : ''
-      score = exp && got && exp === got ? q.score : 0
-    }
+    const options = (q.options as Array<{ key: string; text: string }> | null) ?? null
+    const score = scoreAnswer(q.type, expected, answer, q.score)
+    const isCorrect = score >= q.score && q.score > 0
 
     totalScore += score
-    details.push({ questionId: q.id, score, maxScore: q.score })
+    details.push({
+      questionId: q.id,
+      type: q.type,
+      category: q.category,
+      stem: q.stem,
+      options,
+      userAnswer: answer ?? null,
+      correctAnswer: expected,
+      userAnswerLabel: formatAnswerLabel(q.type, answer, options),
+      correctAnswerLabel: formatAnswerLabel(q.type, expected, options),
+      score,
+      maxScore: q.score,
+      isCorrect,
+      orderNo: q.orderNo,
+    })
   }
 
   const passScore = Number(exam.pass_score ?? paper.passScore ?? 60)
@@ -447,21 +640,27 @@ router.post('/:id/submit', (req: Request, res: Response) => {
       'INSERT INTO exam_answers (id, attempt_id, question_id, answer_json, score) VALUES (?, ?, ?, ?, ?)',
     )
     for (const d of details) {
-      ansInsert.run(`ea_${nanoid(12)}`, attemptId, d.questionId, json(submitted[d.questionId] ?? null), d.score)
+      ansInsert.run(`ea_${nanoid(12)}`, attemptId, d.questionId, json(d.userAnswer), d.score)
     }
     db.prepare('UPDATE exam_sessions SET submitted = 1 WHERE id = ?').run(sessionId)
   })
   tx()
 
+  const wrongDetails = details.filter((d) => !d.isCorrect)
   audit(userId, 'exam.submit', { examId, totalScore, isPass, sessionId })
   res.status(200).json({
     success: true,
     data: {
       attemptId,
+      examId,
+      examTitle: String(exam.title ?? paper.title ?? '测验'),
       totalScore,
       passScore,
       isPass,
       details,
+      wrongDetails,
+      correctCount: details.filter((d) => d.isCorrect).length,
+      wrongCount: wrongDetails.length,
       attemptCount: attemptCount + 1,
       remainingAttempts: Math.max(0, maxAttempts - attemptCount - 1),
     },

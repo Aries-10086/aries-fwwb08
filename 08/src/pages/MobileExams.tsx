@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/Card'
 import { Button } from '@/components/Button'
 import { apiFetch } from '@/utils/api'
 import { useAuthStore } from '@/store/auth'
-import { ArrowRight, ClipboardList, Sparkles } from 'lucide-react'
+import { ArrowRight, ClipboardList, History, Sparkles } from 'lucide-react'
 
 type Attempt = {
   id: string
@@ -28,10 +28,21 @@ type Exam = {
   createdAt: string
 }
 
+type HistoryItem = {
+  id: string
+  examId: string
+  examTitle: string
+  totalScore: number
+  passScore: number | null
+  isPass: boolean
+  createdAt: string
+}
+
 export default function MobileExams() {
   const nav = useNavigate()
   const { user } = useAuthStore()
   const [items, setItems] = useState<Exam[]>([])
+  const [history, setHistory] = useState<HistoryItem[]>([])
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
@@ -41,8 +52,12 @@ export default function MobileExams() {
   async function load() {
     setError(null)
     try {
-      const data = await apiFetch<Exam[]>('/api/exams')
+      const [data, hist] = await Promise.all([
+        apiFetch<Exam[]>('/api/exams'),
+        apiFetch<HistoryItem[]>('/api/exams/attempts/mine'),
+      ])
       setItems(data)
+      setHistory(hist)
     } catch (e: any) {
       setError(e?.message ?? '加载失败')
     }
@@ -58,7 +73,9 @@ export default function MobileExams() {
         <div>
           <div className="page-eyebrow">党员端</div>
           <h1 className="page-title text-3xl md:text-4xl">测验列表</h1>
-          <div className="page-subtitle mt-2 max-w-2xl">仅展示本支部已发布测验；每位学员有作答次数限制</div>
+          <div className="page-subtitle mt-2 max-w-2xl">
+            参与本支部测验；可查看历史成绩与错题回顾
+          </div>
         </div>
         <Link to="/m/report">
           <Button>
@@ -109,21 +126,61 @@ export default function MobileExams() {
                   )}
                 </div>
                 {(x.attempts?.length ?? 0) > 0 && (
-                  <div className="mt-3 grid gap-1 border-t border-black/5 pt-3">
-                    <div className="text-xs font-medium text-zinc-500">历史成绩</div>
+                  <div className="mt-3 grid gap-1.5 border-t border-black/5 pt-3">
+                    <div className="text-xs font-medium text-zinc-500">本测验历史 · 点击回顾</div>
                     {x.attempts.slice(0, 5).map((a) => (
-                      <div key={a.id} className="flex justify-between text-xs text-[rgba(14,17,22,0.7)]">
+                      <Link
+                        key={a.id}
+                        to={`/m/exam-result/${a.id}`}
+                        className="flex items-center justify-between rounded-lg px-3 py-2 text-xs text-[rgba(14,17,22,0.75)] transition hover:bg-[rgba(163,24,40,0.05)]"
+                      >
                         <span>{new Date(a.createdAt).toLocaleString()}</span>
-                        <span>
+                        <span className="font-medium">
                           {a.totalScore} 分 · {a.isPass ? '通过' : '未通过'}
+                          <ArrowRight className="ml-1 inline h-3 w-3" />
                         </span>
-                      </div>
+                      </Link>
                     ))}
                   </div>
                 )}
               </div>
             ))}
             {items.length === 0 && <div className="py-8 text-sm text-zinc-400">暂无可参与测验</div>}
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <History className="h-5 w-5 text-[#a31828]" />
+            全部历史成绩
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid gap-2">
+            {history.map((a) => (
+              <Link
+                key={a.id}
+                to={`/m/exam-result/${a.id}`}
+                className="flex flex-wrap items-center justify-between gap-3 rounded-xl bg-white/90 px-4 py-3 shadow-[inset_0_0_0_1px_rgba(0,0,0,0.06)] transition hover:bg-[rgba(163,24,40,0.05)]"
+              >
+                <div>
+                  <div className="text-sm font-medium text-[#0e1116]">{a.examTitle}</div>
+                  <div className="mt-1 text-xs text-[rgba(14,17,22,0.45)]">
+                    {new Date(a.createdAt).toLocaleString()}
+                    {a.passScore != null ? ` · 及格 ${a.passScore}` : ''}
+                  </div>
+                </div>
+                <div className="text-right">
+                  <div className="text-base font-bold text-[#0e1116]">{a.totalScore} 分</div>
+                  <div className={`text-xs ${a.isPass ? 'text-[#1f6b4a]' : 'text-[#a31828]'}`}>
+                    {a.isPass ? '通过' : '未通过'} · 回顾错题
+                  </div>
+                </div>
+              </Link>
+            ))}
+            {history.length === 0 && <div className="py-8 text-sm text-zinc-400">暂无历史成绩</div>}
           </div>
         </CardContent>
       </Card>

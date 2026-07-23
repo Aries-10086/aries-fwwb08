@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/Card'
 import { Button } from '@/components/Button'
 import { apiFetch } from '@/utils/api'
 import { useAuthStore } from '@/store/auth'
-import { ArrowLeft, CheckCircle2, Loader2, Timer } from 'lucide-react'
+import { ArrowLeft, CheckCircle2, CircleX, Loader2, Timer } from 'lucide-react'
 
 type QuestionType = 'single' | 'multiple' | 'tf'
 
@@ -174,32 +174,66 @@ export default function MobileExamTake() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="grid gap-3">
+            <div className="grid gap-4">
               <div className="rounded-lg bg-white/90 px-4 py-3 text-sm text-[rgba(14,17,22,0.7)] shadow-[inset_0_0_0_1px_rgba(0,0,0,0.06)]">
                 总分：<span className="font-semibold text-[#0e1116]">{result.totalScore}</span> · 结果：
-                <span className={result.isPass ? 'text-[#a31828]' : 'text-[#7a1020]'}>
+                <span className={result.isPass ? 'text-[#1f6b4a]' : 'text-[#7a1020]'}>
                   {result.isPass ? '通过' : '未通过'}
+                </span>
+                <span className="ml-2 text-zinc-500">
+                  对 {result.correctCount ?? 0} · 错 {result.wrongCount ?? 0}
                 </span>
                 {typeof result.remainingAttempts === 'number' && (
                   <span className="ml-2 text-zinc-500">剩余次数 {result.remainingAttempts}</span>
                 )}
               </div>
-              <div className="grid gap-2">
-                {(result.details ?? []).map((d: any) => (
-                  <div
-                    key={d.questionId}
-                    className="flex items-center justify-between rounded-lg bg-white/90 px-4 py-3 text-sm shadow-[inset_0_0_0_1px_rgba(0,0,0,0.06)]"
-                  >
-                    <div className="text-[rgba(14,17,22,0.7)]">{d.questionId}</div>
-                    <div className="text-[#0e1116]">
-                      {d.score}/{d.maxScore}
+
+              {(result.wrongDetails?.length ?? 0) > 0 && (
+                <div className="grid gap-2">
+                  <div className="text-sm font-medium text-[#0e1116]">错题回顾</div>
+                  {result.wrongDetails.map((d: any) => (
+                    <div
+                      key={d.questionId}
+                      className="rounded-xl bg-[rgba(163,24,40,0.05)] p-4 shadow-[inset_0_0_0_1px_rgba(163,24,40,0.12)]"
+                    >
+                      <div className="flex items-start gap-2">
+                        <CircleX className="mt-0.5 h-4 w-4 shrink-0 text-[#a31828]" />
+                        <div className="min-w-0 flex-1">
+                          <div className="text-sm font-medium text-[#0e1116]">{d.stem}</div>
+                          <div className="mt-2 grid gap-1 text-xs md:grid-cols-2">
+                            <div>
+                              <span className="text-[rgba(14,17,22,0.45)]">你的答案：</span>
+                              <span className="text-[#a31828]">{d.userAnswerLabel}</span>
+                            </div>
+                            <div>
+                              <span className="text-[rgba(14,17,22,0.45)]">正确答案：</span>
+                              <span className="text-[#0e1116]">{d.correctAnswerLabel}</span>
+                            </div>
+                          </div>
+                        </div>
+                        <div className="shrink-0 text-xs text-zinc-500">
+                          {d.score}/{d.maxScore}
+                        </div>
+                      </div>
                     </div>
-                  </div>
-                ))}
-              </div>
+                  ))}
+                </div>
+              )}
+
+              {(result.wrongDetails?.length ?? 0) === 0 && (
+                <div className="rounded-xl bg-[rgba(31,107,74,0.06)] px-4 py-3 text-sm text-[#1f6b4a]">
+                  全部答对，继续保持！
+                </div>
+              )}
+
               <div className="flex flex-wrap gap-2">
+                {result.attemptId && (
+                  <Link to={`/m/exam-result/${result.attemptId}`}>
+                    <Button>查看完整回顾</Button>
+                  </Link>
+                )}
                 <Link to="/m/report">
-                  <Button>生成 AI 综合评价报告</Button>
+                  <Button variant="secondary">生成 AI 综合评价报告</Button>
                 </Link>
                 {result.remainingAttempts > 0 && (
                   <Button variant="secondary" onClick={() => load()}>
