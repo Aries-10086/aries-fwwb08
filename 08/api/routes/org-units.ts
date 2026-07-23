@@ -2,6 +2,13 @@ import { Router, type Request, type Response } from 'express'
 import { nanoid } from 'nanoid'
 import { db, nowIso, audit } from '../db.js'
 import { getUserContext, requireAuth, requireRole, rejectUnauthorized } from '../utils/http.js'
+import {
+  completionRatePercent,
+  loadCompletedByUserIds,
+  loadLatestTaskContentsByOrg,
+  loadMemberIdsByOrg,
+} from '../utils/aggregates.js'
+import { isFkViolation } from '../utils/fk-schema.js'
 
 const router = Router()
 
@@ -49,30 +56,17 @@ router.get('/', (req: Request, res: Response) => {
     membersByOrg.set(orgUnitId, list)
   }
 
-  function latestTaskCompletionRate(orgUnitId: string) {
-    const users = db
-      .prepare("SELECT id FROM users WHERE org_unit_id = ? AND role = 'member'")
-      .all(orgUnitId) as any[]
-    if (users.length === 0) return 0
-
-    const task = db
-      .prepare('SELECT id FROM learning_tasks WHERE org_unit_id = ? ORDER BY created_at DESC LIMIT 1')
-      .get(orgUnitId) as any
-    if (!task?.id) return 0
-
-    const contentRows = db.prepare('SELECT content_id FROM task_contents WHERE task_id = ?').all(String(task.id)) as any[]
-    const contentIds = contentRows.map((r) => String(r.content_id))
-    if (contentIds.length === 0) return 0
-
-    const completed = users.filter((u) => {
-      const rows = db
-        .prepare('SELECT content_id FROM learning_records WHERE user_id = ? AND is_completed = 1')
-        .all(String(u.id)) as any[]
-      const completedIds = new Set(rows.map((r) => String(r.content_id)))
-      return contentIds.every((cid) => completedIds.has(cid))
-    }).length
-
-    return Math.round((completed / users.length) * 100)
+  // 批量计算各支部「最新任务」完成率，避免 per-org / per-user N+1
+  const orgIds = rows.map((r) => String(r.id))
+  const membersByOrgIds = loadMemberIdsByOrg(orgIds)
+  const latestContentsByOrg = loadLatestTaskContentsByOrg(orgIds)
+  const allMemberIds = [...new Set([...membersByOrgIds.values()].flat())]
+  const completedByUser = loadCompletedByUserIds(allMemberIds)
+  const completionByOrg = new Map<string, number>()
+  for (const orgId of orgIds) {
+    const memberIds = membersByOrgIds.get(orgId) ?? []
+    const contentIds = latestContentsByOrg.get(orgId) ?? []
+    completionByOrg.set(orgId, completionRatePercent(memberIds, contentIds, completedByUser))
   }
 
   const data = rows.map((r) => ({
@@ -84,7 +78,7 @@ router.get('/', (req: Request, res: Response) => {
       memberCount: memberCountByOrg.get(String(r.id)) ?? 0,
       taskCount: taskCountByOrg.get(String(r.id)) ?? 0,
       avgExamScore: avgScoreByOrg.get(String(r.id)) ?? 0,
-      completionRate: latestTaskCompletionRate(String(r.id)),
+      completionRate: completionByOrg.get(String(r.id)) ?? 0,
     },
     members: membersByOrg.get(String(r.id)) ?? [],
   }))
@@ -95,7 +89,11 @@ router.get('/', (req: Request, res: Response) => {
     // 非管理员仅可见自己支部及上级组织，且仅本支部展示成员名单
     scoped = data
       .filter((x) => x.id === orgUnitId || (!x.parentId && data.some((c) => c.id === orgUnitId && c.parentId === x.id)))
-      .map((x) => (x.id === orgUnitId ? x : { ...x, members: [], stats: { ...x.stats, memberCount: x.id === orgUnitId ? x.stats.memberCount : 0 } }))
+      .map((x) =>
+        x.id === orgUnitId
+          ? x
+          : { ...x, members: [], stats: { ...x.stats, memberCount: x.id === orgUnitId ? x.stats.memberCount : 0 } },
+      )
   }
 
   res.status(200).json({ success: true, data: scoped })
@@ -155,7 +153,15 @@ router.delete('/:id', (req: Request, res: Response) => {
     return
   }
 
-  db.prepare('DELETE FROM org_units WHERE id = ?').run(id)
+  try {
+    db.prepare('DELETE FROM org_units WHERE id = ?').run(id)
+  } catch (e) {
+    if (isFkViolation(e)) {
+      res.status(400).json({ success: false, error: '该组织仍有关联数据，无法删除' })
+      return
+    }
+    throw e
+  }
 
   audit(userId || 'u_admin_demo', 'org.delete', { id })
   res.status(200).json({ success: true })

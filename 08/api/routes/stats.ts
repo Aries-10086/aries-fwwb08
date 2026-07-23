@@ -1,25 +1,21 @@
 import { Router, type Request, type Response } from 'express'
 import { db } from '../db.js'
 import { getUserContext, requireRole } from '../utils/http.js'
-import { parseJson } from '../utils/json.js'
+import {
+  completionRatePercent,
+  countMembersFullyDone,
+  loadCompletedByUserIds,
+  loadDurationByUserIds,
+  loadExamAggByUserIds,
+  loadOrgExamSummary,
+  loadTaskContentsMap,
+} from '../utils/aggregates.js'
 
 const router = Router()
 
 function getOrgUnitIdForUser(userId: string) {
   const row = db.prepare('SELECT org_unit_id FROM users WHERE id = ?').get(userId) as any
   return row?.org_unit_id ? String(row.org_unit_id) : ''
-}
-
-function taskContentIds(taskId: string) {
-  const rows = db.prepare('SELECT content_id FROM task_contents WHERE task_id = ?').all(taskId) as any[]
-  return rows.map((r) => String(r.content_id))
-}
-
-function userCompletedContents(userId: string) {
-  const rows = db
-    .prepare('SELECT content_id FROM learning_records WHERE user_id = ? AND is_completed = 1')
-    .all(userId) as any[]
-  return new Set(rows.map((r) => String(r.content_id)))
 }
 
 router.get('/overview', (req: Request, res: Response) => {
@@ -42,6 +38,7 @@ router.get('/overview', (req: Request, res: Response) => {
     .all(orgUnitId ? [orgUnitId, 'member'] : ['member']) as any[]
 
   const memberCount = users.length
+  const memberIds = users.map((u) => String(u.id))
 
   const durationRow = db
     .prepare(
@@ -55,39 +52,19 @@ router.get('/overview', (req: Request, res: Response) => {
   const durationMs = Number(durationRow?.s ?? 0)
   const durationHours = Math.round((durationMs / 3600000) * 10) / 10
 
-  const examRows = db
-    .prepare(
-      `SELECT ea.total_score as total_score, ea.is_pass as is_pass
-       FROM exam_attempts ea
-       JOIN users u ON u.id = ea.user_id
-       ${orgUnitId ? 'WHERE u.org_unit_id = ?' : ''}`,
-    )
-    .all(orgUnitId ? [orgUnitId] : []) as any[]
+  const examSummary = loadOrgExamSummary(orgUnitId)
 
-  const avgExamScore =
-    examRows.length > 0
-      ? Math.round(examRows.reduce((a, b) => a + Number(b.total_score ?? 0), 0) / examRows.length)
-      : 0
-  const passRate =
-    examRows.length > 0
-      ? Math.round((examRows.filter((r) => Number(r.is_pass ?? 0) === 1).length / examRows.length) * 100)
-      : 0
-
-  const taskRows = db
+  const latestTask = db
     .prepare(
-      `SELECT id, title FROM learning_tasks ${orgUnitId ? 'WHERE org_unit_id = ?' : ''} ORDER BY created_at DESC LIMIT 20`,
+      `SELECT id FROM learning_tasks ${orgUnitId ? 'WHERE org_unit_id = ?' : ''} ORDER BY created_at DESC LIMIT 1`,
     )
-    .all(orgUnitId ? [orgUnitId] : []) as any[]
+    .get(orgUnitId ? [orgUnitId] : []) as any
 
   let completionRate = 0
-  if (taskRows.length > 0 && memberCount > 0) {
-    const task = taskRows[0]
-    const cids = taskContentIds(String(task.id))
-    const completedCount = users.filter((u) => {
-      const s = userCompletedContents(String(u.id))
-      return cids.every((cid) => s.has(cid))
-    }).length
-    completionRate = Math.round((completedCount / memberCount) * 100)
+  if (latestTask?.id && memberCount > 0) {
+    const cids = loadTaskContentsMap([String(latestTask.id)]).get(String(latestTask.id)) ?? []
+    const completedByUser = loadCompletedByUserIds(memberIds)
+    completionRate = completionRatePercent(memberIds, cids, completedByUser)
   }
 
   const orgs = db.prepare('SELECT id, name, parent_id FROM org_units').all() as any[]
@@ -120,8 +97,8 @@ router.get('/overview', (req: Request, res: Response) => {
       orgUnitId,
       memberCount,
       durationHours,
-      avgExamScore,
-      passRate,
+      avgExamScore: examSummary.avgExamScore,
+      passRate: examSummary.passRate,
       latestTaskCompletionRate: completionRate,
       rank,
     },
@@ -172,38 +149,25 @@ router.get('/member-scores', (req: Request, res: Response) => {
           .all() as any[])
   )
 
-  const attemptStmt = db.prepare(
-    `SELECT ea.total_score as total_score, ea.is_pass as is_pass, ea.created_at as created_at,
-            e.title as exam_title
-     FROM exam_attempts ea
-     LEFT JOIN exams e ON e.id = ea.exam_id
-     WHERE ea.user_id = ?
-     ORDER BY ea.created_at DESC`,
-  )
+  const memberIds = members.map((m) => String(m.id))
+  const examAgg = loadExamAggByUserIds(memberIds)
 
   const list = members.map((m) => {
-    const attempts = attemptStmt.all(String(m.id)) as any[]
-    const attemptCount = attempts.length
-    const avgScore =
-      attemptCount > 0
-        ? Math.round(attempts.reduce((a, b) => a + Number(b.total_score ?? 0), 0) / attemptCount)
-        : null
-    const passCount = attempts.filter((a) => Number(a.is_pass ?? 0) === 1).length
-    const latest = attempts[0] ?? null
-
+    const uid = String(m.id)
+    const agg = examAgg.get(uid)!
     return {
-      userId: String(m.id),
+      userId: uid,
       name: String(m.name),
       username: String(m.username ?? ''),
       orgUnitId: String(m.org_unit_id),
-      attemptCount,
-      avgScore,
-      passCount,
-      passRate: attemptCount > 0 ? Math.round((passCount / attemptCount) * 100) : null,
-      latestScore: latest ? Number(latest.total_score ?? 0) : null,
-      latestIsPass: latest ? Number(latest.is_pass ?? 0) === 1 : null,
-      latestExamTitle: latest?.exam_title ? String(latest.exam_title) : null,
-      latestAt: latest?.created_at ? String(latest.created_at) : null,
+      attemptCount: agg.attemptCount,
+      avgScore: agg.avgScore,
+      passCount: agg.passCount,
+      passRate: agg.passRate,
+      latestScore: agg.latestScore,
+      latestIsPass: agg.latestIsPass,
+      latestExamTitle: agg.latestExamTitle,
+      latestAt: agg.latestAt,
     }
   })
 
@@ -266,6 +230,7 @@ router.get('/branch-dashboard', (req: Request, res: Response) => {
     .all(orgUnitId) as any[]
 
   const memberCount = members.length
+  const memberIds = members.map((m) => String(m.id))
 
   const durationRow = db
     .prepare(
@@ -278,23 +243,7 @@ router.get('/branch-dashboard', (req: Request, res: Response) => {
   const durationMs = Number(durationRow?.s ?? 0)
   const durationHours = Math.round((durationMs / 3600000) * 10) / 10
 
-  const examRows = db
-    .prepare(
-      `SELECT ea.total_score as total_score, ea.is_pass as is_pass
-       FROM exam_attempts ea
-       JOIN users u ON u.id = ea.user_id
-       WHERE u.org_unit_id = ? AND u.role = 'member'`,
-    )
-    .all(orgUnitId) as any[]
-
-  const avgExamScore =
-    examRows.length > 0
-      ? Math.round(examRows.reduce((a, b) => a + Number(b.total_score ?? 0), 0) / examRows.length)
-      : 0
-  const passRate =
-    examRows.length > 0
-      ? Math.round((examRows.filter((r) => Number(r.is_pass ?? 0) === 1).length / examRows.length) * 100)
-      : 0
+  const examSummary = loadOrgExamSummary(orgUnitId)
 
   const tasks = db
     .prepare(
@@ -303,25 +252,14 @@ router.get('/branch-dashboard', (req: Request, res: Response) => {
     )
     .all(orgUnitId) as any[]
 
-  const completedByUser = new Map<string, Set<string>>()
-  const durationByUser = new Map<string, number>()
-  for (const m of members) {
-    completedByUser.set(String(m.id), userCompletedContents(String(m.id)))
-    const d = db
-      .prepare('SELECT COALESCE(SUM(duration_ms), 0) as s FROM learning_records WHERE user_id = ?')
-      .get(String(m.id)) as any
-    durationByUser.set(String(m.id), Number(d?.s ?? 0))
-  }
+  const completedByUser = loadCompletedByUserIds(memberIds)
+  const durationByUser = loadDurationByUserIds(memberIds)
+  const examAgg = loadExamAggByUserIds(memberIds)
+  const contentsByTask = loadTaskContentsMap(tasks.map((t) => String(t.id)))
 
   const taskStats = tasks.map((t) => {
-    const cids = taskContentIds(String(t.id))
-    const completedMemberCount =
-      memberCount === 0 || cids.length === 0
-        ? 0
-        : members.filter((m) => {
-            const done = completedByUser.get(String(m.id))!
-            return cids.every((cid) => done.has(cid))
-          }).length
+    const cids = contentsByTask.get(String(t.id)) ?? []
+    const completedMemberCount = countMembersFullyDone(memberIds, cids, completedByUser)
     return {
       id: String(t.id),
       title: String(t.title),
@@ -340,30 +278,17 @@ router.get('/branch-dashboard', (req: Request, res: Response) => {
       : 0
 
   const allContentIds = [...new Set(taskStats.flatMap((t) => t.contentIds))]
-  const membersFullyDone =
-    allContentIds.length === 0 || memberCount === 0
-      ? 0
-      : members.filter((m) => {
-          const done = completedByUser.get(String(m.id))!
-          return allContentIds.every((cid) => done.has(cid))
-        }).length
+  const membersFullyDone = countMembersFullyDone(memberIds, allContentIds, completedByUser)
   const contentCompletionRate =
     allContentIds.length === 0 || memberCount === 0
       ? 0
       : Math.round((membersFullyDone / memberCount) * 100)
 
-  const attemptStmt = db.prepare(
-    `SELECT COUNT(1) as c, AVG(total_score) as avg_score,
-            SUM(CASE WHEN is_pass = 1 THEN 1 ELSE 0 END) as pass_c
-     FROM exam_attempts WHERE user_id = ?`,
-  )
-
   const memberRows = members.map((m) => {
     const uid = String(m.id)
-    const done = completedByUser.get(uid)!
+    const done = completedByUser.get(uid) ?? new Set<string>()
     const dur = durationByUser.get(uid) ?? 0
-    const att = attemptStmt.get(uid) as any
-    const attemptCount = Number(att?.c ?? 0)
+    const att = examAgg.get(uid)!
     const completedContentCount = done.size
     const taskDoneCount =
       taskStats.length === 0
@@ -382,9 +307,9 @@ router.get('/branch-dashboard', (req: Request, res: Response) => {
       taskCount: taskStats.length,
       taskCompletionRate:
         taskStats.length > 0 ? Math.round((taskDoneCount / taskStats.length) * 100) : 0,
-      attemptCount,
-      avgScore: attemptCount > 0 ? Math.round(Number(att?.avg_score ?? 0)) : null,
-      passCount: Number(att?.pass_c ?? 0),
+      attemptCount: att.attemptCount,
+      avgScore: att.avgScore,
+      passCount: att.passCount,
     }
   })
 
@@ -396,9 +321,9 @@ router.get('/branch-dashboard', (req: Request, res: Response) => {
       summary: {
         memberCount,
         durationHours,
-        avgExamScore,
-        passRate,
-        attemptCount: examRows.length,
+        avgExamScore: examSummary.avgExamScore,
+        passRate: examSummary.passRate,
+        attemptCount: examSummary.attemptCount,
         taskCount: taskStats.length,
         latestTaskCompletionRate,
         overallTaskCompletionRate,
@@ -407,6 +332,122 @@ router.get('/branch-dashboard', (req: Request, res: Response) => {
       },
       tasks: taskStats.map(({ contentIds: _cids, ...rest }) => rest),
       members: memberRows,
+    },
+  })
+})
+
+/** 个人中心：资料、学习时长、我的成绩 */
+router.get('/my-center', (req: Request, res: Response) => {
+  if (!requireRole(req, ['member', 'secretary', 'admin'])) {
+    res.status(403).json({ success: false, error: '未登录' })
+    return
+  }
+
+  const { userId } = getUserContext(req)
+  const user = db
+    .prepare('SELECT id, name, username, role, org_unit_id, created_at FROM users WHERE id = ?')
+    .get(userId) as any
+  if (!user) {
+    res.status(401).json({ success: false, error: '登录已失效' })
+    return
+  }
+
+  const org = user.org_unit_id
+    ? (db.prepare('SELECT id, name FROM org_units WHERE id = ?').get(String(user.org_unit_id)) as any)
+    : null
+
+  const learnRow = db
+    .prepare(
+      `SELECT COALESCE(SUM(duration_ms), 0) as duration_ms,
+              COALESCE(SUM(CASE WHEN is_completed = 1 THEN 1 ELSE 0 END), 0) as completed_count,
+              COUNT(1) as record_count
+       FROM learning_records WHERE user_id = ?`,
+    )
+    .get(userId) as any
+
+  const durationMs = Number(learnRow?.duration_ms ?? 0)
+  const durationHours = Math.round((durationMs / 3600000) * 10) / 10
+  const durationMinutes = Math.round(durationMs / 60000)
+  const completedContentCount = Number(learnRow?.completed_count ?? 0)
+  const recordCount = Number(learnRow?.record_count ?? 0)
+
+  const attempts = db
+    .prepare(
+      `SELECT ea.id, ea.exam_id, ea.total_score, ea.is_pass, ea.created_at,
+              e.title as exam_title, e.pass_score as pass_score, e.duration_min as duration_min
+       FROM exam_attempts ea
+       LEFT JOIN exams e ON e.id = ea.exam_id
+       WHERE ea.user_id = ?
+       ORDER BY ea.created_at DESC
+       LIMIT 50`,
+    )
+    .all(userId) as any[]
+
+  const attemptCount = attempts.length
+  const avgScore =
+    attemptCount > 0
+      ? Math.round(attempts.reduce((a, b) => a + Number(b.total_score ?? 0), 0) / attemptCount)
+      : null
+  const passCount = attempts.filter((a) => Number(a.is_pass ?? 0) === 1).length
+  const bestScore =
+    attemptCount > 0 ? Math.max(...attempts.map((a) => Number(a.total_score ?? 0))) : null
+
+  // 支部内按学习时长排名（党员）
+  let branchRank: number | null = null
+  let branchMemberCount: number | null = null
+  if (user.org_unit_id && user.role === 'member') {
+    const ranks = db
+      .prepare(
+        `SELECT u.id as user_id, COALESCE(SUM(lr.duration_ms), 0) as duration_ms
+         FROM users u
+         LEFT JOIN learning_records lr ON lr.user_id = u.id
+         WHERE u.org_unit_id = ? AND u.role = 'member'
+         GROUP BY u.id
+         ORDER BY duration_ms DESC, u.name ASC`,
+      )
+      .all(String(user.org_unit_id)) as any[]
+    branchMemberCount = ranks.length
+    const idx = ranks.findIndex((r) => String(r.user_id) === userId)
+    branchRank = idx >= 0 ? idx + 1 : null
+  }
+
+  res.status(200).json({
+    success: true,
+    data: {
+      profile: {
+        id: String(user.id),
+        name: String(user.name),
+        username: String(user.username ?? ''),
+        role: String(user.role),
+        orgUnitId: user.org_unit_id ? String(user.org_unit_id) : '',
+        orgName: org?.name ? String(org.name) : '未分配支部',
+        createdAt: user.created_at ? String(user.created_at) : null,
+      },
+      learning: {
+        durationMs,
+        durationHours,
+        durationMinutes,
+        completedContentCount,
+        recordCount,
+        branchRank,
+        branchMemberCount,
+      },
+      exams: {
+        attemptCount,
+        avgScore,
+        bestScore,
+        passCount,
+        passRate: attemptCount > 0 ? Math.round((passCount / attemptCount) * 100) : null,
+        attempts: attempts.map((a) => ({
+          id: String(a.id),
+          examId: String(a.exam_id),
+          examTitle: a.exam_title ? String(a.exam_title) : '测验',
+          totalScore: Number(a.total_score ?? 0),
+          passScore: a.pass_score != null ? Number(a.pass_score) : null,
+          isPass: Number(a.is_pass ?? 0) === 1,
+          createdAt: String(a.created_at),
+        })),
+      },
     },
   })
 })
