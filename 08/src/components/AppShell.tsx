@@ -11,9 +11,8 @@ import {
   ClipboardList,
   FileText,
   BrainCircuit,
-  GraduationCap,
-  Sparkles,
   BarChart3,
+  Sparkles,
 } from 'lucide-react'
 
 const adminNav = [
@@ -48,48 +47,53 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     user?.role === 'admin' ? adminNav : user?.role === 'secretary' ? secretaryNav : user ? memberNav : []
   const roleName =
     user?.role === 'admin' ? '管理中枢' : user?.role === 'secretary' ? '支部端' : user ? '党员端' : '访客入口'
+  const isHome = location.pathname === '/'
 
   return (
-    <div className="min-h-screen text-[#171717]">
-      <div className="pointer-events-none fixed inset-0">
-        <div className="absolute left-1/2 top-0 h-[620px] w-[1040px] -translate-x-1/2 rounded-full bg-[#b91c1c]/12 blur-3xl" />
-        <div className="absolute -bottom-36 left-[-12%] h-[520px] w-[720px] rounded-full bg-[#8c2424]/10 blur-3xl" />
-        <div className="absolute right-[-8%] top-36 h-[480px] w-[620px] rounded-full bg-[#ef4444]/10 blur-3xl" />
-      </div>
-
-      <header className="relative z-10 border-b border-black/5 bg-white/70 backdrop-blur-xl">
-        <div className="mx-auto flex max-w-7xl items-center justify-between gap-6 rounded-[28px] bg-[#b91c1c] px-6 py-5 text-white shadow-[0_18px_48px_rgba(185,28,28,0.18)]">
-          <Link to="/" className="flex items-center gap-3">
-            <div className="grid h-12 w-12 place-items-center rounded-2xl bg-[linear-gradient(145deg,#b91c1c_0%,#8c2424_52%,#450a0a_100%)] text-white shadow-[0_18px_40px_rgba(140,36,36,0.18)]">
-              <GraduationCap className="h-6 w-6" />
+    <div className="min-h-screen text-[#0e1116]">
+      <header className="relative z-20 border-b border-[rgba(14,17,22,0.08)] bg-[rgba(243,245,247,0.82)] backdrop-blur-xl">
+        <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-6 py-4">
+          <Link to="/" className="group flex items-center gap-3">
+            <div className="grid h-11 w-11 place-items-center border border-[rgba(163,24,40,0.35)] bg-[#a31828] text-white shadow-[0_8px_20px_rgba(163,24,40,0.2)] transition group-hover:bg-[#8a1422]">
+              <span className="font-display text-xl leading-none tracking-widest">校</span>
             </div>
             <div className="leading-tight">
-              <div className="text-[11px] uppercase tracking-[0.34em] text-white/75">Smart Party School</div>
-              <div className="font-[800] tracking-[-0.04em] text-white">数智党校学习系统</div>
+              <div className="brand-mark text-xl text-[#0e1116] md:text-2xl">数智党校</div>
+              <div className="text-[11px] tracking-[0.22em] text-[rgba(14,17,22,0.45)]">学习 · 治理 · 洞察</div>
             </div>
           </Link>
 
           <div className="flex items-center gap-3">
             {user && (
-              <div className="hidden items-center gap-3 rounded-full bg-white/15 px-4 py-2 text-sm text-white shadow-[inset_0_0_0_1px_rgba(255,255,255,0.16)] md:flex">
-                <span className="h-2 w-2 rounded-full bg-white" />
+              <div className="hidden items-center gap-2 border border-[rgba(14,17,22,0.1)] bg-white/70 px-3 py-1.5 text-sm md:flex">
+                <span className="h-1.5 w-1.5 bg-[#a31828]" />
                 <span className="font-medium">{user.name}</span>
-                <span className="text-white/45">/</span>
-                <span className="text-white/70">{roleName}</span>
+                <span className="text-[rgba(14,17,22,0.28)]">/</span>
+                <span className="text-[rgba(14,17,22,0.55)]">{roleName}</span>
               </div>
             )}
             {user ? (
-              <Button variant="ghost" onClick={() => logout()} className="px-3">
+              <Button
+                variant="secondary"
+                onClick={() => logout()}
+                className="px-3 py-2 text-xs"
+              >
                 <LogOut className="h-4 w-4" />
                 退出
               </Button>
-            ) : null}
+            ) : (
+              !isHome && (
+                <Link to="/login">
+                  <Button className="px-4 py-2 text-xs">登录</Button>
+                </Link>
+              )
+            )}
           </div>
         </div>
 
         {user && nav.length > 0 && (
-          <div className="mx-auto max-w-7xl px-6 pb-5">
-            <nav className="flex flex-wrap gap-2 rounded-[24px] bg-white/70 p-2 shadow-[inset_0_0_0_1px_rgba(0,0,0,0.06)]">
+          <div className="mx-auto max-w-7xl px-6 pb-3">
+            <nav className="flex flex-wrap gap-1 border-t border-[rgba(14,17,22,0.06)] pt-3">
               {nav.map((it) => {
                 const active = location.pathname.startsWith(it.to)
                 const Icon = it.icon
@@ -97,12 +101,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                   <Link
                     key={it.to}
                     to={it.to}
-                    className={cn(
-                      'inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm transition',
-                      active
-                        ? 'bg-[linear-gradient(135deg,#b91c1c_0%,#8c2424_55%,#450a0a_100%)] text-white shadow-[0_16px_26px_rgba(140,36,36,0.18)]'
-                        : 'bg-transparent text-black/70 hover:bg-[rgba(140,36,36,0.06)] hover:text-[#8c2424]',
-                    )}
+                    className={cn('nav-link', active && 'nav-link-active')}
                   >
                     <Icon className="h-4 w-4" />
                     {it.label}
@@ -114,7 +113,14 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         )}
       </header>
 
-      <main className="relative z-10 mx-auto max-w-7xl bg-white px-6 py-8 md:py-10">{children}</main>
+      <main
+        className={cn(
+          'relative z-10',
+          isHome ? 'mx-auto max-w-none px-0 py-0' : 'mx-auto max-w-7xl px-6 py-8 md:py-10',
+        )}
+      >
+        {children}
+      </main>
     </div>
   )
 }

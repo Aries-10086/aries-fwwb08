@@ -65,37 +65,51 @@ export default function Register() {
     form.confirmPassword.length >= 6
 
   return (
-    <div className="flex min-h-[72vh] items-center">
-      <section className="w-full rounded-[28px] bg-[#b91c1c] px-6 py-8 shadow-[0_22px_70px_rgba(185,28,28,0.22)] md:px-10">
-        <div className="mx-auto grid max-w-5xl gap-8 md:grid-cols-12 md:items-center">
+    <div className="flex min-h-[70vh] items-center">
+      <section className="relative w-full overflow-hidden bg-[linear-gradient(155deg,#5c0d18_0%,#a31828_45%,#7a1020_100%)] px-6 py-10 md:px-10 md:py-12">
+        <div
+          className="pointer-events-none absolute right-[6%] top-[12%] font-display text-[9rem] leading-none text-white/10 md:text-[12rem]"
+          aria-hidden
+        >
+          学
+        </div>
+        <div className="relative mx-auto grid max-w-5xl gap-10 md:grid-cols-12 md:items-center">
           <div className="md:col-span-5">
-            <div className="inline-flex items-center gap-2 rounded-full bg-white/14 px-4 py-2 text-xs font-semibold uppercase tracking-[0.32em] text-white shadow-[inset_0_0_0_1px_rgba(255,255,255,0.18)]">
-              Create Account
-            </div>
-            <h1 className="mt-4 text-4xl font-black tracking-[-0.06em] text-white md:text-5xl">注册账号</h1>
-            <p className="mt-4 max-w-md text-sm leading-7 text-white/85 md:text-[15px]">
-              注册信息将写入后端 SQLite 用户表：账号唯一，密码以哈希形式保存。自助注册默认为党员角色。
+            <p className="rise-in text-[11px] font-semibold tracking-[0.32em] text-white/65">创建账号</p>
+            <h1 className="brand-mark rise-in rise-in-delay-1 mt-4 text-4xl text-white md:text-5xl">
+              加入学习
+            </h1>
+            <p className="rise-in rise-in-delay-2 mt-4 max-w-md text-sm leading-7 text-white/80">
+              自助注册默认为党员角色。账号唯一，密码以哈希形式保存，注册成功后自动登录。
             </p>
-            <ul className="mt-6 space-y-2 text-sm text-white/80">
-              <li>· 账号：3–32 位小写字母、数字或下划线</li>
-              <li>· 密码：至少 6 位</li>
-              <li>· 注册成功后自动登录进入学习端</li>
+            <ul className="rise-in rise-in-delay-3 mt-6 space-y-2 text-sm text-white/75">
+              <li className="flex gap-2">
+                <span className="text-[#c9a84c]">—</span>
+                账号：3–32 位小写字母、数字或下划线
+              </li>
+              <li className="flex gap-2">
+                <span className="text-[#c9a84c]">—</span>
+                密码：至少 6 位
+              </li>
+              <li className="flex gap-2">
+                <span className="text-[#c9a84c]">—</span>
+                注册后进入学习端
+              </li>
             </ul>
           </div>
 
           <div className="md:col-span-7">
-            <form
-              onSubmit={onSubmit}
-              className="rounded-[24px] bg-white px-6 py-7 shadow-[0_18px_50px_rgba(0,0,0,0.12)]"
-            >
-              <div className="text-xs font-semibold uppercase tracking-[0.28em] text-[#8c2424]/70">Sign Up</div>
-              <h2 className="mt-2 text-2xl font-bold tracking-[-0.04em] text-[#171717]">创建新账号</h2>
+            <form onSubmit={onSubmit} className="auth-panel rise-in rise-in-delay-2 px-6 py-7 md:px-8">
+              <p className="field-label">注册</p>
+              <h2 className="mt-2 font-serif text-2xl font-bold tracking-wide text-[#0e1116]">
+                创建新账号
+              </h2>
 
               <div className="mt-6 grid gap-4 md:grid-cols-2">
                 <label className="grid gap-1.5 text-sm md:col-span-2">
                   <span className="field-label">姓名</span>
                   <div className="input-shell flex items-center gap-2 px-3">
-                    <UserRound className="h-4 w-4 text-[#8c2424]" />
+                    <UserRound className="h-4 w-4 text-[#a31828]" />
                     <input
                       value={form.name}
                       onChange={(e) => setForm((p) => ({ ...p, name: e.target.value }))}
@@ -121,7 +135,7 @@ export default function Register() {
                 <label className="grid gap-1.5 text-sm">
                   <span className="field-label">所属支部</span>
                   <div className="input-shell flex items-center gap-2 px-3">
-                    <Building2 className="h-4 w-4 shrink-0 text-[#8c2424]" />
+                    <Building2 className="h-4 w-4 shrink-0 text-[#a31828]" />
                     <select
                       value={form.orgUnitId}
                       onChange={(e) => setForm((p) => ({ ...p, orgUnitId: e.target.value }))}
@@ -140,7 +154,7 @@ export default function Register() {
                 <label className="grid gap-1.5 text-sm">
                   <span className="field-label">密码</span>
                   <div className="input-shell flex items-center gap-2 px-3">
-                    <Lock className="h-4 w-4 text-[#8c2424]" />
+                    <Lock className="h-4 w-4 text-[#a31828]" />
                     <input
                       type="password"
                       value={form.password}
@@ -156,7 +170,7 @@ export default function Register() {
                 <label className="grid gap-1.5 text-sm">
                   <span className="field-label">确认密码</span>
                   <div className="input-shell flex items-center gap-2 px-3">
-                    <Lock className="h-4 w-4 text-[#8c2424]" />
+                    <Lock className="h-4 w-4 text-[#a31828]" />
                     <input
                       type="password"
                       value={form.confirmPassword}
@@ -171,7 +185,7 @@ export default function Register() {
               </div>
 
               {error && (
-                <div className="mt-4 rounded-2xl bg-[#b91c1c]/10 px-4 py-3 text-sm text-[#7f1d1d] shadow-[inset_0_0_0_1px_rgba(185,28,28,0.16)]">
+                <div className="mt-4 border border-[rgba(163,24,40,0.2)] bg-[rgba(163,24,40,0.08)] px-4 py-3 text-sm text-[#7a1020]">
                   {error}
                 </div>
               )}
@@ -181,9 +195,9 @@ export default function Register() {
                 <ArrowRight className="h-4 w-4" />
               </Button>
 
-              <div className="mt-4 text-center text-xs text-black/45">
+              <div className="mt-4 text-center text-xs text-[rgba(14,17,22,0.45)]">
                 已有账号？{' '}
-                <Link to="/login" className="font-semibold text-[#8c2424] underline-offset-2 hover:underline">
+                <Link to="/login" className="font-semibold text-[#a31828] underline-offset-2 hover:underline">
                   去登录
                 </Link>
               </div>

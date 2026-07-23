@@ -73,9 +73,9 @@ export default function AdminTasks() {
     <div className="grid gap-6">
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <div className="text-sm text-zinc-400">管理后台</div>
-          <h1 className="mt-2 text-2xl font-[850] tracking-[-0.05em] text-zinc-50">学习任务发布</h1>
-          <div className="mt-2 text-sm text-zinc-300/90">按支部分发指定学习内容</div>
+          <div className="page-eyebrow">管理后台</div>
+          <h1 className="page-title text-3xl md:text-4xl">学习任务发布</h1>
+          <div className="page-subtitle mt-2">按支部分发指定学习内容</div>
         </div>
         <Button variant="ghost" onClick={() => load()} disabled={loading}>
           <RotateCw className={loading ? 'h-4 w-4 animate-spin' : 'h-4 w-4'} />
@@ -84,7 +84,7 @@ export default function AdminTasks() {
       </div>
 
       {error && (
-        <div className="rounded-lg bg-rose-500/10 px-4 py-3 text-rose-200 shadow-[0_0_0_1px_rgba(244,63,94,0.25)]">
+        <div className="border border-[rgba(163,24,40,0.2)] bg-[rgba(163,24,40,0.08)] px-4 py-3 text-[#7a1020]">
           {error}
         </div>
       )}
@@ -93,18 +93,18 @@ export default function AdminTasks() {
         <Card className="md:col-span-5">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <Plus className="h-5 w-5 text-amber-200/90" />
+              <Plus className="h-5 w-5 text-[#a31828]" />
               新建任务
             </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="grid gap-3">
               <label className="grid gap-1 text-sm">
-                <span className="text-xs text-zinc-400">支部</span>
+                <span className="text-xs text-[rgba(14,17,22,0.45)]">支部</span>
                 <select
                   value={form.orgUnitId}
                   onChange={(e) => setForm((p) => ({ ...p, orgUnitId: e.target.value }))}
-                  className="rounded-lg bg-black/30 px-3 py-2 text-sm shadow-[inset_0_0_0_1px_rgba(255,255,255,0.12)] outline-none"
+                  className="input-shell"
                 >
                   {orgs
                     .filter((o) => o.parentId)
@@ -116,21 +116,21 @@ export default function AdminTasks() {
                 </select>
               </label>
               <label className="grid gap-1 text-sm">
-                <span className="text-xs text-zinc-400">任务标题</span>
+                <span className="text-xs text-[rgba(14,17,22,0.45)]">任务标题</span>
                 <input
                   value={form.title}
                   onChange={(e) => setForm((p) => ({ ...p, title: e.target.value }))}
-                  className="rounded-lg bg-black/30 px-3 py-2 text-sm shadow-[inset_0_0_0_1px_rgba(255,255,255,0.12)] outline-none"
+                  className="input-shell"
                 />
               </label>
-              <div className="text-xs text-zinc-500">选择内容（可多选）</div>
+              <div className="text-xs text-[rgba(14,17,22,0.45)]">选择内容（可多选）</div>
               <div className="max-h-[220px] space-y-2 overflow-auto pr-1">
                 {contents.map((c) => {
                   const checked = form.contentIds.includes(c.id)
                   return (
                     <label
                       key={c.id}
-                      className="flex cursor-pointer items-start gap-3 rounded-lg bg-white/5 px-3 py-2 text-sm shadow-[inset_0_0_0_1px_rgba(255,255,255,0.10)] hover:bg-white/10 transition"
+                      className="list-surface flex cursor-pointer items-start gap-3 text-sm"
                     >
                       <input
                         type="checkbox"
@@ -144,8 +144,8 @@ export default function AdminTasks() {
                         className="mt-1 accent-amber-300"
                       />
                       <div>
-                        <div className="text-sm text-zinc-200">{c.title}</div>
-                        <div className="mt-1 text-xs text-zinc-500">
+                        <div className="text-sm text-[rgba(14,17,22,0.75)]">{c.title}</div>
+                        <div className="mt-1 text-xs text-[rgba(14,17,22,0.45)]">
                           {c.category} · {c.isPublic ? '公共' : '非公共'}
                         </div>
                       </div>
@@ -170,17 +170,17 @@ export default function AdminTasks() {
               {tasks.map((t) => (
                 <div
                   key={t.id}
-                  className="rounded-xl bg-white/5 p-4 shadow-[inset_0_0_0_1px_rgba(255,255,255,0.10)]"
+                  className="list-surface p-4"
                 >
                   <div className="flex items-center justify-between gap-3">
-                    <div className="text-sm font-medium text-zinc-100">{t.title}</div>
-                    <div className="text-xs text-zinc-500">{orgById.get(t.orgUnitId)?.name ?? t.orgUnitId}</div>
+                    <div className="text-sm font-medium text-[#0e1116]">{t.title}</div>
+                    <div className="text-xs text-[rgba(14,17,22,0.45)]">{orgById.get(t.orgUnitId)?.name ?? t.orgUnitId}</div>
                   </div>
                   <div className="mt-3 grid gap-2 md:grid-cols-2">
                     {t.contentIds.map((cid) => (
                       <div
                         key={cid}
-                        className="rounded-lg bg-black/30 px-4 py-3 text-sm text-zinc-200 shadow-[inset_0_0_0_1px_rgba(255,255,255,0.10)]"
+                        className="rounded-lg bg-white px-4 py-3 text-sm text-[rgba(14,17,22,0.75)] border border-[rgba(14,17,22,0.1)]"
                       >
                         {contentById.get(cid)?.title ?? cid}
                       </div>
@@ -188,7 +188,7 @@ export default function AdminTasks() {
                   </div>
                 </div>
               ))}
-              {tasks.length === 0 && <div className="py-10 text-sm text-zinc-400">暂无任务</div>}
+              {tasks.length === 0 && <div className="py-10 text-sm text-[rgba(14,17,22,0.4)]">暂无任务</div>}
             </div>
           </CardContent>
         </Card>
