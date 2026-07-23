@@ -135,5 +135,78 @@ router.get('/:id', (req: Request, res: Response) => {
   })
 })
 
+router.put('/:id', (req: Request, res: Response) => {
+  if (!requireRole(req, ['admin', 'secretary'])) {
+    res.status(403).json({ success: false, error: '无权限操作' })
+    return
+  }
+
+  const { userId, role } = getUserContext(req)
+  const id = String(req.params.id)
+  const row = db.prepare('SELECT id, org_unit_id FROM learning_tasks WHERE id = ?').get(id) as any
+  if (!row) {
+    res.status(404).json({ success: false, error: '任务不存在' })
+    return
+  }
+
+  if (role === 'secretary') {
+    const ownOrg = getOrgUnitIdForUser(userId)
+    if (String(row.org_unit_id) !== ownOrg) {
+      res.status(403).json({ success: false, error: '只能编辑本支部任务' })
+      return
+    }
+  }
+
+  const orgUnitId =
+    role === 'secretary' ? String(row.org_unit_id) : String(req.body?.orgUnitId ?? row.org_unit_id)
+  const title = String(req.body?.title ?? '')
+  const dueAt = req.body?.dueAt ? String(req.body.dueAt) : null
+  const contentIds = Array.isArray(req.body?.contentIds) ? (req.body.contentIds as string[]) : null
+
+  db.prepare('UPDATE learning_tasks SET org_unit_id = ?, title = ?, due_at = ? WHERE id = ?').run(
+    orgUnitId,
+    title,
+    dueAt,
+    id,
+  )
+
+  if (contentIds) {
+    db.prepare('DELETE FROM task_contents WHERE task_id = ?').run(id)
+    const insertTC = db.prepare('INSERT INTO task_contents (task_id, content_id) VALUES (?, ?)')
+    for (const cid of contentIds) insertTC.run(id, cid)
+  }
+
+  audit(userId || 'u_admin_demo', 'tasks.update', { id })
+  res.status(200).json({ success: true })
+})
+
+router.delete('/:id', (req: Request, res: Response) => {
+  if (!requireRole(req, ['admin', 'secretary'])) {
+    res.status(403).json({ success: false, error: '无权限操作' })
+    return
+  }
+
+  const { userId, role } = getUserContext(req)
+  const id = String(req.params.id)
+  const row = db.prepare('SELECT id, org_unit_id FROM learning_tasks WHERE id = ?').get(id) as any
+  if (!row) {
+    res.status(404).json({ success: false, error: '任务不存在' })
+    return
+  }
+
+  if (role === 'secretary') {
+    const ownOrg = getOrgUnitIdForUser(userId)
+    if (String(row.org_unit_id) !== ownOrg) {
+      res.status(403).json({ success: false, error: '只能删除本支部任务' })
+      return
+    }
+  }
+
+  db.prepare('DELETE FROM task_contents WHERE task_id = ?').run(id)
+  db.prepare('DELETE FROM learning_tasks WHERE id = ?').run(id)
+  audit(userId || 'u_admin_demo', 'tasks.delete', { id })
+  res.status(200).json({ success: true })
+})
+
 export default router
 

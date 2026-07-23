@@ -111,5 +111,31 @@ router.put('/:id', (req: Request, res: Response) => {
   res.status(200).json({ success: true })
 })
 
+router.delete('/:id', (req: Request, res: Response) => {
+  if (!requireRole(req, ['admin'])) {
+    res.status(403).json({ success: false, error: '仅管理员可操作' })
+    return
+  }
+
+  const { userId } = getUserContext(req)
+  const id = String(req.params.id)
+  const exists = db.prepare('SELECT id FROM papers WHERE id = ?').get(id)
+  if (!exists) {
+    res.status(404).json({ success: false, error: '试卷不存在' })
+    return
+  }
+
+  const used = db.prepare('SELECT id FROM exams WHERE paper_id = ? LIMIT 1').get(id)
+  if (used) {
+    res.status(400).json({ success: false, error: '试卷已被测验引用，请先删除相关测验' })
+    return
+  }
+
+  db.prepare('DELETE FROM paper_questions WHERE paper_id = ?').run(id)
+  db.prepare('DELETE FROM papers WHERE id = ?').run(id)
+  audit(userId || 'u_admin_demo', 'papers.delete', { id })
+  res.status(200).json({ success: true })
+})
+
 export default router
 

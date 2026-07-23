@@ -132,6 +132,31 @@ router.put('/:id', (req: Request, res: Response) => {
   res.status(200).json({ success: true })
 })
 
+router.delete('/:id', (req: Request, res: Response) => {
+  if (!requireRole(req, ['admin'])) {
+    res.status(403).json({ success: false, error: '仅管理员可操作' })
+    return
+  }
+
+  const { userId } = getUserContext(req)
+  const id = String(req.params.id)
+  const exists = db.prepare('SELECT id FROM questions WHERE id = ?').get(id)
+  if (!exists) {
+    res.status(404).json({ success: false, error: '题目不存在' })
+    return
+  }
+
+  const used = db.prepare('SELECT paper_id FROM paper_questions WHERE question_id = ? LIMIT 1').get(id)
+  if (used) {
+    res.status(400).json({ success: false, error: '题目已被试卷引用，请先从试卷中移除' })
+    return
+  }
+
+  db.prepare('DELETE FROM questions WHERE id = ?').run(id)
+  audit(userId || 'u_admin_demo', 'questions.delete', { id })
+  res.status(200).json({ success: true })
+})
+
 router.post('/import', (req: Request, res: Response) => {
   if (!requireRole(req, ['admin'])) {
     res.status(403).json({ success: false, error: '仅管理员可操作' })

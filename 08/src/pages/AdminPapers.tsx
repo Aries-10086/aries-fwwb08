@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/Card'
 import { Button } from '@/components/Button'
 import { apiFetch } from '@/utils/api'
 import { useAuthStore } from '@/store/auth'
-import { Plus, RotateCw } from 'lucide-react'
+import { Plus, RotateCw, Trash2 } from 'lucide-react'
 
 type Question = { id: string; type: string; category: string; stem: string }
 type Paper = { id: string; title: string; durationMin: number; passScore: number; questions: { questionId: string; score: number; orderNo: number }[] }
@@ -69,13 +69,24 @@ export default function AdminPapers() {
     }
   }
 
+  async function remove(id: string) {
+    if (!confirm('确认删除该试卷？若已被测验引用将无法删除。')) return
+    setError(null)
+    try {
+      await apiFetch<void>(`/api/papers/${id}`, { method: 'DELETE' })
+      await load()
+    } catch (e: any) {
+      setError(e?.message ?? '删除失败')
+    }
+  }
+
   return (
     <div className="grid gap-6">
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
           <div className="page-eyebrow">管理后台</div>
           <h1 className="page-title text-3xl md:text-4xl">试卷管理</h1>
-          <div className="page-subtitle mt-2">组卷（题目 + 分值 + 顺序）</div>
+          <div className="page-subtitle mt-2 max-w-2xl">组卷（题目 + 分值 + 顺序）</div>
         </div>
         <Button variant="ghost" onClick={() => load()} disabled={loading}>
           <RotateCw className={loading ? 'h-4 w-4 animate-spin' : 'h-4 w-4'} />
@@ -84,7 +95,7 @@ export default function AdminPapers() {
       </div>
 
       {error && (
-        <div className="border border-[rgba(163,24,40,0.2)] bg-[rgba(163,24,40,0.08)] px-4 py-3 text-[#7a1020]">
+        <div className="rounded-2xl bg-[rgba(163,24,40,0.08)] px-4 py-3 text-[#7a1020] shadow-[inset_0_0_0_1px_rgba(163,24,40,0.16)]">
           {error}
         </div>
       )}
@@ -100,7 +111,7 @@ export default function AdminPapers() {
           <CardContent>
             <div className="grid gap-3">
               <label className="grid gap-1 text-sm">
-                <span className="text-xs text-[rgba(14,17,22,0.45)]">标题</span>
+                <span className="field-label">标题</span>
                 <input
                   value={form.title}
                   onChange={(e) => setForm((p) => ({ ...p, title: e.target.value }))}
@@ -110,7 +121,7 @@ export default function AdminPapers() {
 
               <div className="grid gap-3 md:grid-cols-2">
                 <label className="grid gap-1 text-sm">
-                  <span className="text-xs text-[rgba(14,17,22,0.45)]">时长（分钟）</span>
+                  <span className="field-label">时长（分钟）</span>
                   <input
                     type="number"
                     value={form.durationMin}
@@ -119,7 +130,7 @@ export default function AdminPapers() {
                   />
                 </label>
                 <label className="grid gap-1 text-sm">
-                  <span className="text-xs text-[rgba(14,17,22,0.45)]">及格线</span>
+                  <span className="field-label">及格线</span>
                   <input
                     type="number"
                     value={form.passScore}
@@ -129,7 +140,7 @@ export default function AdminPapers() {
                 </label>
               </div>
 
-              <div className="text-xs text-[rgba(14,17,22,0.45)]">选择题目（点击添加到试卷）</div>
+              <div className="text-xs text-zinc-500">选择题目（点击添加到试卷）</div>
               <div className="max-h-[220px] space-y-2 overflow-auto pr-1">
                 {questions.map((q) => {
                   const picked = form.picks.some((p) => p.questionId === q.id)
@@ -145,26 +156,26 @@ export default function AdminPapers() {
                       }
                       className={[
                         'w-full rounded-lg px-3 py-2 text-left text-sm transition',
-                        'border border-[rgba(14,17,22,0.1)]',
-                        picked ? 'bg-[rgba(14,17,22,0.04)] text-[rgba(14,17,22,0.4)]' : 'bg-white text-[#0e1116] hover:bg-[rgba(163,24,40,0.04)]',
+                        'shadow-[inset_0_0_0_1px_rgba(0,0,0,0.06)]',
+                        picked ? 'bg-white/90 text-zinc-400' : 'bg-white/90 text-[#0e1116] hover:bg-[rgba(163,24,40,0.05)]',
                       ].join(' ')}
                     >
-                      <div className="text-xs text-[rgba(14,17,22,0.45)]">{q.category} · {q.type}</div>
+                      <div className="text-xs text-zinc-500">{q.category} · {q.type}</div>
                       <div className="mt-1 line-clamp-2">{q.stem}</div>
                     </button>
                   )
                 })}
               </div>
 
-              <div className="text-xs text-[rgba(14,17,22,0.45)]">已选题目（可调整分值）</div>
+              <div className="text-xs text-zinc-500">已选题目（可调整分值）</div>
               <div className="grid gap-2">
                 {form.picks.map((p, idx) => (
                   <div
                     key={p.questionId}
-                    className="list-surface px-3 py-2"
+                    className="rounded-lg bg-white/90 px-3 py-2 shadow-[inset_0_0_0_1px_rgba(0,0,0,0.06)]"
                   >
                     <div className="flex items-center justify-between gap-2">
-                      <div className="text-sm text-[rgba(14,17,22,0.75)]">#{idx + 1} {qById.get(p.questionId)?.category ?? ''}</div>
+                      <div className="text-sm text-[#0e1116]">#{idx + 1} {qById.get(p.questionId)?.category ?? ''}</div>
                       <input
                         type="number"
                         value={p.score}
@@ -175,13 +186,13 @@ export default function AdminPapers() {
                             picks: prev.picks.map((x) => (x.questionId === p.questionId ? { ...x, score: v } : x)),
                           }))
                         }}
-                        className="w-20 rounded-md bg-white px-2 py-1 text-sm border border-[rgba(14,17,22,0.1)] outline-none"
+                        className="input-shell w-20 px-2 py-1"
                       />
                     </div>
-                    <div className="mt-1 text-xs text-[rgba(14,17,22,0.45)] line-clamp-2">{qById.get(p.questionId)?.stem ?? p.questionId}</div>
+                    <div className="mt-1 text-xs text-zinc-500 line-clamp-2">{qById.get(p.questionId)?.stem ?? p.questionId}</div>
                   </div>
                 ))}
-                {form.picks.length === 0 && <div className="page-eyebrow">还未选择题目</div>}
+                {form.picks.length === 0 && <div className="text-sm text-zinc-400">还未选择题目</div>}
               </div>
 
               <Button onClick={() => create()} disabled={form.picks.length === 0}>
@@ -201,26 +212,34 @@ export default function AdminPapers() {
               {items.map((p) => (
                 <div
                   key={p.id}
-                  className="list-surface p-4"
+                  className="rounded-xl bg-white/90 p-4 shadow-[inset_0_0_0_1px_rgba(0,0,0,0.06)]"
                 >
                   <div className="flex items-center justify-between gap-3">
-                    <div className="text-sm font-medium text-[#0e1116]">{p.title}</div>
-                    <div className="text-xs text-[rgba(14,17,22,0.45)]">{p.durationMin} 分钟 · 及格 {p.passScore}</div>
+                    <div>
+                      <div className="text-sm font-medium text-[#0e1116]">{p.title}</div>
+                      <div className="mt-1 text-xs text-zinc-500">
+                        {p.durationMin} 分钟 · 及格 {p.passScore}
+                      </div>
+                    </div>
+                    <Button variant="danger" className="px-3" onClick={() => remove(p.id)}>
+                      <Trash2 className="h-4 w-4" />
+                      删除
+                    </Button>
                   </div>
                   <div className="mt-3 grid gap-2 md:grid-cols-2">
                     {p.questions.map((q) => (
                       <div
                         key={q.questionId}
-                        className="rounded-lg bg-white px-4 py-3 text-sm text-[rgba(14,17,22,0.75)] border border-[rgba(14,17,22,0.1)]"
+                        className="rounded-lg bg-white/90 px-4 py-3 text-sm text-[rgba(14,17,22,0.7)] shadow-[inset_0_0_0_1px_rgba(0,0,0,0.06)]"
                       >
                         {qById.get(q.questionId)?.stem ?? q.questionId}
-                        <div className="mt-1 text-xs text-[rgba(14,17,22,0.45)]">分值 {q.score}</div>
+                        <div className="mt-1 text-xs text-zinc-500">分值 {q.score}</div>
                       </div>
                     ))}
                   </div>
                 </div>
               ))}
-              {items.length === 0 && <div className="py-10 text-sm text-[rgba(14,17,22,0.4)]">暂无试卷</div>}
+              {items.length === 0 && <div className="py-10 text-sm text-zinc-400">暂无试卷</div>}
             </div>
           </CardContent>
         </Card>
@@ -228,4 +247,3 @@ export default function AdminPapers() {
     </div>
   )
 }
-

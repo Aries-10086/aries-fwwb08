@@ -5,7 +5,7 @@ import { Button } from '@/components/Button'
 import { apiFetch } from '@/utils/api'
 import { fileToTabularText } from '@/utils/spreadsheet'
 import { useAuthStore } from '@/store/auth'
-import { RotateCw, Save, Upload, Plus } from 'lucide-react'
+import { RotateCw, Save, Upload, Plus, Trash2 } from 'lucide-react'
 
 type Question = {
   id: string
@@ -103,6 +103,22 @@ export default function AdminQuestions() {
     }
   }
 
+  async function remove() {
+    if (!selected) return
+    if (!confirm('确认删除该题目？若已被试卷引用将无法删除。')) return
+    setSaving(true)
+    setError(null)
+    try {
+      await apiFetch<void>(`/api/questions/${selected.id}`, { method: 'DELETE' })
+      setSelectedId(null)
+      await load()
+    } catch (e: any) {
+      setError(e?.message ?? '删除失败')
+    } finally {
+      setSaving(false)
+    }
+  }
+
   async function create() {
     setSaving(true)
     setError(null)
@@ -160,7 +176,7 @@ export default function AdminQuestions() {
         <div>
           <div className="page-eyebrow">管理后台</div>
           <h1 className="page-title text-3xl md:text-4xl">题库管理</h1>
-          <div className="page-subtitle mt-2">单选 / 多选 / 判断题</div>
+          <div className="page-subtitle mt-2 max-w-2xl">单选 / 多选 / 判断题</div>
         </div>
         <div className="flex items-center gap-2">
           <Button variant="ghost" onClick={() => load()} disabled={loading}>
@@ -175,11 +191,15 @@ export default function AdminQuestions() {
             <Save className="h-4 w-4" />
             保存
           </Button>
+          <Button variant="danger" onClick={() => remove()} disabled={!selected || saving}>
+            <Trash2 className="h-4 w-4" />
+            删除
+          </Button>
         </div>
       </div>
 
       {error && (
-        <div className="border border-[rgba(163,24,40,0.2)] bg-[rgba(163,24,40,0.08)] px-4 py-3 text-[#7a1020]">
+        <div className="rounded-2xl bg-[rgba(163,24,40,0.08)] px-4 py-3 text-[#7a1020] shadow-[inset_0_0_0_1px_rgba(163,24,40,0.16)]">
           {error}
         </div>
       )}
@@ -193,7 +213,7 @@ export default function AdminQuestions() {
         </CardHeader>
         <CardContent>
           <div className="grid gap-3">
-            <div className="text-xs text-black/60">
+            <div className="text-xs text-[rgba(14,17,22,0.55)]">
               支持 CSV 或从 Excel 复制粘贴的制表符内容。字段：type、category、stem、optionsJson、answerKeyJson，其中后两项需为合法 JSON。
             </div>
             <label className="grid gap-2 text-sm">
@@ -207,7 +227,7 @@ export default function AdminQuestions() {
                 }}
                 className="input-shell cursor-pointer file:mr-3 file:rounded-full file:border-0 file:bg-[#a31828] file:px-4 file:py-2 file:text-sm file:font-semibold file:text-white"
               />
-              {importFileName ? <div className="text-xs text-black/55">已载入：{importFileName}</div> : null}
+              {importFileName ? <div className="text-xs text-[rgba(14,17,22,0.55)]">已载入：{importFileName}</div> : null}
             </label>
             <textarea
               value={importText}
@@ -237,9 +257,11 @@ export default function AdminQuestions() {
                   key={q.id}
                   onClick={() => setSelectedId(q.id)}
                   className={[
-                    'w-full rounded-lg px-4 py-3 text-left transition',
-                    'border border-[rgba(14,17,22,0.1)]',
-                    selectedId === q.id ? 'bg-[#a31828] text-white' : 'list-surface text-[#0e1116] hover:bg-[rgba(163,24,40,0.04)]',
+                    'w-full rounded-2xl px-4 py-3 text-left transition',
+                    'shadow-[inset_0_0_0_1px_rgba(0,0,0,0.08)]',
+                    selectedId === q.id
+                      ? 'bg-[#a31828] text-white'
+                      : 'bg-white/90 text-black/80 hover:bg-[rgba(163,24,40,0.05)]',
                   ].join(' ')}
                 >
                   <div className="flex items-center justify-between gap-2">
@@ -249,7 +271,7 @@ export default function AdminQuestions() {
                   <div className="mt-1 line-clamp-2 text-xs opacity-80">{q.stem}</div>
                 </button>
               ))}
-              {items.length === 0 && <div className="py-10 text-sm text-[rgba(14,17,22,0.4)]">暂无题目</div>}
+              {items.length === 0 && <div className="py-10 text-sm text-zinc-400">暂无题目</div>}
             </div>
           </CardContent>
         </Card>
@@ -263,7 +285,7 @@ export default function AdminQuestions() {
               <div className="grid gap-4">
                 <div className="grid gap-3 md:grid-cols-3">
                   <label className="grid gap-1 text-sm">
-                    <span className="text-xs text-[rgba(14,17,22,0.45)]">题型</span>
+                    <span className="field-label">题型</span>
                     <select
                       value={form.type}
                       onChange={(e) => setForm((p) => ({ ...p, type: e.target.value as any }))}
@@ -275,7 +297,7 @@ export default function AdminQuestions() {
                     </select>
                   </label>
                   <label className="grid gap-1 text-sm md:col-span-2">
-                    <span className="text-xs text-[rgba(14,17,22,0.45)]">分类</span>
+                    <span className="field-label">分类</span>
                     <input
                       value={form.category}
                       onChange={(e) => setForm((p) => ({ ...p, category: e.target.value }))}
@@ -285,38 +307,38 @@ export default function AdminQuestions() {
                 </div>
 
                 <label className="grid gap-1 text-sm">
-                  <span className="text-xs text-[rgba(14,17,22,0.45)]">题干</span>
+                  <span className="field-label">题干</span>
                   <textarea
                     value={form.stem}
                     onChange={(e) => setForm((p) => ({ ...p, stem: e.target.value }))}
                     rows={5}
-                    className="w-full resize-none rounded-lg input-shell text-sm outline-none"
+                    className="input-shell w-full resize-none px-4 py-3 text-black/80"
                   />
                 </label>
 
                 <div className="grid gap-3 md:grid-cols-2">
                   <label className="grid gap-1 text-sm">
-                    <span className="text-xs text-[rgba(14,17,22,0.45)]">optionsJson（单选/多选用）</span>
+                    <span className="field-label">optionsJson（单选/多选用）</span>
                     <textarea
                       value={form.optionsJson}
                       onChange={(e) => setForm((p) => ({ ...p, optionsJson: e.target.value }))}
                       rows={8}
-                      className="w-full resize-none rounded-lg input-shell font-mono text-xs outline-none"
+                      className="input-shell w-full resize-none px-4 py-3 font-mono text-xs text-black/80"
                     />
                   </label>
                   <label className="grid gap-1 text-sm">
-                    <span className="text-xs text-[rgba(14,17,22,0.45)]">answerKeyJson</span>
+                    <span className="field-label">answerKeyJson</span>
                     <textarea
                       value={form.answerKeyJson}
                       onChange={(e) => setForm((p) => ({ ...p, answerKeyJson: e.target.value }))}
                       rows={8}
-                      className="w-full resize-none rounded-lg input-shell font-mono text-xs outline-none"
+                      className="input-shell w-full resize-none px-4 py-3 font-mono text-xs text-black/80"
                     />
                   </label>
                 </div>
               </div>
             ) : (
-              <div className="py-10 text-sm text-[rgba(14,17,22,0.4)]">请选择题目</div>
+              <div className="py-10 text-sm text-zinc-400">请选择题目</div>
             )}
           </CardContent>
         </Card>
