@@ -6,6 +6,7 @@ import { nanoid } from 'nanoid'
 import type { ContentType, ExamStatus, QuestionType, UserRole } from '../shared/types.js'
 import { hashPassword } from './utils/password.js'
 import { randomPassword } from './utils/token.js'
+import { cleanupOrphanRecords, enableForeignKeys, ensureForeignKeySchema } from './utils/fk-schema.js'
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
@@ -18,6 +19,7 @@ const dbPath = process.env.DB_PATH
 if (!fs.existsSync(dataDir)) fs.mkdirSync(dataDir, { recursive: true })
 
 export const db = new Database(dbPath)
+enableForeignKeys(db)
 
 export function nowIso() {
   return new Date().toISOString()
@@ -34,7 +36,7 @@ export function initDb() {
     CREATE TABLE IF NOT EXISTS org_units (
       id TEXT PRIMARY KEY,
       name TEXT NOT NULL,
-      parent_id TEXT,
+      parent_id TEXT REFERENCES org_units(id) ON DELETE RESTRICT,
       created_at TEXT NOT NULL
     );
 
@@ -44,7 +46,7 @@ export function initDb() {
       username TEXT,
       password_hash TEXT,
       role TEXT NOT NULL,
-      org_unit_id TEXT NOT NULL,
+      org_unit_id TEXT NOT NULL REFERENCES org_units(id) ON DELETE RESTRICT,
       created_at TEXT NOT NULL
     );
 
@@ -63,22 +65,22 @@ export function initDb() {
 
     CREATE TABLE IF NOT EXISTS learning_tasks (
       id TEXT PRIMARY KEY,
-      org_unit_id TEXT NOT NULL,
+      org_unit_id TEXT NOT NULL REFERENCES org_units(id) ON DELETE CASCADE,
       title TEXT NOT NULL,
       due_at TEXT,
       created_at TEXT NOT NULL
     );
 
     CREATE TABLE IF NOT EXISTS task_contents (
-      task_id TEXT NOT NULL,
-      content_id TEXT NOT NULL,
+      task_id TEXT NOT NULL REFERENCES learning_tasks(id) ON DELETE CASCADE,
+      content_id TEXT NOT NULL REFERENCES contents(id) ON DELETE CASCADE,
       PRIMARY KEY (task_id, content_id)
     );
 
     CREATE TABLE IF NOT EXISTS learning_records (
       id TEXT PRIMARY KEY,
-      user_id TEXT NOT NULL,
-      content_id TEXT NOT NULL,
+      user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      content_id TEXT NOT NULL REFERENCES contents(id) ON DELETE CASCADE,
       duration_ms INTEGER NOT NULL,
       is_completed INTEGER NOT NULL DEFAULT 0,
       created_at TEXT NOT NULL
@@ -104,8 +106,8 @@ export function initDb() {
     );
 
     CREATE TABLE IF NOT EXISTS paper_questions (
-      paper_id TEXT NOT NULL,
-      question_id TEXT NOT NULL,
+      paper_id TEXT NOT NULL REFERENCES papers(id) ON DELETE CASCADE,
+      question_id TEXT NOT NULL REFERENCES questions(id) ON DELETE RESTRICT,
       score INTEGER NOT NULL,
       order_no INTEGER NOT NULL,
       PRIMARY KEY (paper_id, question_id)
@@ -113,8 +115,8 @@ export function initDb() {
 
     CREATE TABLE IF NOT EXISTS exams (
       id TEXT PRIMARY KEY,
-      org_unit_id TEXT NOT NULL,
-      paper_id TEXT NOT NULL,
+      org_unit_id TEXT NOT NULL REFERENCES org_units(id) ON DELETE CASCADE,
+      paper_id TEXT NOT NULL REFERENCES papers(id) ON DELETE RESTRICT,
       title TEXT NOT NULL,
       duration_min INTEGER NOT NULL,
       pass_score INTEGER NOT NULL,
@@ -124,8 +126,8 @@ export function initDb() {
 
     CREATE TABLE IF NOT EXISTS exam_attempts (
       id TEXT PRIMARY KEY,
-      exam_id TEXT NOT NULL,
-      user_id TEXT NOT NULL,
+      exam_id TEXT NOT NULL REFERENCES exams(id) ON DELETE CASCADE,
+      user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
       total_score INTEGER NOT NULL,
       is_pass INTEGER NOT NULL,
       created_at TEXT NOT NULL
@@ -133,22 +135,22 @@ export function initDb() {
 
     CREATE TABLE IF NOT EXISTS exam_answers (
       id TEXT PRIMARY KEY,
-      attempt_id TEXT NOT NULL,
-      question_id TEXT NOT NULL,
+      attempt_id TEXT NOT NULL REFERENCES exam_attempts(id) ON DELETE CASCADE,
+      question_id TEXT NOT NULL REFERENCES questions(id) ON DELETE RESTRICT,
       answer_json TEXT NOT NULL,
       score INTEGER NOT NULL
     );
 
     CREATE TABLE IF NOT EXISTS ai_reports (
       id TEXT PRIMARY KEY,
-      user_id TEXT NOT NULL,
+      user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
       report_json TEXT NOT NULL,
       created_at TEXT NOT NULL
     );
 
     CREATE TABLE IF NOT EXISTS ai_logs (
       id TEXT PRIMARY KEY,
-      user_id TEXT NOT NULL,
+      user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
       action TEXT NOT NULL,
       meta_json TEXT NOT NULL,
       created_at TEXT NOT NULL
@@ -165,6 +167,8 @@ export function initDb() {
   ensureAuthColumns()
   ensureContentAttachmentsColumn()
   ensureExamAndLearningSchema()
+  cleanupOrphanRecords(db)
+  ensureForeignKeySchema(db)
 }
 
 function ensureExamAndLearningSchema() {
@@ -176,8 +180,8 @@ function ensureExamAndLearningSchema() {
   db.exec(`
     CREATE TABLE IF NOT EXISTS exam_sessions (
       id TEXT PRIMARY KEY,
-      exam_id TEXT NOT NULL,
-      user_id TEXT NOT NULL,
+      exam_id TEXT NOT NULL REFERENCES exams(id) ON DELETE CASCADE,
+      user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
       started_at TEXT NOT NULL,
       submitted INTEGER NOT NULL DEFAULT 0
     );

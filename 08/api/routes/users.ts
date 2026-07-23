@@ -2,6 +2,7 @@ import { Router, type Request, type Response } from 'express'
 import { nanoid } from 'nanoid'
 import { db, nowIso, audit } from '../db.js'
 import { getUserContext, requireAuth, requireRole, rejectUnauthorized, rejectForbidden } from '../utils/http.js'
+import { isFkViolation } from '../utils/fk-schema.js'
 import { hashPassword, normalizeUsername } from '../utils/password.js'
 
 const router = Router()
@@ -199,12 +200,15 @@ router.delete('/:id', (req: Request, res: Response) => {
     return
   }
 
-  db.prepare('DELETE FROM learning_records WHERE user_id = ?').run(id)
-  db.prepare('DELETE FROM exam_answers WHERE attempt_id IN (SELECT id FROM exam_attempts WHERE user_id = ?)').run(id)
-  db.prepare('DELETE FROM exam_attempts WHERE user_id = ?').run(id)
-  db.prepare('DELETE FROM ai_reports WHERE user_id = ?').run(id)
-  db.prepare('DELETE FROM ai_logs WHERE user_id = ?').run(id)
-  db.prepare('DELETE FROM users WHERE id = ?').run(id)
+  try {
+    db.prepare('DELETE FROM users WHERE id = ?').run(id)
+  } catch (e) {
+    if (isFkViolation(e)) {
+      res.status(400).json({ success: false, error: '存在关联数据，无法删除该用户' })
+      return
+    }
+    throw e
+  }
 
   audit(userId || 'u_admin_demo', 'users.delete', { id })
   res.status(200).json({ success: true })
