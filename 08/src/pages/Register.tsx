@@ -26,7 +26,6 @@ export default function Register() {
       .then((json) => {
         const list = (json?.data ?? []) as OrgOption[]
         setOrgs(list)
-        if (list[0]) setForm((p) => ({ ...p, orgUnitId: p.orgUnitId || list[0].id }))
       })
       .catch(() => setOrgs([]))
   }, [])
@@ -34,6 +33,11 @@ export default function Register() {
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault()
     setError(null)
+
+    if (!form.orgUnitId) {
+      setError('请选择所属支部')
+      return
+    }
 
     if (form.password !== form.confirmPassword) {
       setError('两次输入的密码不一致')
@@ -47,7 +51,7 @@ export default function Register() {
         username: form.username.trim(),
         password: form.password,
         confirmPassword: form.confirmPassword,
-        orgUnitId: form.orgUnitId || undefined,
+        orgUnitId: form.orgUnitId,
       })
       const role = useAuthStore.getState().user?.role
       nav(role === 'admin' ? '/admin/dashboard' : '/m/home')
@@ -61,6 +65,7 @@ export default function Register() {
   const canSubmit =
     form.name.trim() &&
     form.username.trim() &&
+    form.orgUnitId &&
     form.password.length >= 6 &&
     form.confirmPassword.length >= 6
 
@@ -93,7 +98,7 @@ export default function Register() {
               </li>
               <li className="flex gap-2">
                 <span className="text-[#c9a84c]">—</span>
-                注册后进入学习端
+                必须选择所属支部
               </li>
             </ul>
           </div>
@@ -140,13 +145,14 @@ export default function Register() {
                       value={form.orgUnitId}
                       onChange={(e) => setForm((p) => ({ ...p, orgUnitId: e.target.value }))}
                       className="w-full bg-transparent py-2.5 outline-none"
+                      required
                     >
+                      <option value="">请选择支部</option>
                       {orgs.map((o) => (
                         <option key={o.id} value={o.id}>
                           {o.name}
                         </option>
                       ))}
-                      {orgs.length === 0 && <option value="">默认支部</option>}
                     </select>
                   </div>
                 </label>

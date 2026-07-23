@@ -13,6 +13,7 @@ import {
   BrainCircuit,
   BarChart3,
   Sparkles,
+  KeyRound,
 } from 'lucide-react'
 
 const adminNav = [
@@ -25,19 +26,24 @@ const adminNav = [
   { to: '/admin/papers', label: '试卷', icon: FileText },
   { to: '/admin/exams', label: '测验', icon: ClipboardList },
   { to: '/admin/ai-query', label: 'AI 查询', icon: BrainCircuit },
+  { to: '/account/password', label: '改密', icon: KeyRound },
 ] as const
 
 const secretaryNav = [
+  { to: '/m/dashboard', label: '支部看板', icon: LayoutDashboard },
   { to: '/m/scores', label: '支部成绩', icon: BarChart3 },
+  { to: '/admin/tasks', label: '任务', icon: ClipboardList },
   { to: '/m/home', label: '学习', icon: BookOpen },
   { to: '/m/exams', label: '测验', icon: ClipboardList },
   { to: '/m/report', label: 'AI 报告', icon: Sparkles },
+  { to: '/account/password', label: '改密', icon: KeyRound },
 ] as const
 
 const memberNav = [
   { to: '/m/home', label: '学习', icon: BookOpen },
   { to: '/m/exams', label: '测验', icon: ClipboardList },
   { to: '/m/report', label: 'AI 报告', icon: Sparkles },
+  { to: '/account/password', label: '改密', icon: KeyRound },
 ] as const
 
 export function AppShell({ children }: { children: React.ReactNode }) {
@@ -73,11 +79,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               </div>
             )}
             {user ? (
-              <Button
-                variant="secondary"
-                onClick={() => logout()}
-                className="px-3 py-2 text-xs"
-              >
+              <Button variant="secondary" onClick={() => logout()} className="px-3 py-2 text-xs">
                 <LogOut className="h-4 w-4" />
                 退出
               </Button>
@@ -98,11 +100,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 const active = location.pathname.startsWith(it.to)
                 const Icon = it.icon
                 return (
-                  <Link
-                    key={it.to}
-                    to={it.to}
-                    className={cn('nav-link', active && 'nav-link-active')}
-                  >
+                  <Link key={it.to} to={it.to} className={cn('nav-link', active && 'nav-link-active')}>
                     <Icon className="h-4 w-4" />
                     {it.label}
                   </Link>

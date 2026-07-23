@@ -9,6 +9,8 @@ import MobileExams from '@/pages/MobileExams'
 import MobileExamTake from '@/pages/MobileExamTake'
 import MobileReport from '@/pages/MobileReport'
 import SecretaryScores from '@/pages/SecretaryScores'
+import SecretaryDashboard from '@/pages/SecretaryDashboard'
+import ChangePassword from '@/pages/ChangePassword'
 import AdminDashboard from '@/pages/AdminDashboard'
 import AdminOrg from '@/pages/AdminOrg'
 import AdminUsers from '@/pages/AdminUsers'
@@ -36,6 +38,8 @@ export default function App() {
           <Route path="/m/exam/:examId" element={<MobileExamTake />} />
           <Route path="/m/report" element={<MobileReport />} />
           <Route path="/m/scores" element={<SecretaryScores />} />
+          <Route path="/m/dashboard" element={<SecretaryDashboard />} />
+          <Route path="/account/password" element={<ChangePassword />} />
 
           <Route path="/admin/dashboard" element={<AdminDashboard />} />
           <Route path="/admin/org" element={<AdminOrg />} />
