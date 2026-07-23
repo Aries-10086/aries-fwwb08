@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/Card'
 import { Button } from '@/components/Button'
 import { apiFetch } from '@/utils/api'
 import { useAuthStore } from '@/store/auth'
-import { ClipboardList, Plus, RotateCw } from 'lucide-react'
+import { ClipboardList, Plus, RotateCw, Trash2 } from 'lucide-react'
 
 type Org = { id: string; name: string; parentId: string | null }
 type Paper = { id: string; title: string; durationMin: number; passScore: number }
@@ -15,6 +15,7 @@ type Exam = {
   title: string
   durationMin: number
   passScore: number
+  maxAttempts?: number
   status: 'draft' | 'published' | 'closed'
   createdAt: string
 }
@@ -34,6 +35,7 @@ export default function AdminExams() {
     title: '测验（新建）',
     durationMin: 10,
     passScore: 60,
+    maxAttempts: 3,
     status: 'published' as Exam['status'],
   })
 
@@ -102,13 +104,24 @@ export default function AdminExams() {
     }
   }
 
+  async function remove(id: string) {
+    if (!confirm('确认删除该测验及其作答记录？')) return
+    setError(null)
+    try {
+      await apiFetch<void>(`/api/exams/${id}`, { method: 'DELETE' })
+      await load()
+    } catch (e: any) {
+      setError(e?.message ?? '删除失败')
+    }
+  }
+
   return (
     <div className="grid gap-6">
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
           <div className="page-eyebrow">管理后台</div>
           <h1 className="page-title text-3xl md:text-4xl">测验发布</h1>
-          <div className="page-subtitle mt-2">基于试卷发布测验并指定支部对象</div>
+          <div className="page-subtitle mt-2 max-w-2xl">基于试卷发布测验并指定支部对象</div>
         </div>
         <Button variant="ghost" onClick={() => load()} disabled={loading}>
           <RotateCw className={loading ? 'h-4 w-4 animate-spin' : 'h-4 w-4'} />
@@ -117,7 +130,7 @@ export default function AdminExams() {
       </div>
 
       {error && (
-        <div className="border border-[rgba(163,24,40,0.2)] bg-[rgba(163,24,40,0.08)] px-4 py-3 text-[#7a1020]">
+        <div className="rounded-2xl bg-[rgba(163,24,40,0.08)] px-4 py-3 text-[#7a1020] shadow-[inset_0_0_0_1px_rgba(163,24,40,0.16)]">
           {error}
         </div>
       )}
@@ -133,7 +146,7 @@ export default function AdminExams() {
           <CardContent>
             <div className="grid gap-3">
               <label className="grid gap-1 text-sm">
-                <span className="text-xs text-[rgba(14,17,22,0.45)]">支部</span>
+                <span className="field-label">支部</span>
                 <select
                   value={form.orgUnitId}
                   onChange={(e) => setForm((p) => ({ ...p, orgUnitId: e.target.value }))}
@@ -149,7 +162,7 @@ export default function AdminExams() {
                 </select>
               </label>
               <label className="grid gap-1 text-sm">
-                <span className="text-xs text-[rgba(14,17,22,0.45)]">试卷</span>
+                <span className="field-label">试卷</span>
                 <select
                   value={form.paperId}
                   onChange={(e) => setForm((p) => ({ ...p, paperId: e.target.value }))}
@@ -163,16 +176,16 @@ export default function AdminExams() {
                 </select>
               </label>
               <label className="grid gap-1 text-sm">
-                <span className="text-xs text-[rgba(14,17,22,0.45)]">标题</span>
+                <span className="field-label">标题</span>
                 <input
                   value={form.title}
                   onChange={(e) => setForm((p) => ({ ...p, title: e.target.value }))}
                   className="input-shell"
                 />
               </label>
-              <div className="grid gap-3 md:grid-cols-3">
+              <div className="grid gap-3 md:grid-cols-2">
                 <label className="grid gap-1 text-sm">
-                  <span className="text-xs text-[rgba(14,17,22,0.45)]">时长</span>
+                  <span className="field-label">时长（分钟）</span>
                   <input
                     type="number"
                     value={form.durationMin}
@@ -181,7 +194,7 @@ export default function AdminExams() {
                   />
                 </label>
                 <label className="grid gap-1 text-sm">
-                  <span className="text-xs text-[rgba(14,17,22,0.45)]">及格线</span>
+                  <span className="field-label">及格线</span>
                   <input
                     type="number"
                     value={form.passScore}
@@ -190,7 +203,17 @@ export default function AdminExams() {
                   />
                 </label>
                 <label className="grid gap-1 text-sm">
-                  <span className="text-xs text-[rgba(14,17,22,0.45)]">状态</span>
+                  <span className="field-label">最大作答次数</span>
+                  <input
+                    type="number"
+                    min={1}
+                    value={form.maxAttempts}
+                    onChange={(e) => setForm((p) => ({ ...p, maxAttempts: Number(e.target.value) }))}
+                    className="input-shell"
+                  />
+                </label>
+                <label className="grid gap-1 text-sm">
+                  <span className="field-label">状态</span>
                   <select
                     value={form.status}
                     onChange={(e) => setForm((p) => ({ ...p, status: e.target.value as any }))}
@@ -219,31 +242,37 @@ export default function AdminExams() {
               {items.map((e) => (
                 <div
                   key={e.id}
-                  className="list-surface p-4"
+                  className="rounded-xl bg-white/90 p-4 shadow-[inset_0_0_0_1px_rgba(0,0,0,0.06)]"
                 >
                   <div className="flex flex-wrap items-start justify-between gap-3">
                     <div>
                       <div className="text-sm font-medium text-[#0e1116]">{e.title}</div>
-                      <div className="mt-1 text-xs text-[rgba(14,17,22,0.45)]">
+                      <div className="mt-1 text-xs text-zinc-500">
                         {orgById.get(e.orgUnitId) ?? e.orgUnitId} · {paperById.get(e.paperId) ?? e.paperId}
                       </div>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <span className="data-pill">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="rounded-full bg-white/90 px-3 py-1 text-xs text-[rgba(14,17,22,0.7)] shadow-[inset_0_0_0_1px_rgba(0,0,0,0.06)]">
                         {e.status}
                       </span>
                       <Button variant="secondary" className="px-3" onClick={() => updateStatus(e, 'published')}>
                         发布
                       </Button>
-                      <Button variant="danger" className="px-3" onClick={() => updateStatus(e, 'closed')}>
+                      <Button variant="secondary" className="px-3" onClick={() => updateStatus(e, 'closed')}>
                         关闭
+                      </Button>
+                      <Button variant="danger" className="px-3" onClick={() => remove(e.id)}>
+                        <Trash2 className="h-4 w-4" />
+                        删除
                       </Button>
                     </div>
                   </div>
-                  <div className="mt-3 text-xs text-[rgba(14,17,22,0.45)]">{e.durationMin} 分钟 · 及格 {e.passScore} 分</div>
+                  <div className="mt-3 text-xs text-zinc-500">
+                    {e.durationMin} 分钟 · 及格 {e.passScore} 分 · 最多 {e.maxAttempts ?? 3} 次
+                  </div>
                 </div>
               ))}
-              {items.length === 0 && <div className="py-10 text-sm text-[rgba(14,17,22,0.4)]">暂无测验</div>}
+              {items.length === 0 && <div className="py-10 text-sm text-zinc-400">暂无测验</div>}
             </div>
           </CardContent>
         </Card>
@@ -251,4 +280,3 @@ export default function AdminExams() {
     </div>
   )
 }
-

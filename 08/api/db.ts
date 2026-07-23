@@ -164,6 +164,65 @@ export function initDb() {
 
   ensureAuthColumns()
   ensureContentAttachmentsColumn()
+  ensureExamAndLearningSchema()
+}
+
+function ensureExamAndLearningSchema() {
+  const examCols = tableColumns('exams')
+  if (!examCols.has('max_attempts')) {
+    db.exec('ALTER TABLE exams ADD COLUMN max_attempts INTEGER NOT NULL DEFAULT 3')
+  }
+
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS exam_sessions (
+      id TEXT PRIMARY KEY,
+      exam_id TEXT NOT NULL,
+      user_id TEXT NOT NULL,
+      started_at TEXT NOT NULL,
+      submitted INTEGER NOT NULL DEFAULT 0
+    );
+    CREATE INDEX IF NOT EXISTS idx_exam_sessions_user ON exam_sessions(user_id, exam_id);
+  `)
+
+  // 合并重复学习记录后再建唯一索引，避免时长虚高
+  const dupes = db
+    .prepare(
+      `SELECT user_id, content_id FROM learning_records
+       GROUP BY user_id, content_id HAVING COUNT(1) > 1`,
+    )
+    .all() as Array<{ user_id: string; content_id: string }>
+
+  for (const d of dupes) {
+    const rows = db
+      .prepare(
+        `SELECT id, duration_ms, is_completed, created_at FROM learning_records
+         WHERE user_id = ? AND content_id = ? ORDER BY created_at ASC`,
+      )
+      .all(d.user_id, d.content_id) as any[]
+    if (rows.length < 2) continue
+    const keep = rows[0]
+    let duration = 0
+    let completed = 0
+    let latest = keep.created_at
+    for (const r of rows) {
+      duration += Number(r.duration_ms ?? 0)
+      if (Number(r.is_completed ?? 0) === 1) completed = 1
+      if (String(r.created_at) > String(latest)) latest = r.created_at
+    }
+    db.prepare('UPDATE learning_records SET duration_ms = ?, is_completed = ?, created_at = ? WHERE id = ?').run(
+      duration,
+      completed,
+      latest,
+      keep.id,
+    )
+    for (const r of rows.slice(1)) {
+      db.prepare('DELETE FROM learning_records WHERE id = ?').run(r.id)
+    }
+  }
+
+  db.exec(
+    'CREATE UNIQUE INDEX IF NOT EXISTS idx_learning_user_content ON learning_records(user_id, content_id)',
+  )
 }
 
 function tableColumns(table: string): Set<string> {
