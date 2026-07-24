@@ -4,7 +4,11 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/Card'
 import { Button } from '@/components/Button'
 import { apiFetch } from '@/utils/api'
 import { useAuthStore } from '@/store/auth'
-import { ArrowLeft, KeyRound, Loader2 } from 'lucide-react'
+import {
+  ArrowLeft,
+  Key,
+  CircleNotch,
+} from '@phosphor-icons/react'
 
 export default function ChangePassword() {
   const nav = useNavigate()
@@ -67,7 +71,7 @@ export default function ChangePassword() {
       <Card className="max-w-xl">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <KeyRound className="h-5 w-5 text-[#a31828]" />
+            <Key className="h-5 w-5 text-[#9e1b2b]" />
             设置新密码
           </CardTitle>
         </CardHeader>
@@ -92,17 +96,17 @@ export default function ChangePassword() {
               </label>
             ))}
             {error && (
-              <div className="rounded-2xl bg-[rgba(163,24,40,0.08)] px-4 py-3 text-sm text-[#7a1020]">
+              <div className="rounded-2xl bg-[rgba(158,27,43,0.08)] px-4 py-3 text-sm text-[#741220]">
                 {error}
               </div>
             )}
             {ok && (
-              <div className="rounded-2xl bg-[rgba(163,24,40,0.08)] px-4 py-3 text-sm text-[#a31828]">
+              <div className="rounded-2xl bg-[rgba(158,27,43,0.08)] px-4 py-3 text-sm text-[#9e1b2b]">
                 密码已更新
               </div>
             )}
             <Button type="submit" disabled={loading}>
-              {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <KeyRound className="h-4 w-4" />}
+              {loading ? <CircleNotch className="h-4 w-4 animate-spin" /> : <Key className="h-4 w-4" />}
               确认修改
             </Button>
           </form>

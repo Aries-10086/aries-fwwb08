@@ -4,7 +4,13 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/Card'
 import { Button } from '@/components/Button'
 import { apiFetch } from '@/utils/api'
 import { useAuthStore } from '@/store/auth'
-import { ClipboardList, Pencil, Plus, RotateCw, Trash2 } from 'lucide-react'
+import {
+  ClipboardText,
+  PencilSimple,
+  Plus,
+  ArrowsClockwise,
+  Trash,
+} from '@phosphor-icons/react'
 
 type Org = { id: string; name: string; parentId: string | null }
 type Content = { id: string; title: string; category: string; isPublic: boolean }
@@ -156,13 +162,13 @@ export default function AdminTasks() {
           </div>
         </div>
         <Button variant="ghost" onClick={() => load()} disabled={loading}>
-          <RotateCw className={loading ? 'h-4 w-4 animate-spin' : 'h-4 w-4'} />
+          <ArrowsClockwise className={loading ? 'h-4 w-4 animate-spin' : 'h-4 w-4'} />
           刷新
         </Button>
       </div>
 
       {error && (
-        <div className="rounded-2xl bg-[rgba(163,24,40,0.08)] px-4 py-3 text-[#7a1020] shadow-[inset_0_0_0_1px_rgba(163,24,40,0.16)]">
+        <div className="rounded-2xl bg-[rgba(158,27,43,0.08)] px-4 py-3 text-[#741220] shadow-[inset_0_0_0_1px_rgba(158,27,43,0.16)]">
           {error}
         </div>
       )}
@@ -171,7 +177,7 @@ export default function AdminTasks() {
         <Card className="md:col-span-5">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              {editingId ? <Pencil className="h-5 w-5 text-[#a31828]" /> : <Plus className="h-5 w-5 text-[#a31828]" />}
+              {editingId ? <PencilSimple className="h-5 w-5 text-[#9e1b2b]" /> : <Plus className="h-5 w-5 text-[#9e1b2b]" />}
               {editingId ? '编辑任务' : '新建任务'}
             </CardTitle>
           </CardHeader>
@@ -217,7 +223,7 @@ export default function AdminTasks() {
                   return (
                     <label
                       key={c.id}
-                      className="flex cursor-pointer items-start gap-3 rounded-lg bg-white/90 px-3 py-2 text-sm shadow-[inset_0_0_0_1px_rgba(0,0,0,0.06)] hover:bg-[rgba(163,24,40,0.05)] transition"
+                      className="flex cursor-pointer items-start gap-3 rounded-lg bg-white/90 px-3 py-2 text-sm shadow-[inset_0_0_0_1px_rgba(0,0,0,0.06)] hover:bg-[rgba(158,27,43,0.05)] transition"
                     >
                       <input
                         type="checkbox"
@@ -228,10 +234,10 @@ export default function AdminTasks() {
                             contentIds: checked ? p.contentIds.filter((x) => x !== c.id) : [...p.contentIds, c.id],
                           }))
                         }}
-                        className="mt-1 accent-[#a31828]"
+                        className="mt-1 accent-[#9e1b2b]"
                       />
                       <div>
-                        <div className="text-sm text-[#0e1116]">{c.title}</div>
+                        <div className="text-sm text-[#12151c]">{c.title}</div>
                         <div className="mt-1 text-xs text-zinc-500">
                           {c.category} · {c.isPublic ? '公共' : '非公共'}
                         </div>
@@ -242,7 +248,7 @@ export default function AdminTasks() {
               </div>
               <div className="flex flex-wrap gap-2">
                 <Button onClick={() => save()} disabled={!form.title.trim() || form.contentIds.length === 0}>
-                  <ClipboardList className="h-4 w-4" />
+                  <ClipboardText className="h-4 w-4" />
                   {editingId ? '保存修改' : '发布任务'}
                 </Button>
                 {editingId && (
@@ -272,7 +278,7 @@ export default function AdminTasks() {
                 >
                   <div className="flex flex-wrap items-center justify-between gap-3">
                     <div>
-                      <div className="text-sm font-medium text-[#0e1116]">{t.title}</div>
+                      <div className="text-sm font-medium text-[#12151c]">{t.title}</div>
                       <div className="mt-1 text-xs text-zinc-500">
                         {orgById.get(t.orgUnitId)?.name ?? t.orgUnitId}
                         {t.dueAt ? ` · 截止 ${new Date(t.dueAt).toLocaleString()}` : ''}
@@ -283,24 +289,24 @@ export default function AdminTasks() {
                     </div>
                     <div className="flex gap-2">
                       <Button variant="secondary" className="px-3" onClick={() => startEdit(t)}>
-                        <Pencil className="h-4 w-4" />
+                        <PencilSimple className="h-4 w-4" />
                         编辑
                       </Button>
                       <Button variant="danger" className="px-3" onClick={() => remove(t.id)}>
-                        <Trash2 className="h-4 w-4" />
+                        <Trash className="h-4 w-4" />
                         删除
                       </Button>
                     </div>
                   </div>
                   {branchTotal > 0 && (
                     <div className="mt-3">
-                      <div className="mb-1 flex justify-between text-[11px] text-[rgba(14,17,22,0.45)]">
+                      <div className="mb-1 flex justify-between text-[11px] text-[rgba(18,21,28,0.45)]">
                         <span>支部完成进度</span>
-                        <span className="font-medium text-[#a31828]">{branchRate}%</span>
+                        <span className="font-medium text-[#9e1b2b]">{branchRate}%</span>
                       </div>
-                      <div className="h-2 overflow-hidden rounded-full bg-[rgba(14,17,22,0.06)]">
+                      <div className="h-2 overflow-hidden rounded-full bg-[rgba(18,21,28,0.06)]">
                         <div
-                          className="h-full rounded-full bg-[#a31828] transition-all"
+                          className="h-full rounded-full bg-[#9e1b2b] transition-all"
                           style={{ width: `${Math.min(100, Math.max(0, branchRate))}%` }}
                         />
                       </div>
@@ -316,7 +322,7 @@ export default function AdminTasks() {
                     ).map((c) => (
                       <div
                         key={c.id}
-                        className="rounded-lg bg-white px-4 py-3 text-sm text-[#0e1116] shadow-[inset_0_0_0_1px_rgba(0,0,0,0.06)]"
+                        className="rounded-lg bg-white px-4 py-3 text-sm text-[#12151c] shadow-[inset_0_0_0_1px_rgba(0,0,0,0.06)]"
                       >
                         {c.title}
                       </div>

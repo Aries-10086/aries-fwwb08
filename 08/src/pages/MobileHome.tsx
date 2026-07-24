@@ -4,7 +4,15 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/Card'
 import { Button } from '@/components/Button'
 import { apiFetch } from '@/utils/api'
 import { useAuthStore } from '@/store/auth'
-import { ArrowRight, BookOpen, CheckCircle2, Circle, ClipboardList, Search, Sparkles } from 'lucide-react'
+import {
+  ArrowRight,
+  BookOpen,
+  CheckCircle,
+  Circle,
+  ClipboardText,
+  MagnifyingGlass,
+  Sparkle,
+} from '@phosphor-icons/react'
 
 type Content = {
   id: string
@@ -100,7 +108,7 @@ export default function MobileHome() {
       <div className="hero-frame px-6 py-7 md:px-8">
         <div className="flex flex-wrap items-end justify-between gap-4">
           <div>
-            <div className="page-eyebrow">Member Portal</div>
+            <div className="page-eyebrow">党员端</div>
             <h1 className="page-title text-3xl md:text-5xl">学习首页</h1>
             <div className="page-subtitle mt-2 max-w-2xl">
               把组织要求、公共内容与 AI 个性化建议汇聚到一个入口，帮助学员更顺畅地完成当期学习任务。
@@ -109,13 +117,13 @@ export default function MobileHome() {
           <div className="flex items-center gap-2">
             <Link to="/m/exams">
               <Button variant="secondary">
-                <ClipboardList className="h-4 w-4" />
+                <ClipboardText className="h-4 w-4" />
                 去测验
               </Button>
             </Link>
             <Link to="/m/report">
               <Button>
-                <Sparkles className="h-4 w-4" />
+                <Sparkle className="h-4 w-4" />
                 AI 报告
               </Button>
             </Link>
@@ -123,13 +131,13 @@ export default function MobileHome() {
         </div>
         <div className="mt-6 grid gap-3 md:grid-cols-3">
           {[
-            ['当前任务', `${tasks.length} 项待学习`],
-            ['学习进度', `已完成 ${doneCount} 项`],
-            ['AI 推荐', rec ? `${rec.items.length} 条建议` : '生成中'],
+            ['当前任务', `${tasks.length}`],
+            ['已完成', `${doneCount}`],
+            ['AI 推荐', rec ? `${rec.items.length}` : '…'],
           ].map(([label, value]) => (
-            <div key={label} className="panel-muted rounded-2xl px-4 py-4">
-              <div className="text-xs uppercase tracking-[0.28em] text-[#a31828]/60">{label}</div>
-              <div className="mt-3 text-2xl font-black tracking-[-0.05em] text-[#0e1116]">{value}</div>
+            <div key={label} className="panel-muted px-4 py-4">
+              <div className="text-[11px] tracking-[0.16em] text-[#9e1b2b]">{label}</div>
+              <div className="metric-value mt-3 text-[#12151c]">{value}</div>
             </div>
           ))}
         </div>
@@ -141,7 +149,7 @@ export default function MobileHome() {
           }}
         >
           <div className="input-shell flex min-w-[240px] flex-1 items-center gap-2 px-3">
-            <Search className="h-4 w-4 text-[#a31828]" />
+            <MagnifyingGlass className="h-4 w-4 text-[#9e1b2b]" />
             <input
               value={query}
               onChange={(e) => setQuery(e.target.value)}
@@ -168,7 +176,7 @@ export default function MobileHome() {
       </div>
 
       {error && (
-        <div className="rounded-2xl bg-[rgba(163,24,40,0.08)] px-4 py-3 text-[#7a1020] shadow-[inset_0_0_0_1px_rgba(163,24,40,0.16)]">
+        <div role="alert" className="border border-[rgba(158,27,43,0.2)] bg-[rgba(158,27,43,0.08)] px-4 py-3 text-[#741220]">
           {error}
         </div>
       )}
@@ -177,7 +185,7 @@ export default function MobileHome() {
         <Card className="md:col-span-6">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <BookOpen className="h-5 w-5 text-[#a31828]" />
+              <BookOpen className="h-5 w-5 text-[#9e1b2b]" />
               学习任务
             </CardTitle>
           </CardHeader>
@@ -203,24 +211,24 @@ export default function MobileHome() {
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-2">
                           {allDone ? (
-                            <CheckCircle2 className="h-4 w-4 shrink-0 text-[#1f6b4a]" />
+                            <CheckCircle className="h-4 w-4 shrink-0 text-[#1f6b4a]" />
                           ) : (
-                            <Circle className="h-4 w-4 shrink-0 text-[rgba(14,17,22,0.28)]" />
+                            <Circle className="h-4 w-4 shrink-0 text-[rgba(18,21,28,0.28)]" />
                           )}
-                          <div className="truncate text-sm font-medium text-[#0e1116]">{t.title}</div>
+                          <div className="truncate text-sm font-medium text-[#12151c]">{t.title}</div>
                         </div>
-                        <div className="mt-1 text-xs text-[rgba(14,17,22,0.55)]">
+                        <div className="mt-1 text-xs text-[rgba(18,21,28,0.55)]">
                           {allDone ? '已完成' : `进度 ${done}/${total}`}
                           {t.dueAt ? ` · 截止 ${new Date(t.dueAt).toLocaleDateString()}` : ''}
                         </div>
                       </div>
-                      <div className="shrink-0 text-sm font-semibold text-[#a31828]">{percent}%</div>
+                      <div className="shrink-0 text-sm font-semibold text-[#9e1b2b]">{percent}%</div>
                     </div>
-                    <div className="mt-3 h-2 overflow-hidden rounded-full bg-[rgba(14,17,22,0.06)]">
+                    <div className="mt-3 h-2 overflow-hidden rounded-full bg-[rgba(18,21,28,0.06)]">
                       <div
                         className={[
                           'h-full rounded-full transition-all',
-                          allDone ? 'bg-[#1f6b4a]' : 'bg-[#a31828]',
+                          allDone ? 'bg-[#1f6b4a]' : 'bg-[#9e1b2b]',
                         ].join(' ')}
                         style={{ width: `${Math.min(100, Math.max(0, percent))}%` }}
                       />
@@ -232,24 +240,24 @@ export default function MobileHome() {
                           to={`/m/content/${item.id}`}
                           className={[
                             'flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition',
-                            'shadow-[inset_0_0_0_1px_rgba(14,17,22,0.06)]',
+                            'shadow-[inset_0_0_0_1px_rgba(18,21,28,0.06)]',
                             item.isCompleted
                               ? 'bg-[rgba(31,107,74,0.06)] hover:bg-[rgba(31,107,74,0.1)]'
-                              : 'bg-white/80 hover:bg-[rgba(163,24,40,0.05)]',
+                              : 'bg-white/80 hover:bg-[rgba(158,27,43,0.05)]',
                           ].join(' ')}
                         >
                           {item.isCompleted ? (
-                            <CheckCircle2 className="h-4 w-4 shrink-0 text-[#1f6b4a]" />
+                            <CheckCircle className="h-4 w-4 shrink-0 text-[#1f6b4a]" />
                           ) : (
-                            <Circle className="h-4 w-4 shrink-0 text-[rgba(14,17,22,0.28)]" />
+                            <Circle className="h-4 w-4 shrink-0 text-[rgba(18,21,28,0.28)]" />
                           )}
                           <div className="min-w-0 flex-1">
-                            <div className="truncate text-[#0e1116]">{item.title}</div>
-                            <div className="mt-0.5 text-[11px] text-[rgba(14,17,22,0.45)]">
+                            <div className="truncate text-[#12151c]">{item.title}</div>
+                            <div className="mt-0.5 text-[11px] text-[rgba(18,21,28,0.45)]">
                               {item.isCompleted ? '已完成' : '未完成'} · {item.type === 'video' ? '视频' : '文章'}
                             </div>
                           </div>
-                          <ArrowRight className="h-3.5 w-3.5 shrink-0 text-[rgba(14,17,22,0.35)]" />
+                          <ArrowRight className="h-3.5 w-3.5 shrink-0 text-[rgba(18,21,28,0.35)]" />
                         </Link>
                       ))}
                     </div>
@@ -264,29 +272,29 @@ export default function MobileHome() {
         <Card className="md:col-span-6">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <Sparkles className="h-5 w-5 text-[#a31828]" />
+              <Sparkle className="h-5 w-5 text-[#9e1b2b]" />
               AI 推荐
             </CardTitle>
           </CardHeader>
           <CardContent>
             {rec ? (
               <div className="grid gap-4">
-                <div className="list-surface text-sm leading-relaxed text-[rgba(14,17,22,0.72)]">{rec.text}</div>
+                <div className="list-surface text-sm leading-relaxed text-[rgba(18,21,28,0.72)]">{rec.text}</div>
                 <div className="grid gap-2">
                   {rec.items.slice(0, 5).map((c) => (
                     <Link
                       key={c.id}
                       to={`/m/content/${c.id}`}
-                      className="list-surface flex items-center justify-between hover:bg-[rgba(163,24,40,0.05)]"
+                      className="list-surface flex items-center justify-between hover:bg-[rgba(158,27,43,0.05)]"
                     >
                       <div>
-                        <div className="text-sm font-medium text-[#0e1116]">{c.title}</div>
-                        <div className="mt-1 text-xs text-[rgba(14,17,22,0.55)]">
+                        <div className="text-sm font-medium text-[#12151c]">{c.title}</div>
+                        <div className="mt-1 text-xs text-[rgba(18,21,28,0.55)]">
                           {c.category}
                           {completedSet.has(c.id) ? ' · 已完成' : ''}
                         </div>
                       </div>
-                      <ArrowRight className="h-4 w-4 text-[rgba(14,17,22,0.4)]" />
+                      <ArrowRight className="h-4 w-4 text-[rgba(18,21,28,0.4)]" />
                     </Link>
                   ))}
                 </div>
@@ -305,9 +313,9 @@ export default function MobileHome() {
         <CardContent>
           <div className="grid gap-2 md:grid-cols-2">
             {publicTop.map((c) => (
-              <Link key={c.id} to={`/m/content/${c.id}`} className="list-surface hover:bg-[rgba(163,24,40,0.05)]">
-                <div className="text-sm font-medium text-[#0e1116]">{c.title}</div>
-                <div className="mt-1 flex items-center justify-between text-xs text-[rgba(14,17,22,0.55)]">
+              <Link key={c.id} to={`/m/content/${c.id}`} className="list-surface hover:bg-[rgba(158,27,43,0.05)]">
+                <div className="text-sm font-medium text-[#12151c]">{c.title}</div>
+                <div className="mt-1 flex items-center justify-between text-xs text-[rgba(18,21,28,0.55)]">
                   <span>
                     {c.category}
                     {completedSet.has(c.id) ? ' · 已学' : ' · 未学'}

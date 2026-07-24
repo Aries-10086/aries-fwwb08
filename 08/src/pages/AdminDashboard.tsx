@@ -2,10 +2,15 @@ import { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/Card'
 import { Button } from '@/components/Button'
+import Empty from '@/components/Empty'
 import { Chart } from '@/components/Chart'
 import { apiFetch } from '@/utils/api'
 import { useAuthStore } from '@/store/auth'
-import { BarChart3, RotateCw, Sparkles } from 'lucide-react'
+import {
+  ChartBar,
+  ArrowsClockwise,
+  Sparkle,
+} from '@phosphor-icons/react'
 import type { EChartsOption } from 'echarts'
 
 type Org = { id: string; name: string; parentId: string | null }
@@ -87,7 +92,7 @@ export default function AdminDashboard() {
           type: 'bar',
           data: [d.durationHours, d.latestTaskCompletionRate, d.avgExamScore, d.passRate],
           itemStyle: {
-            color: '#a31828',
+            color: '#9e1b2b',
             borderRadius: [4, 4, 0, 0],
           },
         },
@@ -116,12 +121,21 @@ export default function AdminDashboard() {
               ))}
             </select>
             <Button variant="secondary" onClick={() => load()} disabled={loading}>
-              <RotateCw className={loading ? 'h-4 w-4 animate-spin' : 'h-4 w-4'} />
+              <ArrowsClockwise className={loading ? 'h-4 w-4 animate-spin' : 'h-4 w-4'} />
               刷新
             </Button>
           </div>
         </div>
-        {data && (
+        {loading && !data ? (
+          <div className="mt-6 grid gap-3 md:grid-cols-4">
+            {[0, 1, 2, 3].map((i) => (
+              <div key={i} className="panel-muted px-4 py-4">
+                <div className="skeleton h-3 w-16" />
+                <div className="skeleton mt-4 h-8 w-24" />
+              </div>
+            ))}
+          </div>
+        ) : data ? (
           <div className="mt-6 grid gap-3 md:grid-cols-4">
             {[
               ['成员规模', `${data.memberCount}`],
@@ -130,16 +144,16 @@ export default function AdminDashboard() {
               ['通过率', `${data.passRate}%`],
             ].map(([label, value]) => (
               <div key={label} className="panel-muted px-4 py-4">
-                <div className="text-[11px] tracking-[0.2em] text-[#a31828]">{label}</div>
-                <div className="metric-value mt-3 text-[#0e1116]">{value}</div>
+                <div className="text-[11px] tracking-[0.16em] text-[#9e1b2b]">{label}</div>
+                <div className="metric-value mt-3 text-[#12151c]">{value}</div>
               </div>
             ))}
           </div>
-        )}
+        ) : null}
       </div>
 
       {error && (
-        <div className="border border-[rgba(163,24,40,0.2)] bg-[rgba(163,24,40,0.08)] px-4 py-3 text-[#7a1020]">
+        <div role="alert" className="border border-[rgba(158,27,43,0.2)] bg-[rgba(158,27,43,0.08)] px-4 py-3 text-[#741220]">
           {error}
         </div>
       )}
@@ -148,40 +162,52 @@ export default function AdminDashboard() {
         <Card className="md:col-span-7">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <BarChart3 className="h-5 w-5 text-[#a31828]" />
+              <ChartBar className="h-5 w-5 text-[#9e1b2b]" weight="duotone" />
               总览指标
             </CardTitle>
           </CardHeader>
           <CardContent>
-            {data ? <Chart option={option} height={320} /> : <div className="py-10 text-sm text-[rgba(14,17,22,0.4)]">暂无数据</div>}
+            {loading && !data ? (
+              <div className="skeleton h-[320px] w-full" />
+            ) : data ? (
+              <Chart option={option} height={320} />
+            ) : (
+              <Empty title="暂无指标" description="还没有可汇总的学习与测验数据。" />
+            )}
           </CardContent>
         </Card>
 
         <Card className="md:col-span-5">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <Sparkles className="h-5 w-5 text-[#a31828]" />
+              <Sparkle className="h-5 w-5 text-[#9e1b2b]" weight="duotone" />
               支部测验均分排行
             </CardTitle>
           </CardHeader>
           <CardContent>
-            {data ? (
+            {loading && !data ? (
+              <div className="grid gap-2">
+                {[0, 1, 2, 3].map((i) => (
+                  <div key={i} className="skeleton h-14 w-full" />
+                ))}
+              </div>
+            ) : data ? (
               <div className="grid gap-2">
                 {data.rank.map((r) => (
                   <div key={r.orgUnitId} className="list-surface flex items-center justify-between gap-3">
                     <div>
-                      <div className="text-sm font-medium text-[#0e1116]">{r.orgName}</div>
-                      <div className="mt-1 text-xs text-[rgba(14,17,22,0.55)]">支部综合表现</div>
+                      <div className="text-sm font-medium text-[#12151c]">{r.orgName}</div>
+                      <div className="mt-1 text-xs text-[rgba(18,21,28,0.55)]">支部综合表现</div>
                     </div>
-                    <div className="font-serif text-lg font-bold text-[#a31828]">{r.avgScore}</div>
+                    <div className="font-serif text-lg font-bold tabular-nums text-[#9e1b2b]">{r.avgScore}</div>
                   </div>
                 ))}
                 {data.rank.length === 0 && (
-                  <div className="py-8 text-sm text-[rgba(14,17,22,0.4)]">暂无排行数据（先完成测验）</div>
+                  <Empty title="暂无排行" description="完成测验后，支部均分排行会出现在这里。" />
                 )}
               </div>
             ) : (
-              <div className="py-10 text-sm text-[rgba(14,17,22,0.4)]">暂无数据</div>
+              <Empty title="暂无数据" description="选择支部或刷新后查看排行。" />
             )}
           </CardContent>
         </Card>

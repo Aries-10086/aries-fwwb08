@@ -4,7 +4,11 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/Card'
 import { Button } from '@/components/Button'
 import { apiFetch } from '@/utils/api'
 import { useAuthStore } from '@/store/auth'
-import { Plus, RotateCw, Trash2 } from 'lucide-react'
+import {
+  Plus,
+  ArrowsClockwise,
+  Trash,
+} from '@phosphor-icons/react'
 
 type Question = { id: string; type: string; category: string; stem: string }
 type Paper = { id: string; title: string; durationMin: number; passScore: number; questions: { questionId: string; score: number; orderNo: number }[] }
@@ -89,13 +93,13 @@ export default function AdminPapers() {
           <div className="page-subtitle mt-2 max-w-2xl">组卷（题目 + 分值 + 顺序）</div>
         </div>
         <Button variant="ghost" onClick={() => load()} disabled={loading}>
-          <RotateCw className={loading ? 'h-4 w-4 animate-spin' : 'h-4 w-4'} />
+          <ArrowsClockwise className={loading ? 'h-4 w-4 animate-spin' : 'h-4 w-4'} />
           刷新
         </Button>
       </div>
 
       {error && (
-        <div className="rounded-2xl bg-[rgba(163,24,40,0.08)] px-4 py-3 text-[#7a1020] shadow-[inset_0_0_0_1px_rgba(163,24,40,0.16)]">
+        <div className="rounded-2xl bg-[rgba(158,27,43,0.08)] px-4 py-3 text-[#741220] shadow-[inset_0_0_0_1px_rgba(158,27,43,0.16)]">
           {error}
         </div>
       )}
@@ -104,7 +108,7 @@ export default function AdminPapers() {
         <Card className="md:col-span-5">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <Plus className="h-5 w-5 text-[#a31828]" />
+              <Plus className="h-5 w-5 text-[#9e1b2b]" />
               新建试卷
             </CardTitle>
           </CardHeader>
@@ -157,7 +161,7 @@ export default function AdminPapers() {
                       className={[
                         'w-full rounded-lg px-3 py-2 text-left text-sm transition',
                         'shadow-[inset_0_0_0_1px_rgba(0,0,0,0.06)]',
-                        picked ? 'bg-white/90 text-zinc-400' : 'bg-white/90 text-[#0e1116] hover:bg-[rgba(163,24,40,0.05)]',
+                        picked ? 'bg-white/90 text-zinc-400' : 'bg-white/90 text-[#12151c] hover:bg-[rgba(158,27,43,0.05)]',
                       ].join(' ')}
                     >
                       <div className="text-xs text-zinc-500">{q.category} · {q.type}</div>
@@ -175,7 +179,7 @@ export default function AdminPapers() {
                     className="rounded-lg bg-white/90 px-3 py-2 shadow-[inset_0_0_0_1px_rgba(0,0,0,0.06)]"
                   >
                     <div className="flex items-center justify-between gap-2">
-                      <div className="text-sm text-[#0e1116]">#{idx + 1} {qById.get(p.questionId)?.category ?? ''}</div>
+                      <div className="text-sm text-[#12151c]">#{idx + 1} {qById.get(p.questionId)?.category ?? ''}</div>
                       <input
                         type="number"
                         value={p.score}
@@ -216,13 +220,13 @@ export default function AdminPapers() {
                 >
                   <div className="flex items-center justify-between gap-3">
                     <div>
-                      <div className="text-sm font-medium text-[#0e1116]">{p.title}</div>
+                      <div className="text-sm font-medium text-[#12151c]">{p.title}</div>
                       <div className="mt-1 text-xs text-zinc-500">
                         {p.durationMin} 分钟 · 及格 {p.passScore}
                       </div>
                     </div>
                     <Button variant="danger" className="px-3" onClick={() => remove(p.id)}>
-                      <Trash2 className="h-4 w-4" />
+                      <Trash className="h-4 w-4" />
                       删除
                     </Button>
                   </div>
@@ -230,7 +234,7 @@ export default function AdminPapers() {
                     {p.questions.map((q) => (
                       <div
                         key={q.questionId}
-                        className="rounded-lg bg-white/90 px-4 py-3 text-sm text-[rgba(14,17,22,0.7)] shadow-[inset_0_0_0_1px_rgba(0,0,0,0.06)]"
+                        className="rounded-lg bg-white/90 px-4 py-3 text-sm text-[rgba(18,21,28,0.7)] shadow-[inset_0_0_0_1px_rgba(0,0,0,0.06)]"
                       >
                         {qById.get(q.questionId)?.stem ?? q.questionId}
                         <div className="mt-1 text-xs text-zinc-500">分值 {q.score}</div>

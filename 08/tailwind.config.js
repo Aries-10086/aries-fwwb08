@@ -10,22 +10,25 @@ export default {
     extend: {
       colors: {
         seal: {
-          DEFAULT: "#a31828",
-          deep: "#7a1020",
-          ink: "#4a0a14",
+          DEFAULT: "#9e1b2b",
+          deep: "#741220",
+          ink: "#4a0d16",
         },
         ink: {
-          DEFAULT: "#0e1116",
-          soft: "rgba(14,17,22,0.72)",
+          DEFAULT: "#12151c",
+          soft: "rgba(18,21,28,0.68)",
         },
-        brass: "#8a6a2f",
-        stone: "#e8ebef",
-        paper: "#f3f5f7",
+        stone: "#e8ecf1",
+        paper: "#f4f6f8",
       },
       fontFamily: {
-        display: ['"ZCOOL XiaoWei"', '"Noto Serif SC"', "Songti SC", "serif"],
-        serif: ['"Noto Serif SC"', "Songti SC", "serif"],
-        sans: ['"Noto Sans SC"', '"PingFang SC"', '"Hiragino Sans GB"', "sans-serif"],
+        display: ['"IBM Plex Sans SC"', '"Noto Sans SC"', '"PingFang SC"', '"Hiragino Sans GB"', "sans-serif"],
+        serif: ['"IBM Plex Sans SC"', '"Noto Sans SC"', '"PingFang SC"', '"Hiragino Sans GB"', "sans-serif"],
+        sans: ['"IBM Plex Sans SC"', '"Noto Sans SC"', '"PingFang SC"', '"Hiragino Sans GB"', "sans-serif"],
+      },
+      borderRadius: {
+        soft: "12px",
+        card: "16px",
       },
     },
   },

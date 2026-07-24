@@ -5,7 +5,12 @@ import { Button } from '@/components/Button'
 import { apiFetch } from '@/utils/api'
 import { useAuthStore } from '@/store/auth'
 import { withAccessToken } from '@/utils/fileLink'
-import { ArrowLeft, CheckCircle2, Clock, Paperclip } from 'lucide-react'
+import {
+  ArrowLeft,
+  CheckCircle,
+  Clock,
+  Paperclip,
+} from '@phosphor-icons/react'
 import type { Content, ContentAttachment } from '../../shared/types'
 
 type Attachment = ContentAttachment
@@ -121,7 +126,7 @@ export default function ContentDetail() {
       <div className="hero-frame px-6 py-7 md:px-8">
         <div className="flex flex-wrap items-end justify-between gap-4">
           <div>
-            <div className="page-eyebrow">Learning Content</div>
+            <div className="page-eyebrow">学习内容</div>
             <h1 className="page-title text-3xl md:text-5xl">{content?.title ?? '加载中…'}</h1>
             {content && <div className="page-subtitle mt-2 max-w-2xl">{content.category}</div>}
           </div>
@@ -141,7 +146,7 @@ export default function ContentDetail() {
                 await record(true)
               }}
             >
-              <CheckCircle2 className="h-4 w-4" />
+              <CheckCircle className="h-4 w-4" />
               {completed ? '已完成' : '标记完成'}
             </Button>
           </div>
@@ -149,7 +154,7 @@ export default function ContentDetail() {
       </div>
 
       {error && (
-        <div className="rounded-2xl bg-[rgba(163,24,40,0.08)] px-4 py-3 text-[#7a1020] shadow-[inset_0_0_0_1px_rgba(163,24,40,0.16)]">
+        <div className="rounded-2xl bg-[rgba(158,27,43,0.08)] px-4 py-3 text-[#741220] shadow-[inset_0_0_0_1px_rgba(158,27,43,0.16)]">
           {error}
         </div>
       )}
@@ -159,7 +164,7 @@ export default function ContentDetail() {
           <CardTitle className="flex items-center justify-between gap-3">
             <span>{content?.type === 'video' ? '视频内容' : '文章内容'}</span>
             <span className="data-pill">
-              <Clock className="h-3 w-3 text-[#a31828]" />
+              <Clock className="h-3 w-3 text-[#9e1b2b]" />
               学习时长将自动统计
             </span>
           </CardTitle>
@@ -191,7 +196,7 @@ export default function ContentDetail() {
                   <a
                     href={videoUrl}
                     target="_blank"
-                    className="text-sm text-[#a31828] hover:underline"
+                    className="text-sm text-[#9e1b2b] hover:underline"
                     rel="noreferrer"
                   >
                     在新窗口打开原链接
@@ -199,14 +204,14 @@ export default function ContentDetail() {
                 </div>
               ) : null}
               {bodyText ? (
-                <div className="whitespace-pre-wrap rounded-[24px] bg-white/90 px-5 py-5 text-sm leading-8 text-[rgba(14,17,22,0.72)] shadow-[inset_0_0_0_1px_rgba(0,0,0,0.06)]">
+                <div className="whitespace-pre-wrap rounded-[24px] bg-white/90 px-5 py-5 text-sm leading-8 text-[rgba(18,21,28,0.72)] shadow-[inset_0_0_0_1px_rgba(0,0,0,0.06)]">
                   {bodyText}
                 </div>
               ) : null}
               {(content.attachments?.length ?? 0) > 0 && (
                 <div className="grid gap-2">
-                  <div className="flex items-center gap-2 text-sm font-semibold text-[#0e1116]">
-                    <Paperclip className="h-4 w-4 text-[#a31828]" />
+                  <div className="flex items-center gap-2 text-sm font-semibold text-[#12151c]">
+                    <Paperclip className="h-4 w-4 text-[#9e1b2b]" />
                     附件下载
                   </div>
                   {content.attachments!.map((att) => (
@@ -215,7 +220,7 @@ export default function ContentDetail() {
                       href={withAccessToken(att.url, token)}
                       target="_blank"
                       rel="noreferrer"
-                      className="list-surface text-sm text-[#a31828] hover:bg-[rgba(163,24,40,0.05)]"
+                      className="list-surface text-sm text-[#9e1b2b] hover:bg-[rgba(158,27,43,0.05)]"
                     >
                       {att.name}
                     </a>

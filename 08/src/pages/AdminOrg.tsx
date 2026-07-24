@@ -4,7 +4,12 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/Card'
 import { Button } from '@/components/Button'
 import { apiFetch } from '@/utils/api'
 import { useAuthStore } from '@/store/auth'
-import { Network, Plus, RotateCw, Trash2 } from 'lucide-react'
+import {
+  TreeStructure,
+  Plus,
+  ArrowsClockwise,
+  Trash,
+} from '@phosphor-icons/react'
 
 type OrgMember = { id: string; name: string; role: string }
 
@@ -104,13 +109,13 @@ export default function AdminOrg() {
           <div className="page-subtitle mt-2 max-w-2xl">支持至少 2 级结构管理，并为各支部展示成员、任务、完成率与测验均分。</div>
         </div>
         <Button variant="ghost" onClick={() => load()} disabled={loading}>
-          <RotateCw className={loading ? 'h-4 w-4 animate-spin' : 'h-4 w-4'} />
+          <ArrowsClockwise className={loading ? 'h-4 w-4 animate-spin' : 'h-4 w-4'} />
           刷新
         </Button>
       </div>
 
       {error && (
-        <div className="rounded-2xl bg-[#a31828]/10 px-4 py-3 text-[#7a1020] shadow-[inset_0_0_0_1px_rgba(185,28,28,0.16)]">
+        <div className="rounded-2xl bg-[#9e1b2b]/10 px-4 py-3 text-[#741220] shadow-[inset_0_0_0_1px_rgba(185,28,28,0.16)]">
           {error}
         </div>
       )}
@@ -119,7 +124,7 @@ export default function AdminOrg() {
         <Card className="md:col-span-5">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <Network className="h-5 w-5 text-[#a31828]" />
+              <TreeStructure className="h-5 w-5 text-[#9e1b2b]" />
               新增组织
             </CardTitle>
           </CardHeader>
@@ -167,7 +172,7 @@ export default function AdminOrg() {
               {roots.map((r) => (
                 <div key={r.id} className="list-surface">
                   <div className="flex items-center justify-between">
-                    <div className="text-sm font-medium text-[#0e1116]">{r.name}</div>
+                    <div className="text-sm font-medium text-[#12151c]">{r.name}</div>
                     <div className="text-xs text-black/45">{r.id}</div>
                   </div>
                   <div className="mt-3 grid gap-2">
@@ -175,14 +180,14 @@ export default function AdminOrg() {
                       <div key={c.id} className="rounded-2xl bg-white/85 px-4 py-4 shadow-[inset_0_0_0_1px_rgba(0,0,0,0.06)]">
                         <div className="flex items-center justify-between gap-3">
                           <div>
-                            <div className="text-sm font-medium text-[#0e1116]">{c.name}</div>
+                            <div className="text-sm font-medium text-[#12151c]">{c.name}</div>
                             <div className="mt-1 text-xs text-black/45">{c.id}</div>
                           </div>
                           <button
                             onClick={() => remove(c.id)}
-                            className="inline-flex items-center gap-2 rounded-full bg-[#a31828]/10 px-3 py-2 text-xs font-medium text-[#a31828] shadow-[inset_0_0_0_1px_rgba(185,28,28,0.16)] transition hover:bg-[#a31828]/14"
+                            className="inline-flex items-center gap-2 rounded-full bg-[#9e1b2b]/10 px-3 py-2 text-xs font-medium text-[#9e1b2b] shadow-[inset_0_0_0_1px_rgba(185,28,28,0.16)] transition hover:bg-[#9e1b2b]/14"
                           >
-                            <Trash2 className="h-3 w-3" />
+                            <Trash className="h-3 w-3" />
                             删除
                           </button>
                         </div>
@@ -193,14 +198,14 @@ export default function AdminOrg() {
                             ['完成率', `${c.stats.completionRate}%`],
                             ['测验均分', `${c.stats.avgExamScore}`],
                           ].map(([label, value]) => (
-                            <div key={label} className="rounded-xl bg-[#a31828]/5 px-3 py-3 shadow-[inset_0_0_0_1px_rgba(140,36,36,0.08)]">
-                              <div className="text-[11px] uppercase tracking-[0.24em] text-[#a31828]/60">{label}</div>
-                              <div className="mt-2 text-lg font-bold tracking-[-0.04em] text-[#0e1116]">{value}</div>
+                            <div key={label} className="rounded-xl bg-[#9e1b2b]/5 px-3 py-3 shadow-[inset_0_0_0_1px_rgba(140,36,36,0.08)]">
+                              <div className="text-xs font-medium text-[#9e1b2b]/60">{label}</div>
+                              <div className="mt-2 text-lg font-bold tracking-[-0.04em] text-[#12151c]">{value}</div>
                             </div>
                           ))}
                         </div>
                         <div className="mt-4">
-                          <div className="text-[11px] uppercase tracking-[0.24em] text-[#a31828]/60">组织成员</div>
+                          <div className="text-xs font-medium text-[#9e1b2b]/60">组织成员</div>
                           {c.members.length > 0 ? (
                             <div className="mt-2 flex flex-wrap gap-2">
                               {c.members.map((member) => (
@@ -208,7 +213,7 @@ export default function AdminOrg() {
                                   key={member.id}
                                   className="inline-flex items-center gap-2 rounded-full bg-white px-3 py-1.5 text-xs shadow-[inset_0_0_0_1px_rgba(0,0,0,0.06)]"
                                 >
-                                  <span className="font-medium text-[#0e1116]">{member.name}</span>
+                                  <span className="font-medium text-[#12151c]">{member.name}</span>
                                   <span className="text-black/45">{roleLabels[member.role] ?? member.role}</span>
                                 </div>
                               ))}

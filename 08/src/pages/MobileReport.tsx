@@ -5,7 +5,10 @@ import { Button } from '@/components/Button'
 import { Chart } from '@/components/Chart'
 import { apiFetch } from '@/utils/api'
 import { useAuthStore } from '@/store/auth'
-import { Sparkles, RotateCw } from 'lucide-react'
+import {
+  Sparkle,
+  ArrowsClockwise,
+} from '@phosphor-icons/react'
 import type { EChartsOption } from 'echarts'
 
 type Report = {
@@ -58,20 +61,20 @@ export default function MobileReport() {
       xAxis: {
         type: 'category',
         data: ['学习时长', '完成条目', '测验均分', '通过次数'],
-        axisLabel: { color: 'rgba(14,17,22,0.55)', fontSize: 11 },
-        axisLine: { lineStyle: { color: 'rgba(14,17,22,0.12)' } },
+        axisLabel: { color: 'rgba(18,21,28,0.55)', fontSize: 11 },
+        axisLine: { lineStyle: { color: 'rgba(18,21,28,0.12)' } },
       },
       yAxis: {
         type: 'value',
-        axisLabel: { color: 'rgba(14,17,22,0.45)', fontSize: 11 },
-        splitLine: { lineStyle: { color: 'rgba(14,17,22,0.06)' } },
+        axisLabel: { color: 'rgba(18,21,28,0.45)', fontSize: 11 },
+        splitLine: { lineStyle: { color: 'rgba(18,21,28,0.06)' } },
       },
       series: [
         {
           type: 'bar',
           data: values,
           itemStyle: {
-            color: '#a31828',
+            color: '#9e1b2b',
             borderRadius: [4, 4, 0, 0],
           },
         },
@@ -80,11 +83,11 @@ export default function MobileReport() {
   }, [report])
 
   const badge = useMemo(() => {
-    if (!report) return 'bg-[rgba(14,17,22,0.06)] text-[rgba(14,17,22,0.7)]'
-    if (report.score >= 85) return 'bg-[#a31828] text-white'
+    if (!report) return 'bg-[rgba(18,21,28,0.06)] text-[rgba(18,21,28,0.7)]'
+    if (report.score >= 85) return 'bg-[#9e1b2b] text-white'
     if (report.score >= 70) return 'bg-[#8a6a2f] text-white'
-    if (report.score >= 55) return 'bg-[rgba(14,17,22,0.06)] text-[rgba(14,17,22,0.7)]'
-    return 'bg-rose-500/20 text-[#7a1020]'
+    if (report.score >= 55) return 'bg-[rgba(18,21,28,0.06)] text-[rgba(18,21,28,0.7)]'
+    return 'bg-rose-500/20 text-[#741220]'
   }, [report])
 
   return (
@@ -100,14 +103,14 @@ export default function MobileReport() {
             <Button variant="secondary">返回学习</Button>
           </Link>
           <Button variant="ghost" onClick={() => load()} disabled={loading}>
-            <RotateCw className={loading ? 'h-4 w-4 animate-spin' : 'h-4 w-4'} />
+            <ArrowsClockwise className={loading ? 'h-4 w-4 animate-spin' : 'h-4 w-4'} />
             刷新
           </Button>
         </div>
       </div>
 
       {error && (
-        <div className="border border-[rgba(163,24,40,0.2)] bg-[rgba(163,24,40,0.08)] px-4 py-3 text-[#7a1020]">
+        <div className="border border-[rgba(158,27,43,0.2)] bg-[rgba(158,27,43,0.08)] px-4 py-3 text-[#741220]">
           {error}
         </div>
       )}
@@ -117,11 +120,11 @@ export default function MobileReport() {
           <CardHeader>
             <CardTitle className="flex items-center justify-between gap-3">
               <span className="flex items-center gap-2">
-                <Sparkles className="h-5 w-5 text-[#a31828]" />
+                <Sparkle className="h-5 w-5 text-[#9e1b2b]" />
                 综合评分
               </span>
               {report && (
-                <span className={`rounded-full px-3 py-1 text-xs font-medium border border-[rgba(14,17,22,0.1)] ${badge}`}>
+                <span className={`rounded-full px-3 py-1 text-xs font-medium border border-[rgba(18,21,28,0.1)] ${badge}`}>
                   {report.level}
                 </span>
               )}
@@ -131,13 +134,13 @@ export default function MobileReport() {
             {report ? (
               <div className="grid gap-4">
                 <div className="flex items-end gap-3">
-                  <div className="metric-value text-5xl text-[#0e1116]">{report.score}</div>
+                  <div className="metric-value text-5xl text-[#12151c]">{report.score}</div>
                   <div className="pb-2 page-eyebrow">/ 100</div>
                 </div>
-                <div className="list-surface text-sm leading-relaxed text-[rgba(14,17,22,0.75)]">
+                <div className="list-surface text-sm leading-relaxed text-[rgba(18,21,28,0.75)]">
                   {report.comment}
                 </div>
-                <div className="text-xs text-[rgba(14,17,22,0.45)]">生成时间：{new Date(report.generatedAt).toLocaleString()}</div>
+                <div className="text-xs text-[rgba(18,21,28,0.45)]">生成时间：{new Date(report.generatedAt).toLocaleString()}</div>
               </div>
             ) : (
               <div className="py-10 page-eyebrow">生成中…</div>

@@ -5,7 +5,15 @@ import { Button } from '@/components/Button'
 import { apiFetch, apiUpload } from '@/utils/api'
 import { useAuthStore } from '@/store/auth'
 import { withAccessToken } from '@/utils/fileLink'
-import { BookOpen, FileUp, Paperclip, Save, RotateCw, Trash2, X } from 'lucide-react'
+import {
+  BookOpen,
+  UploadSimple,
+  Paperclip,
+  FloppyDisk,
+  ArrowsClockwise,
+  Trash,
+  X,
+} from '@phosphor-icons/react'
 import type { Content, ContentAttachment } from '../../shared/types'
 
 type Attachment = ContentAttachment
@@ -173,7 +181,7 @@ export default function AdminContents() {
         </div>
         <div className="flex items-center gap-2">
           <Button variant="ghost" onClick={() => load()} disabled={loading}>
-            <RotateCw className={loading ? 'h-4 w-4 animate-spin' : 'h-4 w-4'} />
+            <ArrowsClockwise className={loading ? 'h-4 w-4 animate-spin' : 'h-4 w-4'} />
             刷新
           </Button>
           <Button variant="secondary" onClick={() => create()} disabled={saving}>
@@ -181,18 +189,18 @@ export default function AdminContents() {
             新建
           </Button>
           <Button onClick={() => save()} disabled={!selected || saving}>
-            <Save className="h-4 w-4" />
+            <FloppyDisk className="h-4 w-4" />
             保存
           </Button>
           <Button variant="danger" onClick={() => remove()} disabled={!selected || saving}>
-            <Trash2 className="h-4 w-4" />
+            <Trash className="h-4 w-4" />
             删除
           </Button>
         </div>
       </div>
 
       {error && (
-        <div className="rounded-2xl bg-[#a31828]/10 px-4 py-3 text-[#7a1020] shadow-[inset_0_0_0_1px_rgba(185,28,28,0.16)]">
+        <div className="rounded-2xl bg-[#9e1b2b]/10 px-4 py-3 text-[#741220] shadow-[inset_0_0_0_1px_rgba(185,28,28,0.16)]">
           {error}
         </div>
       )}
@@ -212,8 +220,8 @@ export default function AdminContents() {
                     'w-full rounded-2xl px-4 py-3 text-left transition',
                     'shadow-[inset_0_0_0_1px_rgba(0,0,0,0.08)]',
                     selectedId === c.id
-                      ? 'bg-[linear-gradient(135deg,#a31828_0%,#a31828_55%,#450a0a_100%)] text-white'
-                      : 'bg-white/90 text-black/80 hover:bg-[#a31828]/5',
+                      ? 'bg-[linear-gradient(135deg,#9e1b2b_0%,#9e1b2b_55%,#450a0a_100%)] text-white'
+                      : 'bg-white/90 text-black/80 hover:bg-[#9e1b2b]/5',
                   ].join(' ')}
                 >
                   <div className="flex items-center justify-between gap-2">
@@ -226,7 +234,7 @@ export default function AdminContents() {
                   </div>
                 </button>
               ))}
-              {items.length === 0 && <div className="py-10 text-sm text-[rgba(14,17,22,0.4)]">暂无内容</div>}
+              {items.length === 0 && <div className="py-10 text-sm text-[rgba(18,21,28,0.4)]">暂无内容</div>}
             </div>
           </CardContent>
         </Card>
@@ -283,7 +291,7 @@ export default function AdminContents() {
                   type="checkbox"
                   checked={form.isPublic}
                   onChange={(e) => setForm((p) => ({ ...p, isPublic: e.target.checked }))}
-                  className="accent-[#a31828]"
+                  className="accent-[#9e1b2b]"
                 />
                 标记为公共内容
               </label>
@@ -298,11 +306,11 @@ export default function AdminContents() {
                 />
               </label>
 
-              <div className="grid gap-3 rounded-2xl bg-[#a31828]/5 px-4 py-4 shadow-[inset_0_0_0_1px_rgba(140,36,36,0.08)]">
+              <div className="grid gap-3 rounded-2xl bg-[#9e1b2b]/5 px-4 py-4 shadow-[inset_0_0_0_1px_rgba(140,36,36,0.08)]">
                 <div className="flex flex-wrap items-center justify-between gap-3">
                   <div>
-                    <div className="flex items-center gap-2 text-sm font-semibold text-[#0e1116]">
-                      <Paperclip className="h-4 w-4 text-[#a31828]" />
+                    <div className="flex items-center gap-2 text-sm font-semibold text-[#12151c]">
+                      <Paperclip className="h-4 w-4 text-[#9e1b2b]" />
                       附件文件
                     </div>
                     <div className="mt-1 text-xs text-black/50">
@@ -319,8 +327,8 @@ export default function AdminContents() {
                         e.currentTarget.value = ''
                       }}
                     />
-                    <span className="inline-flex items-center gap-2 rounded-full bg-[#a31828] px-4 py-2 text-sm font-semibold text-white shadow-[0_10px_20px_rgba(140,36,36,0.18)]">
-                      <FileUp className="h-4 w-4" />
+                    <span className="inline-flex items-center gap-2 rounded-full bg-[#9e1b2b] px-4 py-2 text-sm font-semibold text-white shadow-[0_10px_20px_rgba(140,36,36,0.18)]">
+                      <UploadSimple className="h-4 w-4" />
                       {uploading ? '上传中…' : '上传文件'}
                     </span>
                   </label>
@@ -336,7 +344,7 @@ export default function AdminContents() {
                         href={withAccessToken(att.url, token)}
                         target="_blank"
                         rel="noreferrer"
-                        className="min-w-0 flex-1 truncate text-sm font-medium text-[#a31828] hover:underline"
+                        className="min-w-0 flex-1 truncate text-sm font-medium text-[#9e1b2b] hover:underline"
                       >
                         {att.name}
                       </a>
@@ -344,7 +352,7 @@ export default function AdminContents() {
                       <button
                         type="button"
                         onClick={() => removeAttachment(att.id)}
-                        className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-[#a31828]/10 text-[#a31828] hover:bg-[#a31828]/16"
+                        className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-[#9e1b2b]/10 text-[#9e1b2b] hover:bg-[#9e1b2b]/16"
                         title="移除附件"
                       >
                         <X className="h-4 w-4" />

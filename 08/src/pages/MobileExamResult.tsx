@@ -4,7 +4,12 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/Card'
 import { Button } from '@/components/Button'
 import { apiFetch } from '@/utils/api'
 import { useAuthStore } from '@/store/auth'
-import { ArrowLeft, CheckCircle2, CircleX, ListChecks } from 'lucide-react'
+import {
+  ArrowLeft,
+  CheckCircle,
+  XCircle,
+  ListChecks,
+} from '@phosphor-icons/react'
 
 type ReviewDetail = {
   orderNo: number
@@ -53,16 +58,16 @@ export function ExamReviewPanel({
           ['错题', `${review.wrongCount}`],
         ].map(([k, v]) => (
           <div key={k} className="rounded-xl bg-white/90 px-4 py-3 shadow-[inset_0_0_0_1px_rgba(0,0,0,0.06)]">
-            <div className="text-[11px] uppercase tracking-[0.18em] text-[rgba(14,17,22,0.4)]">{k}</div>
-            <div className="mt-1 text-xl font-bold text-[#0e1116]">{v}</div>
+            <div className="text-[11px] uppercase tracking-[0.18em] text-[rgba(18,21,28,0.4)]">{k}</div>
+            <div className="mt-1 text-xl font-bold text-[#12151c]">{v}</div>
           </div>
         ))}
       </div>
 
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <div className="text-sm text-[rgba(14,17,22,0.55)]">
+        <div className="text-sm text-[rgba(18,21,28,0.55)]">
           结果：
-          <span className={review.isPass ? 'font-semibold text-[#1f6b4a]' : 'font-semibold text-[#a31828]'}>
+          <span className={review.isPass ? 'font-semibold text-[#1f6b4a]' : 'font-semibold text-[#9e1b2b]'}>
             {review.isPass ? '通过' : '未通过'}
           </span>
           <span className="ml-2 text-xs">
@@ -93,39 +98,39 @@ export function ExamReviewPanel({
             key={d.questionId}
             className={[
               'rounded-xl p-4 shadow-[inset_0_0_0_1px_rgba(0,0,0,0.06)]',
-              d.isCorrect ? 'bg-[rgba(31,107,74,0.05)]' : 'bg-[rgba(163,24,40,0.05)]',
+              d.isCorrect ? 'bg-[rgba(31,107,74,0.05)]' : 'bg-[rgba(158,27,43,0.05)]',
             ].join(' ')}
           >
             <div className="flex items-start justify-between gap-3">
               <div className="flex items-start gap-2">
                 {d.isCorrect ? (
-                  <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-[#1f6b4a]" />
+                  <CheckCircle className="mt-0.5 h-4 w-4 shrink-0 text-[#1f6b4a]" />
                 ) : (
-                  <CircleX className="mt-0.5 h-4 w-4 shrink-0 text-[#a31828]" />
+                  <XCircle className="mt-0.5 h-4 w-4 shrink-0 text-[#9e1b2b]" />
                 )}
                 <div>
-                  <div className="text-sm font-medium text-[#0e1116]">
+                  <div className="text-sm font-medium text-[#12151c]">
                     {d.orderNo || idx + 1}. {d.stem}
                   </div>
-                  <div className="mt-1 text-xs text-[rgba(14,17,22,0.45)]">
+                  <div className="mt-1 text-xs text-[rgba(18,21,28,0.45)]">
                     {d.category} · {d.type === 'tf' ? '判断' : d.type === 'multiple' ? '多选' : '单选'}
                   </div>
                 </div>
               </div>
-              <div className="shrink-0 text-sm font-semibold text-[#0e1116]">
+              <div className="shrink-0 text-sm font-semibold text-[#12151c]">
                 {d.score}/{d.maxScore}
               </div>
             </div>
             <div className="mt-3 grid gap-1.5 text-sm md:grid-cols-2">
               <div className="rounded-lg bg-white/80 px-3 py-2 shadow-[inset_0_0_0_1px_rgba(0,0,0,0.05)]">
-                <div className="text-[11px] text-[rgba(14,17,22,0.4)]">你的答案</div>
-                <div className={d.isCorrect ? 'mt-1 text-[#1f6b4a]' : 'mt-1 text-[#a31828]'}>
+                <div className="text-[11px] text-[rgba(18,21,28,0.4)]">你的答案</div>
+                <div className={d.isCorrect ? 'mt-1 text-[#1f6b4a]' : 'mt-1 text-[#9e1b2b]'}>
                   {d.userAnswerLabel}
                 </div>
               </div>
               <div className="rounded-lg bg-white/80 px-3 py-2 shadow-[inset_0_0_0_1px_rgba(0,0,0,0.05)]">
-                <div className="text-[11px] text-[rgba(14,17,22,0.4)]">正确答案</div>
-                <div className="mt-1 text-[#0e1116]">{d.correctAnswerLabel}</div>
+                <div className="text-[11px] text-[rgba(18,21,28,0.4)]">正确答案</div>
+                <div className="mt-1 text-[#12151c]">{d.correctAnswerLabel}</div>
               </div>
             </div>
           </div>
@@ -188,7 +193,7 @@ export default function MobileExamResult() {
       </div>
 
       {error && (
-        <div className="rounded-2xl bg-[rgba(163,24,40,0.08)] px-4 py-3 text-[#7a1020]">{error}</div>
+        <div className="rounded-2xl bg-[rgba(158,27,43,0.08)] px-4 py-3 text-[#741220]">{error}</div>
       )}
 
       <Card>

@@ -4,7 +4,12 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/Card'
 import { Button } from '@/components/Button'
 import { apiFetch } from '@/utils/api'
 import { useAuthStore } from '@/store/auth'
-import { ArrowRight, ClipboardList, History, Sparkles } from 'lucide-react'
+import {
+  ArrowRight,
+  ClipboardText,
+  ClockCounterClockwise,
+  Sparkle,
+} from '@phosphor-icons/react'
 
 type Attempt = {
   id: string
@@ -79,14 +84,14 @@ export default function MobileExams() {
         </div>
         <Link to="/m/report">
           <Button>
-            <Sparkles className="h-4 w-4" />
+            <Sparkle className="h-4 w-4" />
             AI 报告
           </Button>
         </Link>
       </div>
 
       {error && (
-        <div className="rounded-2xl bg-[rgba(163,24,40,0.08)] px-4 py-3 text-[#7a1020] shadow-[inset_0_0_0_1px_rgba(163,24,40,0.16)]">
+        <div className="rounded-2xl bg-[rgba(158,27,43,0.08)] px-4 py-3 text-[#741220] shadow-[inset_0_0_0_1px_rgba(158,27,43,0.16)]">
           {error}
         </div>
       )}
@@ -94,7 +99,7 @@ export default function MobileExams() {
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <ClipboardList className="h-5 w-5 text-[#a31828]" />
+            <ClipboardText className="h-5 w-5 text-[#9e1b2b]" />
             可参与测验
           </CardTitle>
         </CardHeader>
@@ -107,7 +112,7 @@ export default function MobileExams() {
               >
                 <div className="flex items-start justify-between gap-3">
                   <div>
-                    <div className="text-sm font-medium text-[#0e1116]">{x.title}</div>
+                    <div className="text-sm font-medium text-[#12151c]">{x.title}</div>
                     <div className="mt-1 text-xs text-zinc-500">
                       {x.durationMin} 分钟 · 及格 {x.passScore} 分 · 已考 {x.attemptCount}/
                       {x.maxAttempts} 次
@@ -132,7 +137,7 @@ export default function MobileExams() {
                       <Link
                         key={a.id}
                         to={`/m/exam-result/${a.id}`}
-                        className="flex items-center justify-between rounded-lg px-3 py-2 text-xs text-[rgba(14,17,22,0.75)] transition hover:bg-[rgba(163,24,40,0.05)]"
+                        className="flex items-center justify-between rounded-lg px-3 py-2 text-xs text-[rgba(18,21,28,0.75)] transition hover:bg-[rgba(158,27,43,0.05)]"
                       >
                         <span>{new Date(a.createdAt).toLocaleString()}</span>
                         <span className="font-medium">
@@ -153,7 +158,7 @@ export default function MobileExams() {
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <History className="h-5 w-5 text-[#a31828]" />
+            <ClockCounterClockwise className="h-5 w-5 text-[#9e1b2b]" />
             全部历史成绩
           </CardTitle>
         </CardHeader>
@@ -163,18 +168,18 @@ export default function MobileExams() {
               <Link
                 key={a.id}
                 to={`/m/exam-result/${a.id}`}
-                className="flex flex-wrap items-center justify-between gap-3 rounded-xl bg-white/90 px-4 py-3 shadow-[inset_0_0_0_1px_rgba(0,0,0,0.06)] transition hover:bg-[rgba(163,24,40,0.05)]"
+                className="flex flex-wrap items-center justify-between gap-3 rounded-xl bg-white/90 px-4 py-3 shadow-[inset_0_0_0_1px_rgba(0,0,0,0.06)] transition hover:bg-[rgba(158,27,43,0.05)]"
               >
                 <div>
-                  <div className="text-sm font-medium text-[#0e1116]">{a.examTitle}</div>
-                  <div className="mt-1 text-xs text-[rgba(14,17,22,0.45)]">
+                  <div className="text-sm font-medium text-[#12151c]">{a.examTitle}</div>
+                  <div className="mt-1 text-xs text-[rgba(18,21,28,0.45)]">
                     {new Date(a.createdAt).toLocaleString()}
                     {a.passScore != null ? ` · 及格 ${a.passScore}` : ''}
                   </div>
                 </div>
                 <div className="text-right">
-                  <div className="text-base font-bold text-[#0e1116]">{a.totalScore} 分</div>
-                  <div className={`text-xs ${a.isPass ? 'text-[#1f6b4a]' : 'text-[#a31828]'}`}>
+                  <div className="text-base font-bold text-[#12151c]">{a.totalScore} 分</div>
+                  <div className={`text-xs ${a.isPass ? 'text-[#1f6b4a]' : 'text-[#9e1b2b]'}`}>
                     {a.isPass ? '通过' : '未通过'} · 回顾错题
                   </div>
                 </div>
