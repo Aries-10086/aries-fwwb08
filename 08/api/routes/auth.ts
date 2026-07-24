@@ -1,19 +1,29 @@
 /**
  * User authentication: register + username/password login.
- * Accounts are stored in SQLite `users` (username + password_hash).
+ * Accounts are stored in PostgreSQL `users` (username + password_hash).
  * Access tokens are HMAC-signed; roles are always loaded from DB.
  */
 import { Router, type Request, type Response } from 'express'
 import { nanoid } from 'nanoid'
-import { db, nowIso, audit } from '../db.js'
+import type { QueryResultRow } from 'pg'
+import { query, nowIso, audit } from '../db.js'
 import { hashPassword, normalizeUsername, verifyPassword } from '../utils/password.js'
 import { signAccessToken } from '../utils/token.js'
 import { clientKey, hitRateLimit } from '../utils/rateLimit.js'
 import { getUserContext, requireAuth, rejectUnauthorized } from '../utils/http.js'
+import { wrapAsyncRouter } from '../utils/async-router.js'
 
 const router = Router()
 
-function toAuthUser(user: any) {
+type AuthUserRow = QueryResultRow & {
+  id: string
+  name: string
+  username: string
+  role: string
+  org_unit_id: string
+}
+
+function toAuthUser(user: AuthUserRow) {
   return {
     id: user.id,
     name: user.name,
@@ -23,9 +33,9 @@ function toAuthUser(user: any) {
   }
 }
 
-function issueLogin(user: any, res: Response) {
+async function issueLogin(user: AuthUserRow, res: Response) {
   const token = signAccessToken(String(user.id))
-  audit(user.id, 'auth.login', { username: user.username })
+  await audit(user.id, 'auth.login', { username: user.username })
   res.status(200).json({
     success: true,
     data: {
@@ -36,27 +46,27 @@ function issueLogin(user: any, res: Response) {
 }
 
 /** Public: branches available for self-registration */
-router.get('/org-options', (_req: Request, res: Response) => {
-  const rows = db
-    .prepare(
-      `SELECT id, name FROM org_units
-       WHERE parent_id IS NOT NULL
-       ORDER BY created_at ASC`,
-    )
-    .all() as Array<{ id: string; name: string }>
+router.get('/org-options', async (_req: Request, res: Response) => {
+  const { rows } = await query<{ id: string; name: string }>(
+    `SELECT id, name FROM org_units
+     WHERE parent_id IS NOT NULL
+     ORDER BY created_at ASC`,
+  )
 
   res.status(200).json({ success: true, data: rows })
 })
 
-router.get('/me', (req: Request, res: Response) => {
+router.get('/me', async (req: Request, res: Response) => {
   if (!requireAuth(req)) {
     rejectUnauthorized(res)
     return
   }
   const { userId } = getUserContext(req)
-  const user = db
-    .prepare('SELECT id, name, username, role, org_unit_id FROM users WHERE id = ?')
-    .get(userId) as any
+  const { rows } = await query<AuthUserRow>(
+    'SELECT id, name, username, role, org_unit_id FROM users WHERE id = $1',
+    [userId],
+  )
+  const user = rows[0]
   if (!user) {
     rejectUnauthorized(res, '登录已失效')
     return
@@ -107,13 +117,15 @@ router.post('/register', async (req: Request, res: Response): Promise<void> => {
     return
   }
 
-  const exists = db.prepare('SELECT id FROM users WHERE lower(username) = ?').get(username) as any
+  const exists = (await query('SELECT id FROM users WHERE lower(username) = $1', [username])).rows[0]
   if (exists) {
     res.status(400).json({ success: false, error: '该账号已被注册' })
     return
   }
 
-  const org = db.prepare('SELECT id FROM org_units WHERE id = ? AND parent_id IS NOT NULL').get(orgUnitId) as any
+  const org = (
+    await query('SELECT id FROM org_units WHERE id = $1 AND parent_id IS NOT NULL', [orgUnitId])
+  ).rows[0]
   if (!org) {
     res.status(400).json({ success: false, error: '所属支部无效' })
     return
@@ -122,17 +134,19 @@ router.post('/register', async (req: Request, res: Response): Promise<void> => {
   const id = `u_${nanoid(10)}`
   const ts = nowIso()
 
-  db.prepare(
-    'INSERT INTO users (id, name, username, password_hash, role, org_unit_id, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)',
-  ).run(id, name, username, hashPassword(password), 'member', orgUnitId, ts)
+  await query(
+    `INSERT INTO users (id, name, username, password_hash, role, org_unit_id, created_at)
+     VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+    [id, name, username, hashPassword(password), 'member', orgUnitId, ts],
+  )
 
-  audit(id, 'auth.register', { username })
+  await audit(id, 'auth.register', { username })
 
-  const user = db
-    .prepare('SELECT id, name, username, role, org_unit_id FROM users WHERE id = ?')
-    .get(id) as any
+  const user = (
+    await query<AuthUserRow>('SELECT id, name, username, role, org_unit_id FROM users WHERE id = $1', [id])
+  ).rows[0]
 
-  issueLogin(user, res)
+  await issueLogin(user, res)
 })
 
 router.post('/login', async (req: Request, res: Response): Promise<void> => {
@@ -150,21 +164,24 @@ router.post('/login', async (req: Request, res: Response): Promise<void> => {
     return
   }
 
-  const user = db
-    .prepare('SELECT id, name, username, password_hash, role, org_unit_id FROM users WHERE lower(username) = ?')
-    .get(username) as any
+  const user = (
+    await query<AuthUserRow>(
+      'SELECT id, name, username, password_hash, role, org_unit_id FROM users WHERE lower(username) = $1',
+      [username],
+    )
+  ).rows[0]
 
   if (!user || !verifyPassword(password, user.password_hash)) {
     res.status(401).json({ success: false, error: '账号或密码错误' })
     return
   }
 
-  issueLogin(user, res)
+  await issueLogin(user, res)
 })
 
 router.post('/logout', async (req: Request, res: Response): Promise<void> => {
   const userId = req.auth?.userId || String(req.body?.userId ?? '')
-  if (userId) audit(userId, 'auth.logout', {})
+  if (userId) await audit(userId, 'auth.logout', {})
   res.status(200).json({ success: true })
 })
 
@@ -187,14 +204,14 @@ router.post('/change-password', async (req: Request, res: Response): Promise<voi
     return
   }
 
-  const user = db.prepare('SELECT id, password_hash FROM users WHERE id = ?').get(userId) as any
+  const user = (await query('SELECT id, password_hash FROM users WHERE id = $1', [userId])).rows[0]
   if (!user || !verifyPassword(oldPassword, user.password_hash)) {
     res.status(400).json({ success: false, error: '原密码不正确' })
     return
   }
 
-  db.prepare('UPDATE users SET password_hash = ? WHERE id = ?').run(hashPassword(newPassword), userId)
-  audit(userId, 'auth.change_password', {})
+  await query('UPDATE users SET password_hash = $1 WHERE id = $2', [hashPassword(newPassword), userId])
+  await audit(userId, 'auth.change_password', {})
   res.status(200).json({ success: true })
 })
 
@@ -216,12 +233,15 @@ router.put('/profile', async (req: Request, res: Response): Promise<void> => {
     return
   }
 
-  db.prepare('UPDATE users SET name = ? WHERE id = ?').run(name, userId)
-  const user = db
-    .prepare('SELECT id, name, username, role, org_unit_id FROM users WHERE id = ?')
-    .get(userId) as any
-  audit(userId, 'auth.update_profile', { name })
+  await query('UPDATE users SET name = $1 WHERE id = $2', [name, userId])
+  const user = (
+    await query<AuthUserRow>(
+      'SELECT id, name, username, role, org_unit_id FROM users WHERE id = $1',
+      [userId],
+    )
+  ).rows[0]
+  await audit(userId, 'auth.update_profile', { name })
   res.status(200).json({ success: true, data: { user: toAuthUser(user) } })
 })
 
-export default router
+export default wrapAsyncRouter(router)

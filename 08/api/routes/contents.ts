@@ -4,10 +4,11 @@ import fs from 'fs'
 import path from 'path'
 import multer from 'multer'
 import { fileURLToPath } from 'url'
-import { db, nowIso, audit } from '../db.js'
+import { query, withTransaction, nowIso, audit } from '../db.js'
 import { getUserContext, requireAuth, requireRole, rejectUnauthorized } from '../utils/http.js'
 import { json, parseJson } from '../utils/json.js'
 import type { ContentAttachment } from '../../shared/types.js'
+import { wrapAsyncRouter } from '../utils/async-router.js'
 
 export type { ContentAttachment }
 
@@ -86,27 +87,20 @@ const upload = multer({
   },
 })
 
-function accessibleContentIdsForUser(userId: string) {
-  const user = db.prepare('SELECT org_unit_id from users WHERE id = ?').get(userId) as any
-  if (!user?.org_unit_id) return new Set<string>()
-
-  const taskIds = db
-    .prepare('SELECT id FROM learning_tasks WHERE org_unit_id = ?')
-    .all(String(user.org_unit_id)) as any[]
-
-  const ids = new Set<string>()
-  const publicRows = db.prepare('SELECT id FROM contents WHERE is_public = 1').all() as any[]
-  for (const r of publicRows) ids.add(String(r.id))
-
-  for (const t of taskIds) {
-    const rows = db.prepare('SELECT content_id FROM task_contents WHERE task_id = ?').all(String(t.id)) as any[]
-    for (const r of rows) ids.add(String(r.content_id))
-  }
-
-  return ids
+async function accessibleContentIdsForUser(userId: string) {
+  const { rows } = await query(
+    `SELECT DISTINCT c.id
+     FROM contents c
+     LEFT JOIN task_contents tc ON tc.content_id = c.id
+     LEFT JOIN learning_tasks lt ON lt.id = tc.task_id
+     LEFT JOIN users u ON u.org_unit_id = lt.org_unit_id AND u.id = $1
+     WHERE c.is_public = true OR u.id IS NOT NULL`,
+    [userId],
+  )
+  return new Set(rows.map((row) => String(row.id)))
 }
 
-function mapContent(r: any) {
+function mapContent(r: Record<string, unknown>) {
   return {
     id: r.id,
     type: r.type,
@@ -124,26 +118,31 @@ function mapContent(r: any) {
 function normalizeAttachments(raw: unknown): ContentAttachment[] {
   if (!Array.isArray(raw)) return []
   return raw
-    .map((item) => ({
-      id: String((item as any)?.id ?? ''),
-      name: String((item as any)?.name ?? ''),
-      url: String((item as any)?.url ?? ''),
-      size: Number((item as any)?.size ?? 0),
-      mime: String((item as any)?.mime ?? ''),
-    }))
+    .map((item) => {
+      const value =
+        typeof item === 'object' && item !== null ? (item as Record<string, unknown>) : {}
+      return {
+        id: String(value.id ?? ''),
+        name: String(value.name ?? ''),
+        url: String(value.url ?? ''),
+        size: Number(value.size ?? 0),
+        mime: String(value.mime ?? ''),
+      }
+    })
     .filter((item) => item.id && item.url && item.name)
 }
 
 /** 管理员上传学习内容附件 */
-router.post('/upload', (req: Request, res: Response) => {
+router.post('/upload', (req: Request, res: Response, next) => {
   if (!requireRole(req, ['admin'])) {
     res.status(403).json({ success: false, error: '仅管理员可操作' })
     return
   }
 
-  upload.single('file')(req, res, (err: any) => {
+  upload.single('file')(req, res, async (err: unknown) => {
     if (err) {
-      res.status(400).json({ success: false, error: err?.message ?? '上传失败' })
+      const message = err instanceof Error ? err.message : '上传失败'
+      res.status(400).json({ success: false, error: message })
       return
     }
 
@@ -162,17 +161,20 @@ router.post('/upload', (req: Request, res: Response) => {
       mime: file.mimetype || 'application/octet-stream',
     }
 
-    audit(userId || 'u_admin_demo', 'contents.upload', {
-      name: attachment.name,
-      size: attachment.size,
-      url: attachment.url,
-    })
-
-    res.status(200).json({ success: true, data: attachment })
+    try {
+      await audit(userId || 'u_admin_demo', 'contents.upload', {
+        name: attachment.name,
+        size: attachment.size,
+        url: attachment.url,
+      })
+      res.status(200).json({ success: true, data: attachment })
+    } catch (error) {
+      next(error)
+    }
   })
 })
 
-router.get('/', (req: Request, res: Response) => {
+router.get('/', async (req: Request, res: Response) => {
   if (!requireAuth(req)) {
     rejectUnauthorized(res)
     return
@@ -185,48 +187,47 @@ router.get('/', (req: Request, res: Response) => {
   const isPublic = req.query.isPublic ? Number(req.query.isPublic) : null
 
   const where: string[] = []
-  const params: any[] = []
+  const params: unknown[] = []
 
   if (q) {
-    where.push('(title LIKE ? OR body LIKE ?)')
+    where.push(`(title ILIKE $${params.length + 1} OR body ILIKE $${params.length + 2})`)
     params.push(`%${q}%`, `%${q}%`)
   }
   if (type) {
-    where.push('type = ?')
+    where.push(`type = $${params.length + 1}`)
     params.push(type)
   }
   if (category) {
-    where.push('category = ?')
+    where.push(`category = $${params.length + 1}`)
     params.push(category)
   }
   if (isPublic === 0 || isPublic === 1) {
-    where.push('is_public = ?')
-    params.push(isPublic)
+    where.push(`is_public = $${params.length + 1}`)
+    params.push(isPublic === 1)
   }
 
   const whereSql = where.length > 0 ? `WHERE ${where.join(' AND ')}` : ''
 
-  const rows = db
-    .prepare(
-      `SELECT id, type, title, body, category, tags_json, attachments_json, is_public, created_at, updated_at
-       FROM contents
-       ${whereSql}
-       ORDER BY updated_at DESC
-       LIMIT 300`,
-    )
-    .all(...params) as any[]
+  const { rows } = await query(
+    `SELECT id, type, title, body, category, tags_json, attachments_json, is_public, created_at, updated_at
+     FROM contents
+     ${whereSql}
+     ORDER BY updated_at DESC
+     LIMIT 300`,
+    params,
+  )
 
   let data = rows.map(mapContent)
 
   if (role === 'member' || role === 'secretary') {
-    const allow = accessibleContentIdsForUser(userId)
+    const allow = await accessibleContentIdsForUser(userId)
     data = data.filter((x) => allow.has(String(x.id)))
   }
 
   res.status(200).json({ success: true, data })
 })
 
-router.get('/:id', (req: Request, res: Response) => {
+router.get('/:id', async (req: Request, res: Response) => {
   if (!requireAuth(req)) {
     rejectUnauthorized(res)
     return
@@ -235,13 +236,14 @@ router.get('/:id', (req: Request, res: Response) => {
   const { role, userId } = getUserContext(req)
   const id = String(req.params.id)
 
-  const row = db
-    .prepare(
+  const row = (
+    await query(
       `SELECT id, type, title, body, category, tags_json, attachments_json, is_public, created_at, updated_at
        FROM contents
-       WHERE id = ?`,
+       WHERE id = $1`,
+      [id],
     )
-    .get(id) as any
+  ).rows[0]
 
   if (!row) {
     res.status(404).json({ success: false, error: '内容不存在' })
@@ -249,7 +251,7 @@ router.get('/:id', (req: Request, res: Response) => {
   }
 
   if (role === 'member' || role === 'secretary') {
-    const allow = accessibleContentIdsForUser(userId)
+    const allow = await accessibleContentIdsForUser(userId)
     if (!allow.has(id)) {
       res.status(403).json({ success: false, error: '无权限访问该内容' })
       return
@@ -262,7 +264,7 @@ router.get('/:id', (req: Request, res: Response) => {
   })
 })
 
-router.post('/', (req: Request, res: Response) => {
+router.post('/', async (req: Request, res: Response) => {
   if (!requireRole(req, ['admin'])) {
     res.status(403).json({ success: false, error: '仅管理员可操作' })
     return
@@ -273,27 +275,28 @@ router.post('/', (req: Request, res: Response) => {
   const ts = nowIso()
   const attachments = normalizeAttachments(req.body?.attachments)
 
-  db.prepare(
+  await query(
     `INSERT INTO contents (id, type, title, body, category, tags_json, attachments_json, is_public, created_at, updated_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-  ).run(
-    id,
-    String(req.body?.type ?? 'article'),
-    String(req.body?.title ?? ''),
-    String(req.body?.body ?? ''),
-    String(req.body?.category ?? ''),
-    json(req.body?.tags ?? []),
-    json(attachments),
-    req.body?.isPublic ? 1 : 0,
-    ts,
-    ts,
+     VALUES ($1, $2, $3, $4, $5, $6::jsonb, $7::jsonb, $8, $9, $10)`,
+    [
+      id,
+      String(req.body?.type ?? 'article'),
+      String(req.body?.title ?? ''),
+      String(req.body?.body ?? ''),
+      String(req.body?.category ?? ''),
+      json(req.body?.tags ?? []),
+      json(attachments),
+      Boolean(req.body?.isPublic),
+      ts,
+      ts,
+    ],
   )
 
-  audit(userId || 'u_admin_demo', 'contents.create', { id })
+  await audit(userId || 'u_admin_demo', 'contents.create', { id })
   res.status(200).json({ success: true, data: { id } })
 })
 
-router.put('/:id', (req: Request, res: Response) => {
+router.put('/:id', async (req: Request, res: Response) => {
   if (!requireRole(req, ['admin'])) {
     res.status(403).json({ success: false, error: '仅管理员可操作' })
     return
@@ -304,26 +307,28 @@ router.put('/:id', (req: Request, res: Response) => {
   const ts = nowIso()
   const attachments = normalizeAttachments(req.body?.attachments)
 
-  db.prepare(
-    `UPDATE contents SET type = ?, title = ?, body = ?, category = ?, tags_json = ?, attachments_json = ?, is_public = ?, updated_at = ?
-     WHERE id = ?`,
-  ).run(
-    String(req.body?.type ?? 'article'),
-    String(req.body?.title ?? ''),
-    String(req.body?.body ?? ''),
-    String(req.body?.category ?? ''),
-    json(req.body?.tags ?? []),
-    json(attachments),
-    req.body?.isPublic ? 1 : 0,
-    ts,
-    id,
+  await query(
+    `UPDATE contents SET type = $1, title = $2, body = $3, category = $4,
+       tags_json = $5::jsonb, attachments_json = $6::jsonb, is_public = $7, updated_at = $8
+     WHERE id = $9`,
+    [
+      String(req.body?.type ?? 'article'),
+      String(req.body?.title ?? ''),
+      String(req.body?.body ?? ''),
+      String(req.body?.category ?? ''),
+      json(req.body?.tags ?? []),
+      json(attachments),
+      Boolean(req.body?.isPublic),
+      ts,
+      id,
+    ],
   )
 
-  audit(userId || 'u_admin_demo', 'contents.update', { id })
+  await audit(userId || 'u_admin_demo', 'contents.update', { id })
   res.status(200).json({ success: true })
 })
 
-router.delete('/:id', (req: Request, res: Response) => {
+router.delete('/:id', async (req: Request, res: Response) => {
   if (!requireRole(req, ['admin'])) {
     res.status(403).json({ success: false, error: '仅管理员可操作' })
     return
@@ -332,7 +337,7 @@ router.delete('/:id', (req: Request, res: Response) => {
   const { userId } = getUserContext(req)
   const id = String(req.params.id)
 
-  const row = db.prepare('SELECT attachments_json FROM contents WHERE id = ?').get(id) as any
+  const row = (await query('SELECT attachments_json FROM contents WHERE id = $1', [id])).rows[0]
   const attachments = parseJson<ContentAttachment[]>(row?.attachments_json) ?? []
   for (const att of attachments) {
     const filename = path.basename(String(att.url || ''))
@@ -342,17 +347,19 @@ router.delete('/:id', (req: Request, res: Response) => {
       try {
         fs.unlinkSync(full)
       } catch {
-        null
+        // 数据已删除，不因附件清理失败中断业务删除。
       }
     }
   }
 
-  db.prepare('DELETE FROM task_contents WHERE content_id = ?').run(id)
-  db.prepare('DELETE FROM learning_records WHERE content_id = ?').run(id)
-  db.prepare('DELETE FROM contents WHERE id = ?').run(id)
+  await withTransaction(async (client) => {
+    await client.query('DELETE FROM task_contents WHERE content_id = $1', [id])
+    await client.query('DELETE FROM learning_records WHERE content_id = $1', [id])
+    await client.query('DELETE FROM contents WHERE id = $1', [id])
+  })
 
-  audit(userId || 'u_admin_demo', 'contents.delete', { id })
+  await audit(userId || 'u_admin_demo', 'contents.delete', { id })
   res.status(200).json({ success: true })
 })
 
-export default router
+export default wrapAsyncRouter(router)

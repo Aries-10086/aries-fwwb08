@@ -1,6 +1,6 @@
 import type { Request, Response, NextFunction } from 'express'
 import type { UserRole } from '../../shared/types.js'
-import { db } from '../db.js'
+import { query } from '../db.js'
 import { extractBearerToken, verifyAccessToken } from './token.js'
 
 export type AuthContext = {
@@ -12,6 +12,8 @@ export type AuthContext = {
 }
 
 declare global {
+  // Express 4 的 Request 类型只能通过声明合并扩展。
+  // eslint-disable-next-line @typescript-eslint/no-namespace
   namespace Express {
     interface Request {
       auth?: AuthContext | null
@@ -21,10 +23,12 @@ declare global {
 
 const VALID_ROLES: UserRole[] = ['member', 'secretary', 'admin']
 
-function loadUser(userId: string): AuthContext | null {
-  const row = db
-    .prepare('SELECT id, name, username, role, org_unit_id FROM users WHERE id = ?')
-    .get(userId) as any
+async function loadUser(userId: string): Promise<AuthContext | null> {
+  const { rows } = await query(
+    'SELECT id, name, username, role, org_unit_id FROM users WHERE id = $1',
+    [userId],
+  )
+  const row = rows[0]
   if (!row?.id) return null
   const role = String(row.role) as UserRole
   if (!VALID_ROLES.includes(role)) return null
@@ -38,20 +42,24 @@ function loadUser(userId: string): AuthContext | null {
 }
 
 /** 从 Authorization Bearer 解析用户；角色一律以数据库为准，忽略客户端 x-role */
-export function attachAuth(req: Request, _res: Response, next: NextFunction) {
-  req.auth = null
-  const token = extractBearerToken(req)
-  if (!token) {
+export async function attachAuth(req: Request, _res: Response, next: NextFunction) {
+  try {
+    req.auth = null
+    const token = extractBearerToken(req)
+    if (!token) {
+      next()
+      return
+    }
+    const payload = verifyAccessToken(token)
+    if (!payload?.sub) {
+      next()
+      return
+    }
+    req.auth = await loadUser(payload.sub)
     next()
-    return
+  } catch (error) {
+    next(error)
   }
-  const payload = verifyAccessToken(token)
-  if (!payload?.sub) {
-    next()
-    return
-  }
-  req.auth = loadUser(payload.sub)
-  next()
 }
 
 export function getUserContext(req: Request) {

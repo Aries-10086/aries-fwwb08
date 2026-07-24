@@ -41,11 +41,12 @@ export async function llmText(input: LlmTextInput): Promise<LlmTextOutput> {
 
   if (!res.ok) return mockText(input)
 
-  const json = (await res.json()) as any
-  const text = typeof json?.text === 'string' ? json.text : ''
+  const raw = (await res.json()) as unknown
+  const json = typeof raw === 'object' && raw !== null ? (raw as Record<string, unknown>) : {}
+  const text = typeof json.text === 'string' ? json.text : ''
   return {
     text: text || mockText(input).text,
-    confidence: typeof json?.confidence === 'number' ? clamp(json.confidence, 0, 1) : 0.6,
+    confidence: typeof json.confidence === 'number' ? clamp(json.confidence, 0, 1) : 0.6,
   }
 }
 
