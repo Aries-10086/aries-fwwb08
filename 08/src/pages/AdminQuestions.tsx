@@ -5,7 +5,13 @@ import { Button } from '@/components/Button'
 import { apiFetch } from '@/utils/api'
 import { fileToTabularText } from '@/utils/spreadsheet'
 import { useAuthStore } from '@/store/auth'
-import { RotateCw, Save, Upload, Plus, Trash2 } from 'lucide-react'
+import {
+  ArrowsClockwise,
+  FloppyDisk,
+  UploadSimple,
+  Plus,
+  Trash,
+} from '@phosphor-icons/react'
 
 type Question = {
   id: string
@@ -180,7 +186,7 @@ export default function AdminQuestions() {
         </div>
         <div className="flex items-center gap-2">
           <Button variant="ghost" onClick={() => load()} disabled={loading}>
-            <RotateCw className={loading ? 'h-4 w-4 animate-spin' : 'h-4 w-4'} />
+            <ArrowsClockwise className={loading ? 'h-4 w-4 animate-spin' : 'h-4 w-4'} />
             刷新
           </Button>
           <Button variant="secondary" onClick={() => create()} disabled={saving}>
@@ -188,18 +194,18 @@ export default function AdminQuestions() {
             新建
           </Button>
           <Button onClick={() => save()} disabled={!selected || saving}>
-            <Save className="h-4 w-4" />
+            <FloppyDisk className="h-4 w-4" />
             保存
           </Button>
           <Button variant="danger" onClick={() => remove()} disabled={!selected || saving}>
-            <Trash2 className="h-4 w-4" />
+            <Trash className="h-4 w-4" />
             删除
           </Button>
         </div>
       </div>
 
       {error && (
-        <div className="rounded-2xl bg-[rgba(163,24,40,0.08)] px-4 py-3 text-[#7a1020] shadow-[inset_0_0_0_1px_rgba(163,24,40,0.16)]">
+        <div className="rounded-2xl bg-[rgba(158,27,43,0.08)] px-4 py-3 text-[#741220] shadow-[inset_0_0_0_1px_rgba(158,27,43,0.16)]">
           {error}
         </div>
       )}
@@ -207,13 +213,13 @@ export default function AdminQuestions() {
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <Upload className="h-5 w-5 text-[#a31828]" />
+            <UploadSimple className="h-5 w-5 text-[#9e1b2b]" />
             题库批量导入
           </CardTitle>
         </CardHeader>
         <CardContent>
           <div className="grid gap-3">
-            <div className="text-xs text-[rgba(14,17,22,0.55)]">
+            <div className="text-xs text-[rgba(18,21,28,0.55)]">
               支持 CSV 或从 Excel 复制粘贴的制表符内容。字段：type、category、stem、optionsJson、answerKeyJson，其中后两项需为合法 JSON。
             </div>
             <label className="grid gap-2 text-sm">
@@ -225,9 +231,9 @@ export default function AdminQuestions() {
                   await onImportFile(e.target.files?.[0] ?? null)
                   e.currentTarget.value = ''
                 }}
-                className="input-shell cursor-pointer file:mr-3 file:rounded-full file:border-0 file:bg-[#a31828] file:px-4 file:py-2 file:text-sm file:font-semibold file:text-white"
+                className="input-shell cursor-pointer file:mr-3 file:rounded-full file:border-0 file:bg-[#9e1b2b] file:px-4 file:py-2 file:text-sm file:font-semibold file:text-white"
               />
-              {importFileName ? <div className="text-xs text-[rgba(14,17,22,0.55)]">已载入：{importFileName}</div> : null}
+              {importFileName ? <div className="text-xs text-[rgba(18,21,28,0.55)]">已载入：{importFileName}</div> : null}
             </label>
             <textarea
               value={importText}
@@ -237,7 +243,7 @@ export default function AdminQuestions() {
             />
             <div>
               <Button onClick={() => importBatch()} disabled={!importText.trim() || importing}>
-                <Upload className="h-4 w-4" />
+                <UploadSimple className="h-4 w-4" />
                 {importing ? '导入中…' : '执行导入'}
               </Button>
             </div>
@@ -260,8 +266,8 @@ export default function AdminQuestions() {
                     'w-full rounded-2xl px-4 py-3 text-left transition',
                     'shadow-[inset_0_0_0_1px_rgba(0,0,0,0.08)]',
                     selectedId === q.id
-                      ? 'bg-[#a31828] text-white'
-                      : 'bg-white/90 text-black/80 hover:bg-[rgba(163,24,40,0.05)]',
+                      ? 'bg-[#9e1b2b] text-white'
+                      : 'bg-white/90 text-black/80 hover:bg-[rgba(158,27,43,0.05)]',
                   ].join(' ')}
                 >
                   <div className="flex items-center justify-between gap-2">

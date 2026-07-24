@@ -4,7 +4,13 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/Card'
 import { Button } from '@/components/Button'
 import { apiFetch } from '@/utils/api'
 import { useAuthStore } from '@/store/auth'
-import { ArrowLeft, CheckCircle2, CircleX, Loader2, Timer } from 'lucide-react'
+import {
+  ArrowLeft,
+  CheckCircle,
+  XCircle,
+  CircleNotch,
+  Timer,
+} from '@phosphor-icons/react'
 
 type QuestionType = 'single' | 'multiple' | 'tf'
 
@@ -143,7 +149,7 @@ export default function MobileExamTake() {
             <div
               className={[
                 'inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-semibold shadow-[inset_0_0_0_1px_rgba(0,0,0,0.06)]',
-                remainMs <= 60_000 ? 'bg-[rgba(163,24,40,0.08)] text-[#7a1020]' : 'bg-white/90 text-[#0e1116]',
+                remainMs <= 60_000 ? 'bg-[rgba(158,27,43,0.08)] text-[#741220]' : 'bg-white/90 text-[#12151c]',
               ].join(' ')}
             >
               <Timer className="h-4 w-4" />
@@ -160,7 +166,7 @@ export default function MobileExamTake() {
       </div>
 
       {error && (
-        <div className="rounded-2xl bg-[rgba(163,24,40,0.08)] px-4 py-3 text-[#7a1020] shadow-[inset_0_0_0_1px_rgba(163,24,40,0.16)]">
+        <div className="rounded-2xl bg-[rgba(158,27,43,0.08)] px-4 py-3 text-[#741220] shadow-[inset_0_0_0_1px_rgba(158,27,43,0.16)]">
           {error}
         </div>
       )}
@@ -169,15 +175,15 @@ export default function MobileExamTake() {
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <CheckCircle2 className="h-5 w-5 text-[#a31828]" />
+              <CheckCircle className="h-5 w-5 text-[#9e1b2b]" />
               已交卷
             </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="grid gap-4">
-              <div className="rounded-lg bg-white/90 px-4 py-3 text-sm text-[rgba(14,17,22,0.7)] shadow-[inset_0_0_0_1px_rgba(0,0,0,0.06)]">
-                总分：<span className="font-semibold text-[#0e1116]">{result.totalScore}</span> · 结果：
-                <span className={result.isPass ? 'text-[#1f6b4a]' : 'text-[#7a1020]'}>
+              <div className="rounded-lg bg-white/90 px-4 py-3 text-sm text-[rgba(18,21,28,0.7)] shadow-[inset_0_0_0_1px_rgba(0,0,0,0.06)]">
+                总分：<span className="font-semibold text-[#12151c]">{result.totalScore}</span> · 结果：
+                <span className={result.isPass ? 'text-[#1f6b4a]' : 'text-[#741220]'}>
                   {result.isPass ? '通过' : '未通过'}
                 </span>
                 <span className="ml-2 text-zinc-500">
@@ -190,24 +196,24 @@ export default function MobileExamTake() {
 
               {(result.wrongDetails?.length ?? 0) > 0 && (
                 <div className="grid gap-2">
-                  <div className="text-sm font-medium text-[#0e1116]">错题回顾</div>
+                  <div className="text-sm font-medium text-[#12151c]">错题回顾</div>
                   {result.wrongDetails.map((d: any) => (
                     <div
                       key={d.questionId}
-                      className="rounded-xl bg-[rgba(163,24,40,0.05)] p-4 shadow-[inset_0_0_0_1px_rgba(163,24,40,0.12)]"
+                      className="rounded-xl bg-[rgba(158,27,43,0.05)] p-4 shadow-[inset_0_0_0_1px_rgba(158,27,43,0.12)]"
                     >
                       <div className="flex items-start gap-2">
-                        <CircleX className="mt-0.5 h-4 w-4 shrink-0 text-[#a31828]" />
+                        <XCircle className="mt-0.5 h-4 w-4 shrink-0 text-[#9e1b2b]" />
                         <div className="min-w-0 flex-1">
-                          <div className="text-sm font-medium text-[#0e1116]">{d.stem}</div>
+                          <div className="text-sm font-medium text-[#12151c]">{d.stem}</div>
                           <div className="mt-2 grid gap-1 text-xs md:grid-cols-2">
                             <div>
-                              <span className="text-[rgba(14,17,22,0.45)]">你的答案：</span>
-                              <span className="text-[#a31828]">{d.userAnswerLabel}</span>
+                              <span className="text-[rgba(18,21,28,0.45)]">你的答案：</span>
+                              <span className="text-[#9e1b2b]">{d.userAnswerLabel}</span>
                             </div>
                             <div>
-                              <span className="text-[rgba(14,17,22,0.45)]">正确答案：</span>
-                              <span className="text-[#0e1116]">{d.correctAnswerLabel}</span>
+                              <span className="text-[rgba(18,21,28,0.45)]">正确答案：</span>
+                              <span className="text-[#12151c]">{d.correctAnswerLabel}</span>
                             </div>
                           </div>
                         </div>
@@ -254,10 +260,10 @@ export default function MobileExamTake() {
               {qs.map((q, idx) => (
                 <div key={q.id} className="rounded-xl bg-white/90 p-4 shadow-[inset_0_0_0_1px_rgba(0,0,0,0.06)]">
                   <div className="flex items-center justify-between gap-3">
-                    <div className="text-sm font-medium text-[#0e1116]">
+                    <div className="text-sm font-medium text-[#12151c]">
                       {idx + 1}. {q.stem}
                     </div>
-                    <div className="text-xs text-[#a31828]">分值 {q.score}</div>
+                    <div className="text-xs text-[#9e1b2b]">分值 {q.score}</div>
                   </div>
                   <div className="mt-1 text-xs text-zinc-500">{q.category}</div>
 
@@ -274,8 +280,8 @@ export default function MobileExamTake() {
                             'rounded-lg px-4 py-3 text-left text-sm transition',
                             'shadow-[inset_0_0_0_1px_rgba(0,0,0,0.06)]',
                             answers[q.id] === it.value
-                              ? 'bg-[#a31828] text-white'
-                              : 'bg-white/90 text-[#0e1116] hover:bg-[rgba(163,24,40,0.05)]',
+                              ? 'bg-[#9e1b2b] text-white'
+                              : 'bg-white/90 text-[#12151c] hover:bg-[rgba(158,27,43,0.05)]',
                           ].join(' ')}
                         >
                           {it.label}
@@ -299,7 +305,7 @@ export default function MobileExamTake() {
                             key={op.key}
                             className={[
                               'flex cursor-pointer items-start gap-3 rounded-lg px-4 py-3 shadow-[inset_0_0_0_1px_rgba(0,0,0,0.06)] transition',
-                              isChecked ? 'bg-[rgba(163,24,40,0.08)]' : 'bg-white/90 hover:bg-[rgba(163,24,40,0.05)]',
+                              isChecked ? 'bg-[rgba(158,27,43,0.08)]' : 'bg-white/90 hover:bg-[rgba(158,27,43,0.05)]',
                             ].join(' ')}
                           >
                             <input
@@ -317,11 +323,11 @@ export default function MobileExamTake() {
                                   : [...prev, op.key]
                                 setAnswers((p) => ({ ...p, [q.id]: next }))
                               }}
-                              className="mt-1 accent-[#a31828]"
+                              className="mt-1 accent-[#9e1b2b]"
                             />
                             <div>
                               <div className="text-xs text-zinc-500">{op.key}</div>
-                              <div className="text-sm text-[#0e1116]">{op.text}</div>
+                              <div className="text-sm text-[#12151c]">{op.text}</div>
                             </div>
                           </label>
                         )
@@ -336,7 +342,7 @@ export default function MobileExamTake() {
               <Button onClick={() => submit(false)} disabled={submitting || qs.length === 0} className="w-full">
                 {submitting ? (
                   <>
-                    <Loader2 className="h-4 w-4 animate-spin" />
+                    <CircleNotch className="h-4 w-4 animate-spin" />
                     提交中…
                   </>
                 ) : (

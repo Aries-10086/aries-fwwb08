@@ -6,13 +6,13 @@ import { Chart } from '@/components/Chart'
 import { apiFetch } from '@/utils/api'
 import { useAuthStore } from '@/store/auth'
 import {
-  BarChart3,
-  BookOpenCheck,
-  Clock3,
-  RotateCw,
+  ChartBar,
+  CheckCircle,
+  Clock,
+  ArrowsClockwise,
   Trophy,
   Users,
-} from 'lucide-react'
+} from '@phosphor-icons/react'
 import type { EChartsOption } from 'echarts'
 
 type BranchDashboard = {
@@ -120,7 +120,7 @@ export default function SecretaryDashboard() {
             summary.passRate,
           ],
           itemStyle: {
-            color: 'rgba(163,24,40,0.85)',
+            color: 'rgba(158,27,43,0.85)',
             borderRadius: [8, 8, 0, 0],
           },
           barMaxWidth: 42,
@@ -151,7 +151,7 @@ export default function SecretaryDashboard() {
         {
           type: 'bar',
           data: rows.map((m) => m.durationHours).reverse(),
-          itemStyle: { color: 'rgba(163,24,40,0.75)', borderRadius: [0, 6, 6, 0] },
+          itemStyle: { color: 'rgba(158,27,43,0.75)', borderRadius: [0, 6, 6, 0] },
           barMaxWidth: 18,
         },
       ],
@@ -164,7 +164,7 @@ export default function SecretaryDashboard() {
       <div className="hero-frame px-6 py-7 md:px-8">
         <div className="flex flex-wrap items-end justify-between gap-4">
           <div>
-            <div className="page-eyebrow">Branch Dashboard</div>
+            <div className="page-eyebrow">支部看板</div>
             <h1 className="page-title text-3xl md:text-5xl">支部数据看板</h1>
             <div className="page-subtitle mt-2 max-w-2xl">
               汇总本支部学习时长、任务完成率与测验表现
@@ -179,7 +179,7 @@ export default function SecretaryDashboard() {
               </Button>
             </Link>
             <Button variant="ghost" onClick={() => load()} disabled={loading}>
-              <RotateCw className={loading ? 'h-4 w-4 animate-spin' : 'h-4 w-4'} />
+              <ArrowsClockwise className={loading ? 'h-4 w-4 animate-spin' : 'h-4 w-4'} />
               刷新
             </Button>
           </div>
@@ -189,20 +189,20 @@ export default function SecretaryDashboard() {
           <div className="mt-6 grid gap-3 md:grid-cols-3 lg:grid-cols-6">
             {[
               ['党员数', `${summary.memberCount}`, Users],
-              ['学习时长', `${summary.durationHours}h`, Clock3],
-              ['任务完成率', `${summary.overallTaskCompletionRate}%`, BookOpenCheck],
-              ['内容完成率', `${summary.contentCompletionRate}%`, BookOpenCheck],
-              ['测验均分', `${summary.avgExamScore}`, BarChart3],
+              ['学习时长', `${summary.durationHours}h`, Clock],
+              ['任务完成率', `${summary.overallTaskCompletionRate}%`, CheckCircle],
+              ['内容完成率', `${summary.contentCompletionRate}%`, CheckCircle],
+              ['测验均分', `${summary.avgExamScore}`, ChartBar],
               ['通过率', `${summary.passRate}%`, Trophy],
             ].map(([label, value, Icon]) => {
               const I = Icon as typeof Users
               return (
                 <div key={String(label)} className="panel-muted rounded-2xl px-4 py-4">
-                  <div className="flex items-center gap-1.5 text-[11px] uppercase tracking-[0.22em] text-[#a31828]/60">
+                  <div className="flex items-center gap-1.5 text-xs font-medium text-[#9e1b2b]/60">
                     <I className="h-3.5 w-3.5" />
                     {label as string}
                   </div>
-                  <div className="mt-3 text-2xl font-black tracking-[-0.05em] text-[#0e1116]">
+                  <div className="mt-3 text-2xl font-black tracking-[-0.05em] text-[#12151c]">
                     {value as string}
                   </div>
                 </div>
@@ -213,7 +213,7 @@ export default function SecretaryDashboard() {
       </div>
 
       {error && (
-        <div className="rounded-2xl bg-[rgba(163,24,40,0.08)] px-4 py-3 text-[#7a1020] shadow-[inset_0_0_0_1px_rgba(163,24,40,0.16)]">
+        <div className="rounded-2xl bg-[rgba(158,27,43,0.08)] px-4 py-3 text-[#741220] shadow-[inset_0_0_0_1px_rgba(158,27,43,0.16)]">
           {error}
         </div>
       )}
@@ -222,7 +222,7 @@ export default function SecretaryDashboard() {
         <Card className="md:col-span-7">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <BarChart3 className="h-5 w-5 text-[#a31828]" />
+              <ChartBar className="h-5 w-5 text-[#9e1b2b]" />
               支部总览指标
             </CardTitle>
           </CardHeader>
@@ -238,7 +238,7 @@ export default function SecretaryDashboard() {
         <Card className="md:col-span-5">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <Clock3 className="h-5 w-5 text-[#a31828]" />
+              <Clock className="h-5 w-5 text-[#9e1b2b]" />
               党员学习时长 Top10
             </CardTitle>
           </CardHeader>
@@ -262,17 +262,17 @@ export default function SecretaryDashboard() {
               <div key={t.id} className="list-surface">
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div>
-                    <div className="text-sm font-medium text-[#0e1116]">{t.title}</div>
-                    <div className="mt-1 text-xs text-[rgba(14,17,22,0.55)]">
+                    <div className="text-sm font-medium text-[#12151c]">{t.title}</div>
+                    <div className="mt-1 text-xs text-[rgba(18,21,28,0.55)]">
                       内容 {t.contentCount} 项 · 已完成党员 {t.completedMemberCount}/{summary?.memberCount ?? 0}
                       {t.dueAt ? ` · 截止 ${new Date(t.dueAt).toLocaleDateString()}` : ''}
                     </div>
                   </div>
-                  <div className="text-sm font-semibold text-[#a31828]">{t.completionRate}%</div>
+                  <div className="text-sm font-semibold text-[#9e1b2b]">{t.completionRate}%</div>
                 </div>
                 <div className="mt-3 h-2 overflow-hidden rounded-full bg-black/5">
                   <div
-                    className="h-full rounded-full bg-[#a31828]"
+                    className="h-full rounded-full bg-[#9e1b2b]"
                     style={{ width: `${Math.min(100, Math.max(0, t.completionRate))}%` }}
                   />
                 </div>
@@ -297,35 +297,35 @@ export default function SecretaryDashboard() {
                 className="grid gap-3 rounded-2xl bg-white/90 px-4 py-4 shadow-[inset_0_0_0_1px_rgba(0,0,0,0.06)] md:grid-cols-5"
               >
                 <div>
-                  <div className="text-sm font-medium text-[#0e1116]">{m.name}</div>
-                  <div className="mt-1 text-xs text-[rgba(14,17,22,0.45)]">{m.username ? `@${m.username}` : m.userId}</div>
+                  <div className="text-sm font-medium text-[#12151c]">{m.name}</div>
+                  <div className="mt-1 text-xs text-[rgba(18,21,28,0.45)]">{m.username ? `@${m.username}` : m.userId}</div>
                 </div>
                 <div className="text-sm">
-                  <div className="text-[11px] uppercase tracking-[0.18em] text-[rgba(14,17,22,0.4)]">学习时长</div>
-                  <div className="mt-1 font-semibold text-[#0e1116]">{m.durationHours} h</div>
+                  <div className="text-[11px] uppercase tracking-[0.18em] text-[rgba(18,21,28,0.4)]">学习时长</div>
+                  <div className="mt-1 font-semibold text-[#12151c]">{m.durationHours} h</div>
                 </div>
                 <div className="text-sm">
-                  <div className="text-[11px] uppercase tracking-[0.18em] text-[rgba(14,17,22,0.4)]">任务完成</div>
-                  <div className="mt-1 font-semibold text-[#0e1116]">
+                  <div className="text-[11px] uppercase tracking-[0.18em] text-[rgba(18,21,28,0.4)]">任务完成</div>
+                  <div className="mt-1 font-semibold text-[#12151c]">
                     {m.taskCompletedCount}/{m.taskCount}
-                    <span className="ml-1 text-xs font-normal text-[rgba(14,17,22,0.45)]">（{m.taskCompletionRate}%）</span>
+                    <span className="ml-1 text-xs font-normal text-[rgba(18,21,28,0.45)]">（{m.taskCompletionRate}%）</span>
                   </div>
                 </div>
                 <div className="text-sm">
-                  <div className="text-[11px] uppercase tracking-[0.18em] text-[rgba(14,17,22,0.4)]">已完成内容</div>
-                  <div className="mt-1 font-semibold text-[#0e1116]">{m.completedContentCount}</div>
+                  <div className="text-[11px] uppercase tracking-[0.18em] text-[rgba(18,21,28,0.4)]">已完成内容</div>
+                  <div className="mt-1 font-semibold text-[#12151c]">{m.completedContentCount}</div>
                 </div>
                 <div className="text-sm">
-                  <div className="text-[11px] uppercase tracking-[0.18em] text-[rgba(14,17,22,0.4)]">测验均分</div>
-                  <div className="mt-1 font-semibold text-[#0e1116]">
-                    {m.avgScore == null ? '—' : m.avgScore}
-                    <span className="ml-1 text-xs font-normal text-[rgba(14,17,22,0.45)]">/ {m.attemptCount} 次</span>
+                  <div className="text-[11px] uppercase tracking-[0.18em] text-[rgba(18,21,28,0.4)]">测验均分</div>
+                  <div className="mt-1 font-semibold text-[#12151c]">
+                    {m.avgScore == null ? '-' : m.avgScore}
+                    <span className="ml-1 text-xs font-normal text-[rgba(18,21,28,0.45)]">/ {m.attemptCount} 次</span>
                   </div>
                 </div>
               </div>
             ))}
             {(data?.members ?? []).length === 0 && (
-              <div className="py-10 text-center text-sm text-[rgba(14,17,22,0.45)]">本支部暂无党员</div>
+              <div className="py-10 text-center text-sm text-[rgba(18,21,28,0.45)]">本支部暂无党员</div>
             )}
           </div>
         </CardContent>

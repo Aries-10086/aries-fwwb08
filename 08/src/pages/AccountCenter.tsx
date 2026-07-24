@@ -5,16 +5,16 @@ import { Button } from '@/components/Button'
 import { apiFetch } from '@/utils/api'
 import { useAuthStore, type AuthUser } from '@/store/auth'
 import {
-  BarChart3,
+  ChartBar,
   BookOpen,
-  Clock3,
-  KeyRound,
-  Loader2,
-  RotateCw,
-  Save,
+  Clock,
+  Key,
+  CircleNotch,
+  ArrowsClockwise,
+  FloppyDisk,
   Trophy,
-  UserRound,
-} from 'lucide-react'
+  User,
+} from '@phosphor-icons/react'
 
 type MyCenter = {
   profile: {
@@ -159,14 +159,14 @@ export default function AccountCenter() {
       <div className="hero-frame px-6 py-7 md:px-8">
         <div className="flex flex-wrap items-end justify-between gap-4">
           <div>
-            <div className="page-eyebrow">Account</div>
+            <div className="page-eyebrow">个人中心</div>
             <h1 className="page-title text-3xl md:text-5xl">个人中心</h1>
             <div className="page-subtitle mt-2 max-w-2xl">
               查看与管理个人资料、学习时长、测验成绩，并可修改登录密码。
             </div>
           </div>
           <Button variant="ghost" onClick={() => load()} disabled={loading}>
-            <RotateCw className={loading ? 'h-4 w-4 animate-spin' : 'h-4 w-4'} />
+            <ArrowsClockwise className={loading ? 'h-4 w-4 animate-spin' : 'h-4 w-4'} />
             刷新
           </Button>
         </div>
@@ -174,25 +174,25 @@ export default function AccountCenter() {
         {learning && exams && (
           <div className="mt-6 grid gap-3 md:grid-cols-2 lg:grid-cols-4">
             {[
-              ['学习时长', `${learning.durationHours} h`, Clock3],
+              ['学习时长', `${learning.durationHours} h`, Clock],
               ['已完成内容', `${learning.completedContentCount}`, BookOpen],
-              ['测验均分', exams.avgScore == null ? '—' : `${exams.avgScore}`, BarChart3],
+              ['测验均分', exams.avgScore == null ? '-' : `${exams.avgScore}`, ChartBar],
               [
                 '支部时长排名',
                 learning.branchRank != null
-                  ? `${learning.branchRank}/${learning.branchMemberCount ?? '—'}`
-                  : '—',
+                  ? `${learning.branchRank}/${learning.branchMemberCount ?? '-'}`
+                  : '-',
                 Trophy,
               ],
             ].map(([label, value, Icon]) => {
-              const I = Icon as typeof Clock3
+              const I = Icon as typeof Clock
               return (
                 <div key={String(label)} className="panel-muted rounded-2xl px-4 py-4">
-                  <div className="flex items-center gap-1.5 text-[11px] uppercase tracking-[0.22em] text-[#a31828]/70">
+                  <div className="flex items-center gap-1.5 text-xs font-medium text-[#9e1b2b]/70">
                     <I className="h-3.5 w-3.5" />
                     {label as string}
                   </div>
-                  <div className="mt-3 text-2xl font-black tracking-[-0.05em] text-[#0e1116]">
+                  <div className="mt-3 text-2xl font-black tracking-[-0.05em] text-[#12151c]">
                     {value as string}
                   </div>
                 </div>
@@ -203,7 +203,7 @@ export default function AccountCenter() {
       </div>
 
       {error && (
-        <div className="rounded-2xl bg-[rgba(163,24,40,0.08)] px-4 py-3 text-[#7a1020]">
+        <div className="rounded-2xl bg-[rgba(158,27,43,0.08)] px-4 py-3 text-[#741220]">
           {error}
         </div>
       )}
@@ -212,7 +212,7 @@ export default function AccountCenter() {
         <Card className="md:col-span-5">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <UserRound className="h-5 w-5 text-[#a31828]" />
+              <User className="h-5 w-5 text-[#9e1b2b]" />
               个人资料
             </CardTitle>
           </CardHeader>
@@ -229,29 +229,29 @@ export default function AccountCenter() {
                 </label>
                 <div className="grid gap-2 rounded-xl bg-white/90 px-4 py-3 text-sm shadow-[inset_0_0_0_1px_rgba(0,0,0,0.06)]">
                   <div className="flex justify-between gap-3">
-                    <span className="text-[rgba(14,17,22,0.45)]">账号</span>
-                    <span className="font-medium">{profile.username || '—'}</span>
+                    <span className="text-[rgba(18,21,28,0.45)]">账号</span>
+                    <span className="font-medium">{profile.username || '-'}</span>
                   </div>
                   <div className="flex justify-between gap-3">
-                    <span className="text-[rgba(14,17,22,0.45)]">角色</span>
+                    <span className="text-[rgba(18,21,28,0.45)]">角色</span>
                     <span className="font-medium">{roleLabel[profile.role] ?? profile.role}</span>
                   </div>
                   <div className="flex justify-between gap-3">
-                    <span className="text-[rgba(14,17,22,0.45)]">所属支部</span>
+                    <span className="text-[rgba(18,21,28,0.45)]">所属支部</span>
                     <span className="font-medium">{profile.orgName}</span>
                   </div>
                   <div className="flex justify-between gap-3">
-                    <span className="text-[rgba(14,17,22,0.45)]">注册时间</span>
+                    <span className="text-[rgba(18,21,28,0.45)]">注册时间</span>
                     <span className="font-medium">
-                      {profile.createdAt ? new Date(profile.createdAt).toLocaleDateString() : '—'}
+                      {profile.createdAt ? new Date(profile.createdAt).toLocaleDateString() : '-'}
                     </span>
                   </div>
                 </div>
                 {profileMsg && (
-                  <div className="text-sm text-[#a31828]">{profileMsg}</div>
+                  <div className="text-sm text-[#9e1b2b]">{profileMsg}</div>
                 )}
                 <Button onClick={() => saveProfile()} disabled={savingProfile || !name.trim()}>
-                  {savingProfile ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+                  {savingProfile ? <CircleNotch className="h-4 w-4 animate-spin" /> : <FloppyDisk className="h-4 w-4" />}
                   保存资料
                 </Button>
               </div>
@@ -264,7 +264,7 @@ export default function AccountCenter() {
         <Card className="md:col-span-7">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <KeyRound className="h-5 w-5 text-[#a31828]" />
+              <Key className="h-5 w-5 text-[#9e1b2b]" />
               修改密码
             </CardTitle>
           </CardHeader>
@@ -289,14 +289,14 @@ export default function AccountCenter() {
                 </label>
               ))}
               {pwdError && (
-                <div className="rounded-2xl bg-[rgba(163,24,40,0.08)] px-4 py-3 text-sm text-[#7a1020]">
+                <div className="rounded-2xl bg-[rgba(158,27,43,0.08)] px-4 py-3 text-sm text-[#741220]">
                   {pwdError}
                 </div>
               )}
               {pwdOk && <div className="text-sm text-[#1f6b4a]">密码已更新</div>}
               <div className="flex flex-wrap gap-2">
                 <Button type="submit" disabled={savingPwd}>
-                  {savingPwd ? <Loader2 className="h-4 w-4 animate-spin" /> : <KeyRound className="h-4 w-4" />}
+                  {savingPwd ? <CircleNotch className="h-4 w-4 animate-spin" /> : <Key className="h-4 w-4" />}
                   确认改密
                 </Button>
                 <Link to="/account/password">
@@ -314,7 +314,7 @@ export default function AccountCenter() {
         <Card className="md:col-span-4">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <Clock3 className="h-5 w-5 text-[#a31828]" />
+              <Clock className="h-5 w-5 text-[#9e1b2b]" />
               学习时长汇总
             </CardTitle>
           </CardHeader>
@@ -322,23 +322,23 @@ export default function AccountCenter() {
             {learning ? (
               <div className="grid gap-3 text-sm">
                 <div className="list-surface flex justify-between">
-                  <span className="text-[rgba(14,17,22,0.55)]">累计时长</span>
+                  <span className="text-[rgba(18,21,28,0.55)]">累计时长</span>
                   <span className="font-semibold">
                     {learning.durationHours} 小时（{learning.durationMinutes} 分钟）
                   </span>
                 </div>
                 <div className="list-surface flex justify-between">
-                  <span className="text-[rgba(14,17,22,0.55)]">已完成内容</span>
+                  <span className="text-[rgba(18,21,28,0.55)]">已完成内容</span>
                   <span className="font-semibold">{learning.completedContentCount} 项</span>
                 </div>
                 <div className="list-surface flex justify-between">
-                  <span className="text-[rgba(14,17,22,0.55)]">学习记录条数</span>
+                  <span className="text-[rgba(18,21,28,0.55)]">学习记录条数</span>
                   <span className="font-semibold">{learning.recordCount}</span>
                 </div>
                 {learning.branchRank != null && (
                   <div className="list-surface flex justify-between">
-                    <span className="text-[rgba(14,17,22,0.55)]">支部学习时长排名</span>
-                    <span className="font-semibold text-[#a31828]">
+                    <span className="text-[rgba(18,21,28,0.55)]">支部学习时长排名</span>
+                    <span className="font-semibold text-[#9e1b2b]">
                       第 {learning.branchRank} / {learning.branchMemberCount}
                     </span>
                   </div>
@@ -353,7 +353,7 @@ export default function AccountCenter() {
         <Card className="md:col-span-8">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <Trophy className="h-5 w-5 text-[#a31828]" />
+              <Trophy className="h-5 w-5 text-[#9e1b2b]" />
               我的成绩
             </CardTitle>
           </CardHeader>
@@ -363,13 +363,13 @@ export default function AccountCenter() {
                 <div className="grid gap-2 md:grid-cols-4">
                   {[
                     ['作答次数', `${exams.attemptCount}`],
-                    ['均分', exams.avgScore == null ? '—' : `${exams.avgScore}`],
-                    ['最高分', exams.bestScore == null ? '—' : `${exams.bestScore}`],
-                    ['通过率', exams.passRate == null ? '—' : `${exams.passRate}%`],
+                    ['均分', exams.avgScore == null ? '-' : `${exams.avgScore}`],
+                    ['最高分', exams.bestScore == null ? '-' : `${exams.bestScore}`],
+                    ['通过率', exams.passRate == null ? '-' : `${exams.passRate}%`],
                   ].map(([k, v]) => (
                     <div key={k} className="rounded-xl bg-white/90 px-4 py-3 shadow-[inset_0_0_0_1px_rgba(0,0,0,0.06)]">
-                      <div className="text-[11px] uppercase tracking-[0.18em] text-[rgba(14,17,22,0.4)]">{k}</div>
-                      <div className="mt-1 text-xl font-bold text-[#0e1116]">{v}</div>
+                      <div className="text-[11px] uppercase tracking-[0.18em] text-[rgba(18,21,28,0.4)]">{k}</div>
+                      <div className="mt-1 text-xl font-bold text-[#12151c]">{v}</div>
                     </div>
                   ))}
                 </div>
@@ -378,24 +378,24 @@ export default function AccountCenter() {
                     <Link
                       key={a.id}
                       to={`/m/exam-result/${a.id}`}
-                      className="flex flex-wrap items-center justify-between gap-3 rounded-xl bg-white/90 px-4 py-3 shadow-[inset_0_0_0_1px_rgba(0,0,0,0.06)] transition hover:bg-[rgba(163,24,40,0.05)]"
+                      className="flex flex-wrap items-center justify-between gap-3 rounded-xl bg-white/90 px-4 py-3 shadow-[inset_0_0_0_1px_rgba(0,0,0,0.06)] transition hover:bg-[rgba(158,27,43,0.05)]"
                     >
                       <div>
-                        <div className="text-sm font-medium text-[#0e1116]">{a.examTitle}</div>
-                        <div className="mt-1 text-xs text-[rgba(14,17,22,0.45)]">
+                        <div className="text-sm font-medium text-[#12151c]">{a.examTitle}</div>
+                        <div className="mt-1 text-xs text-[rgba(18,21,28,0.45)]">
                           {new Date(a.createdAt).toLocaleString()}
                           {a.passScore != null ? ` · 及格线 ${a.passScore}` : ''}
-                          <span className="ml-2 text-[#a31828]">查看回顾</span>
+                          <span className="ml-2 text-[#9e1b2b]">查看回顾</span>
                         </div>
                       </div>
                       <div className="text-right">
-                        <div className="text-lg font-bold text-[#0e1116]">{a.totalScore} 分</div>
+                        <div className="text-lg font-bold text-[#12151c]">{a.totalScore} 分</div>
                         <span
                           className={[
                             'mt-1 inline-block rounded-full px-2 py-0.5 text-[11px] font-medium',
                             a.isPass
                               ? 'bg-emerald-500/10 text-emerald-700'
-                              : 'bg-[rgba(163,24,40,0.08)] text-[#a31828]',
+                              : 'bg-[rgba(158,27,43,0.08)] text-[#9e1b2b]',
                           ].join(' ')}
                         >
                           {a.isPass ? '通过' : '未通过'}

@@ -5,7 +5,16 @@ import { Button } from '@/components/Button'
 import { apiFetch } from '@/utils/api'
 import { fileToTabularText } from '@/utils/spreadsheet'
 import { useAuthStore } from '@/store/auth'
-import { Upload, Plus, RotateCw, Users, PencilLine, Trash2, Search, Save } from 'lucide-react'
+import {
+  UploadSimple,
+  Plus,
+  ArrowsClockwise,
+  Users,
+  PencilSimpleLine,
+  Trash,
+  MagnifyingGlass,
+  FloppyDisk,
+} from '@phosphor-icons/react'
 
 type Org = { id: string; name: string; parentId: string | null }
 import type { User as SharedUser } from '../../shared/types'
@@ -156,7 +165,7 @@ export default function AdminUsers() {
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <div className="input-shell flex items-center gap-2 px-3 py-2">
-            <Search className="h-4 w-4 text-[#a31828]" />
+            <MagnifyingGlass className="h-4 w-4 text-[#9e1b2b]" />
             <input
               value={filters.name}
               onChange={(e) => setFilters((p) => ({ ...p, name: e.target.value }))}
@@ -185,14 +194,14 @@ export default function AdminUsers() {
               ))}
           </select>
           <Button variant="secondary" onClick={() => load()} disabled={loading}>
-            <RotateCw className={loading ? 'h-4 w-4 animate-spin' : 'h-4 w-4'} />
+            <ArrowsClockwise className={loading ? 'h-4 w-4 animate-spin' : 'h-4 w-4'} />
             搜索
           </Button>
         </div>
       </div>
 
       {error && (
-        <div className="rounded-2xl bg-[#a31828]/10 px-4 py-3 text-[#7a1020] shadow-[inset_0_0_0_1px_rgba(185,28,28,0.16)]">
+        <div className="rounded-2xl bg-[#9e1b2b]/10 px-4 py-3 text-[#741220] shadow-[inset_0_0_0_1px_rgba(185,28,28,0.16)]">
           {error}
         </div>
       )}
@@ -201,7 +210,7 @@ export default function AdminUsers() {
         <Card className="md:col-span-5">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              {selected ? <PencilLine className="h-5 w-5 text-[#a31828]" /> : <Plus className="h-5 w-5 text-[#a31828]" />}
+              {selected ? <PencilSimpleLine className="h-5 w-5 text-[#9e1b2b]" /> : <Plus className="h-5 w-5 text-[#9e1b2b]" />}
               {selected ? '编辑人员' : '新增人员'}
             </CardTitle>
           </CardHeader>
@@ -271,7 +280,7 @@ export default function AdminUsers() {
                       onClick={() => update()}
                       disabled={!form.name.trim() || !form.username.trim() || saving}
                     >
-                      <Save className="h-4 w-4" />
+                      <FloppyDisk className="h-4 w-4" />
                       保存
                     </Button>
                     <Button
@@ -307,7 +316,7 @@ export default function AdminUsers() {
         <Card className="md:col-span-7">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <Upload className="h-5 w-5 text-[#a31828]" />
+              <UploadSimple className="h-5 w-5 text-[#9e1b2b]" />
               批量导入（Excel/CSV 粘贴）
             </CardTitle>
           </CardHeader>
@@ -325,7 +334,7 @@ export default function AdminUsers() {
                     await onImportFile(e.target.files?.[0] ?? null)
                     e.currentTarget.value = ''
                   }}
-                  className="input-shell cursor-pointer file:mr-3 file:rounded-full file:border-0 file:bg-[#a31828] file:px-4 file:py-2 file:text-sm file:font-semibold file:text-white"
+                  className="input-shell cursor-pointer file:mr-3 file:rounded-full file:border-0 file:bg-[#9e1b2b] file:px-4 file:py-2 file:text-sm file:font-semibold file:text-white"
                 />
                 {importFileName ? <div className="text-xs text-black/55">已载入：{importFileName}</div> : null}
               </label>
@@ -336,7 +345,7 @@ export default function AdminUsers() {
                 className="input-shell w-full resize-none px-4 py-3 font-mono text-xs text-black/80"
               />
               <Button onClick={() => importCsv()}>
-                <Upload className="h-4 w-4" />
+                <UploadSimple className="h-4 w-4" />
                 导入
               </Button>
             </div>
@@ -356,12 +365,12 @@ export default function AdminUsers() {
                 className={[
                   'grid items-center gap-3 rounded-2xl px-4 py-4 transition',
                   'shadow-[inset_0_0_0_1px_rgba(0,0,0,0.06)]',
-                  selectedId === u.id ? 'bg-[#a31828]/6' : 'bg-white/90',
+                  selectedId === u.id ? 'bg-[#9e1b2b]/6' : 'bg-white/90',
                   'md:grid-cols-[1.4fr_0.8fr_1.2fr_0.9fr_auto]',
                 ].join(' ')}
               >
                 <button className="text-left" onClick={() => setSelectedId(u.id)}>
-                  <div className="text-sm font-medium text-[#0e1116]">{u.name}</div>
+                  <div className="text-sm font-medium text-[#12151c]">{u.name}</div>
                   <div className="mt-1 text-xs text-black/45">
                     {u.username ? `@${u.username}` : u.id}
                   </div>
@@ -374,7 +383,7 @@ export default function AdminUsers() {
                     编辑
                   </Button>
                   <Button variant="danger" className="px-3 py-2 text-xs" onClick={() => remove(u.id)}>
-                    <Trash2 className="h-3.5 w-3.5" />
+                    <Trash className="h-3.5 w-3.5" />
                     删除
                   </Button>
                 </div>

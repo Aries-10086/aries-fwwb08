@@ -3,47 +3,47 @@ import { cn } from '@/lib/utils'
 import { useAuthStore } from '@/store/auth'
 import { Button } from '@/components/Button'
 import {
-  LogOut,
-  LayoutDashboard,
+  SignOut,
+  SquaresFour,
   Users,
-  Network,
+  TreeStructure,
   BookOpen,
-  ClipboardList,
+  ClipboardText,
   FileText,
-  BrainCircuit,
-  BarChart3,
-  Sparkles,
-  UserRound,
-} from 'lucide-react'
+  Brain,
+  ChartBar,
+  Sparkle,
+  User,
+} from '@phosphor-icons/react'
 
 const adminNav = [
-  { to: '/admin/dashboard', label: '看板', icon: LayoutDashboard },
-  { to: '/admin/org', label: '组织', icon: Network },
+  { to: '/admin/dashboard', label: '看板', icon: SquaresFour },
+  { to: '/admin/org', label: '组织', icon: TreeStructure },
   { to: '/admin/users', label: '人员', icon: Users },
   { to: '/admin/contents', label: '内容', icon: BookOpen },
-  { to: '/admin/tasks', label: '任务', icon: ClipboardList },
+  { to: '/admin/tasks', label: '任务', icon: ClipboardText },
   { to: '/admin/questions', label: '题库', icon: FileText },
   { to: '/admin/papers', label: '试卷', icon: FileText },
-  { to: '/admin/exams', label: '测验', icon: ClipboardList },
-  { to: '/admin/ai-query', label: 'AI 查询', icon: BrainCircuit },
-  { to: '/account', label: '我的', icon: UserRound },
+  { to: '/admin/exams', label: '测验', icon: ClipboardText },
+  { to: '/admin/ai-query', label: 'AI 查询', icon: Brain },
+  { to: '/account', label: '我的', icon: User },
 ] as const
 
 const secretaryNav = [
-  { to: '/m/dashboard', label: '支部看板', icon: LayoutDashboard },
-  { to: '/m/scores', label: '支部成绩', icon: BarChart3 },
-  { to: '/admin/tasks', label: '任务', icon: ClipboardList },
+  { to: '/m/dashboard', label: '支部看板', icon: SquaresFour },
+  { to: '/m/scores', label: '支部成绩', icon: ChartBar },
+  { to: '/admin/tasks', label: '任务', icon: ClipboardText },
   { to: '/m/home', label: '学习', icon: BookOpen },
-  { to: '/m/exams', label: '测验', icon: ClipboardList },
-  { to: '/m/report', label: 'AI 报告', icon: Sparkles },
-  { to: '/account', label: '我的', icon: UserRound },
+  { to: '/m/exams', label: '测验', icon: ClipboardText },
+  { to: '/m/report', label: 'AI 报告', icon: Sparkle },
+  { to: '/account', label: '我的', icon: User },
 ] as const
 
 const memberNav = [
   { to: '/m/home', label: '学习', icon: BookOpen },
-  { to: '/m/exams', label: '测验', icon: ClipboardList },
-  { to: '/m/report', label: 'AI 报告', icon: Sparkles },
-  { to: '/account', label: '我的', icon: UserRound },
+  { to: '/m/exams', label: '测验', icon: ClipboardText },
+  { to: '/m/report', label: 'AI 报告', icon: Sparkle },
+  { to: '/account', label: '我的', icon: User },
 ] as const
 
 export function AppShell({ children }: { children: React.ReactNode }) {
@@ -56,31 +56,35 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const isHome = location.pathname === '/'
 
   return (
-    <div className="min-h-screen text-[#0e1116]">
-      <header className="relative z-20 border-b border-[rgba(14,17,22,0.08)] bg-[rgba(243,245,247,0.82)] backdrop-blur-xl">
-        <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-6 py-4">
+    <div className="min-h-[100dvh] text-[#12151c]">
+      <a href="#main-content" className="skip-link">
+        跳到主要内容
+      </a>
+
+      <header className="sticky top-0 z-[40] border-b border-[rgba(18,21,28,0.06)] bg-[rgba(244,246,248,0.88)] backdrop-blur-xl">
+        <div className="mx-auto flex h-16 max-w-7xl items-center justify-between gap-4 px-6">
           <Link to="/" className="group flex items-center gap-3">
-            <div className="grid h-11 w-11 place-items-center border border-[rgba(163,24,40,0.35)] bg-[#a31828] text-white shadow-[0_8px_20px_rgba(163,24,40,0.2)] transition group-hover:bg-[#8a1422]">
-              <span className="font-display text-xl leading-none tracking-widest">校</span>
+            <div className="grid h-10 w-10 place-items-center rounded-[12px] bg-[#9e1b2b] text-white shadow-[0_6px_16px_rgba(158,27,43,0.22)] transition group-hover:bg-[#861625]">
+              <span className="text-lg font-bold leading-none">校</span>
             </div>
             <div className="leading-tight">
-              <div className="brand-mark text-xl text-[#0e1116] md:text-2xl">数智党校</div>
-              <div className="text-[11px] tracking-[0.22em] text-[rgba(14,17,22,0.45)]">学习 · 治理 · 洞察</div>
+              <div className="brand-mark text-lg text-[#12151c] md:text-xl">数智党校</div>
+              <div className="hidden text-xs text-[rgba(18,21,28,0.42)] sm:block">学习 · 治理 · 洞察</div>
             </div>
           </Link>
 
           <div className="flex items-center gap-3">
             {user && (
-              <div className="hidden items-center gap-2 border border-[rgba(14,17,22,0.1)] bg-white/70 px-3 py-1.5 text-sm md:flex">
-                <span className="h-1.5 w-1.5 bg-[#a31828]" />
+              <div className="hidden items-center gap-2 rounded-full border border-[rgba(18,21,28,0.08)] bg-white px-3 py-1.5 text-sm shadow-[0_1px_2px_rgba(18,21,28,0.04)] md:flex">
+                <span className="h-1.5 w-1.5 rounded-full bg-[#9e1b2b]" aria-hidden />
                 <span className="font-medium">{user.name}</span>
-                <span className="text-[rgba(14,17,22,0.28)]">/</span>
-                <span className="text-[rgba(14,17,22,0.55)]">{roleName}</span>
+                <span className="text-[rgba(18,21,28,0.22)]">/</span>
+                <span className="text-[rgba(18,21,28,0.5)]">{roleName}</span>
               </div>
             )}
             {user ? (
               <Button variant="secondary" onClick={() => logout()} className="px-3 py-2 text-xs">
-                <LogOut className="h-4 w-4" />
+                <SignOut size={16} weight="bold" />
                 退出
               </Button>
             ) : (
@@ -94,14 +98,19 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         </div>
 
         {user && nav.length > 0 && (
-          <div className="mx-auto max-w-7xl px-6 pb-3">
-            <nav className="flex flex-wrap gap-1 border-t border-[rgba(14,17,22,0.06)] pt-3">
+          <div className="mx-auto max-w-7xl px-6 pb-2.5">
+            <nav aria-label="主导航" className="flex gap-1 overflow-x-auto border-t border-[rgba(18,21,28,0.06)] pt-2.5">
               {nav.map((it) => {
                 const active = location.pathname.startsWith(it.to)
                 const Icon = it.icon
                 return (
-                  <Link key={it.to} to={it.to} className={cn('nav-link', active && 'nav-link-active')}>
-                    <Icon className="h-4 w-4" />
+                  <Link
+                    key={it.to}
+                    to={it.to}
+                    className={cn('nav-link shrink-0', active && 'nav-link-active')}
+                    aria-current={active ? 'page' : undefined}
+                  >
+                    <Icon size={16} weight={active ? 'bold' : 'regular'} />
                     {it.label}
                   </Link>
                 )
@@ -112,6 +121,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       </header>
 
       <main
+        id="main-content"
         className={cn(
           'relative z-10',
           isHome ? 'mx-auto max-w-none px-0 py-0' : 'mx-auto max-w-7xl px-6 py-8 md:py-10',

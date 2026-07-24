@@ -5,7 +5,11 @@ import { Button } from '@/components/Button'
 import { Chart } from '@/components/Chart'
 import { apiFetch } from '@/utils/api'
 import { useAuthStore } from '@/store/auth'
-import { BrainCircuit, Loader2, Sparkles } from 'lucide-react'
+import {
+  Brain,
+  CircleNotch,
+  Sparkle,
+} from '@phosphor-icons/react'
 import type { EChartsOption } from 'echarts'
 
 type QueryResult = {
@@ -90,7 +94,7 @@ export default function AdminAIQuery() {
       </div>
 
       {error && (
-        <div className="rounded-2xl bg-[#a31828]/10 px-4 py-3 text-[#7a1020] shadow-[inset_0_0_0_1px_rgba(185,28,28,0.16)]">
+        <div className="rounded-2xl bg-[#9e1b2b]/10 px-4 py-3 text-[#741220] shadow-[inset_0_0_0_1px_rgba(185,28,28,0.16)]">
           {error}
         </div>
       )}
@@ -98,7 +102,7 @@ export default function AdminAIQuery() {
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <BrainCircuit className="h-5 w-5 text-[#a31828]" />
+            <Brain className="h-5 w-5 text-[#9e1b2b]" />
             提问
           </CardTitle>
         </CardHeader>
@@ -115,7 +119,7 @@ export default function AdminAIQuery() {
                 <button
                   key={t}
                   onClick={() => setQuestion(t)}
-                  className="data-pill hover:bg-[#a31828]/10"
+                  className="data-pill hover:bg-[#9e1b2b]/10"
                 >
                   {t}
                 </button>
@@ -124,12 +128,12 @@ export default function AdminAIQuery() {
             <Button onClick={() => query()} disabled={loading || !question.trim()}>
               {loading ? (
                 <>
-                  <Loader2 className="h-4 w-4 animate-spin" />
+                  <CircleNotch className="h-4 w-4 animate-spin" />
                   查询中…
                 </>
               ) : (
                 <>
-                  <Sparkles className="h-4 w-4" />
+                  <Sparkle className="h-4 w-4" />
                   查询
                 </>
               )}

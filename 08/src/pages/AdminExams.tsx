@@ -4,7 +4,12 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/Card'
 import { Button } from '@/components/Button'
 import { apiFetch } from '@/utils/api'
 import { useAuthStore } from '@/store/auth'
-import { ClipboardList, Plus, RotateCw, Trash2 } from 'lucide-react'
+import {
+  ClipboardText,
+  Plus,
+  ArrowsClockwise,
+  Trash,
+} from '@phosphor-icons/react'
 
 type Org = { id: string; name: string; parentId: string | null }
 type Paper = { id: string; title: string; durationMin: number; passScore: number }
@@ -124,13 +129,13 @@ export default function AdminExams() {
           <div className="page-subtitle mt-2 max-w-2xl">基于试卷发布测验并指定支部对象</div>
         </div>
         <Button variant="ghost" onClick={() => load()} disabled={loading}>
-          <RotateCw className={loading ? 'h-4 w-4 animate-spin' : 'h-4 w-4'} />
+          <ArrowsClockwise className={loading ? 'h-4 w-4 animate-spin' : 'h-4 w-4'} />
           刷新
         </Button>
       </div>
 
       {error && (
-        <div className="rounded-2xl bg-[rgba(163,24,40,0.08)] px-4 py-3 text-[#7a1020] shadow-[inset_0_0_0_1px_rgba(163,24,40,0.16)]">
+        <div className="rounded-2xl bg-[rgba(158,27,43,0.08)] px-4 py-3 text-[#741220] shadow-[inset_0_0_0_1px_rgba(158,27,43,0.16)]">
           {error}
         </div>
       )}
@@ -139,7 +144,7 @@ export default function AdminExams() {
         <Card className="md:col-span-5">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <Plus className="h-5 w-5 text-[#a31828]" />
+              <Plus className="h-5 w-5 text-[#9e1b2b]" />
               新建测验
             </CardTitle>
           </CardHeader>
@@ -226,7 +231,7 @@ export default function AdminExams() {
                 </label>
               </div>
               <Button onClick={() => create()} disabled={!form.title.trim() || !form.paperId || !form.orgUnitId}>
-                <ClipboardList className="h-4 w-4" />
+                <ClipboardText className="h-4 w-4" />
                 创建并发布
               </Button>
             </div>
@@ -246,13 +251,13 @@ export default function AdminExams() {
                 >
                   <div className="flex flex-wrap items-start justify-between gap-3">
                     <div>
-                      <div className="text-sm font-medium text-[#0e1116]">{e.title}</div>
+                      <div className="text-sm font-medium text-[#12151c]">{e.title}</div>
                       <div className="mt-1 text-xs text-zinc-500">
                         {orgById.get(e.orgUnitId) ?? e.orgUnitId} · {paperById.get(e.paperId) ?? e.paperId}
                       </div>
                     </div>
                     <div className="flex flex-wrap items-center gap-2">
-                      <span className="rounded-full bg-white/90 px-3 py-1 text-xs text-[rgba(14,17,22,0.7)] shadow-[inset_0_0_0_1px_rgba(0,0,0,0.06)]">
+                      <span className="rounded-full bg-white/90 px-3 py-1 text-xs text-[rgba(18,21,28,0.7)] shadow-[inset_0_0_0_1px_rgba(0,0,0,0.06)]">
                         {e.status}
                       </span>
                       <Button variant="secondary" className="px-3" onClick={() => updateStatus(e, 'published')}>
@@ -262,7 +267,7 @@ export default function AdminExams() {
                         关闭
                       </Button>
                       <Button variant="danger" className="px-3" onClick={() => remove(e.id)}>
-                        <Trash2 className="h-4 w-4" />
+                        <Trash className="h-4 w-4" />
                         删除
                       </Button>
                     </div>
