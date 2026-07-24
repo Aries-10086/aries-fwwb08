@@ -1,7 +1,8 @@
 import { Router, type Request, type Response } from 'express'
 import { nanoid } from 'nanoid'
-import { db, nowIso, audit } from '../db.js'
+import { query, nowIso, audit } from '../db.js'
 import { getUserContext, requireAuth, requireRole, rejectUnauthorized } from '../utils/http.js'
+import { wrapAsyncRouter } from '../utils/async-router.js'
 import {
   completionRatePercent,
   loadCompletedByUserIds,
@@ -12,34 +13,26 @@ import { isFkViolation } from '../utils/fk-schema.js'
 
 const router = Router()
 
-router.get('/', (req: Request, res: Response) => {
+router.get('/', async (req: Request, res: Response) => {
   if (!requireAuth(req)) {
     rejectUnauthorized(res)
     return
   }
 
-  const rows = db
-    .prepare('SELECT id, name, parent_id, created_at FROM org_units ORDER BY created_at ASC')
-    .all() as any[]
-
-  const taskCountRows = db
-    .prepare('SELECT org_unit_id, COUNT(1) as c FROM learning_tasks GROUP BY org_unit_id')
-    .all() as any[]
-  const memberCountRows = db
-    .prepare('SELECT org_unit_id, COUNT(1) as c FROM users GROUP BY org_unit_id')
-    .all() as any[]
-  const memberRows = db
-    .prepare('SELECT id, name, role, org_unit_id FROM users ORDER BY created_at ASC')
-    .all() as any[]
-  const scoreRows = db
-    .prepare(
+  const [{ rows }, { rows: taskCountRows }, { rows: memberCountRows }, { rows: memberRows }, { rows: scoreRows }] =
+    await Promise.all([
+      query('SELECT id, name, parent_id, created_at FROM org_units ORDER BY created_at ASC'),
+      query('SELECT org_unit_id, COUNT(1) as c FROM learning_tasks GROUP BY org_unit_id'),
+      query('SELECT org_unit_id, COUNT(1) as c FROM users GROUP BY org_unit_id'),
+      query('SELECT id, name, role, org_unit_id FROM users ORDER BY created_at ASC'),
+      query(
       `SELECT u.org_unit_id as org_unit_id, AVG(ea.total_score) as avg_score
        FROM exam_attempts ea
        JOIN users u ON u.id = ea.user_id
        WHERE u.role = 'member'
        GROUP BY u.org_unit_id`,
-    )
-    .all() as any[]
+      ),
+    ])
 
   const taskCountByOrg = new Map<string, number>()
   const memberCountByOrg = new Map<string, number>()
@@ -58,10 +51,10 @@ router.get('/', (req: Request, res: Response) => {
 
   // 批量计算各支部「最新任务」完成率，避免 per-org / per-user N+1
   const orgIds = rows.map((r) => String(r.id))
-  const membersByOrgIds = loadMemberIdsByOrg(orgIds)
-  const latestContentsByOrg = loadLatestTaskContentsByOrg(orgIds)
+  const membersByOrgIds = await loadMemberIdsByOrg(orgIds)
+  const latestContentsByOrg = await loadLatestTaskContentsByOrg(orgIds)
   const allMemberIds = [...new Set([...membersByOrgIds.values()].flat())]
-  const completedByUser = loadCompletedByUserIds(allMemberIds)
+  const completedByUser = await loadCompletedByUserIds(allMemberIds)
   const completionByOrg = new Map<string, number>()
   for (const orgId of orgIds) {
     const memberIds = membersByOrgIds.get(orgId) ?? []
@@ -99,7 +92,7 @@ router.get('/', (req: Request, res: Response) => {
   res.status(200).json({ success: true, data: scoped })
 })
 
-router.post('/', (req: Request, res: Response) => {
+router.post('/', async (req: Request, res: Response) => {
   if (!requireRole(req, ['admin'])) {
     res.status(403).json({ success: false, error: '仅管理员可操作' })
     return
@@ -109,14 +102,16 @@ router.post('/', (req: Request, res: Response) => {
   const id = `org_${nanoid(10)}`
   const ts = nowIso()
 
-  db.prepare('INSERT INTO org_units (id, name, parent_id, created_at) VALUES (?, ?, ?, ?)')
-    .run(id, String(req.body?.name ?? ''), req.body?.parentId ? String(req.body.parentId) : null, ts)
+  await query(
+    'INSERT INTO org_units (id, name, parent_id, created_at) VALUES ($1, $2, $3, $4)',
+    [id, String(req.body?.name ?? ''), req.body?.parentId ? String(req.body.parentId) : null, ts],
+  )
 
-  audit(userId || 'u_admin_demo', 'org.create', { id })
+  await audit(userId || 'u_admin_demo', 'org.create', { id })
   res.status(200).json({ success: true, data: { id } })
 })
 
-router.put('/:id', (req: Request, res: Response) => {
+router.put('/:id', async (req: Request, res: Response) => {
   if (!requireRole(req, ['admin'])) {
     res.status(403).json({ success: false, error: '仅管理员可操作' })
     return
@@ -125,14 +120,17 @@ router.put('/:id', (req: Request, res: Response) => {
   const { userId } = getUserContext(req)
   const id = String(req.params.id)
 
-  db.prepare('UPDATE org_units SET name = ?, parent_id = ? WHERE id = ?')
-    .run(String(req.body?.name ?? ''), req.body?.parentId ? String(req.body.parentId) : null, id)
+  await query('UPDATE org_units SET name = $1, parent_id = $2 WHERE id = $3', [
+    String(req.body?.name ?? ''),
+    req.body?.parentId ? String(req.body.parentId) : null,
+    id,
+  ])
 
-  audit(userId || 'u_admin_demo', 'org.update', { id })
+  await audit(userId || 'u_admin_demo', 'org.update', { id })
   res.status(200).json({ success: true })
 })
 
-router.delete('/:id', (req: Request, res: Response) => {
+router.delete('/:id', async (req: Request, res: Response) => {
   if (!requireRole(req, ['admin'])) {
     res.status(403).json({ success: false, error: '仅管理员可操作' })
     return
@@ -141,20 +139,20 @@ router.delete('/:id', (req: Request, res: Response) => {
   const { userId } = getUserContext(req)
   const id = String(req.params.id)
 
-  const children = db.prepare('SELECT COUNT(1) as c FROM org_units WHERE parent_id = ?').get(id) as any
+  const children = (await query('SELECT COUNT(1) as c FROM org_units WHERE parent_id = $1', [id])).rows[0]
   if (Number(children?.c ?? 0) > 0) {
     res.status(400).json({ success: false, error: '请先删除下级组织' })
     return
   }
 
-  const userCount = db.prepare('SELECT COUNT(1) as c FROM users WHERE org_unit_id = ?').get(id) as any
+  const userCount = (await query('SELECT COUNT(1) as c FROM users WHERE org_unit_id = $1', [id])).rows[0]
   if (Number(userCount?.c ?? 0) > 0) {
     res.status(400).json({ success: false, error: '该组织下仍有人员，无法删除' })
     return
   }
 
   try {
-    db.prepare('DELETE FROM org_units WHERE id = ?').run(id)
+    await query('DELETE FROM org_units WHERE id = $1', [id])
   } catch (e) {
     if (isFkViolation(e)) {
       res.status(400).json({ success: false, error: '该组织仍有关联数据，无法删除' })
@@ -163,8 +161,8 @@ router.delete('/:id', (req: Request, res: Response) => {
     throw e
   }
 
-  audit(userId || 'u_admin_demo', 'org.delete', { id })
+  await audit(userId || 'u_admin_demo', 'org.delete', { id })
   res.status(200).json({ success: true })
 })
 
-export default router
+export default wrapAsyncRouter(router)

@@ -8,9 +8,7 @@ import express, {
   type NextFunction,
 } from 'express'
 import cors from 'cors'
-import path from 'path'
 import dotenv from 'dotenv'
-import { fileURLToPath } from 'url'
 import authRoutes from './routes/auth.js'
 import orgUnitRoutes from './routes/org-units.js'
 import userRoutes from './routes/users.js'
@@ -23,18 +21,13 @@ import examRoutes from './routes/exams.js'
 import statsRoutes from './routes/stats.js'
 import aiRoutes from './routes/ai.js'
 import fileRoutes from './routes/files.js'
-import { initDb, seedIfEmpty } from './db.js'
+import { checkDatabaseHealth, initializeDatabase } from './db.js'
 import { attachAuth } from './utils/http.js'
-
-// for esm mode
-const __filename = fileURLToPath(import.meta.url)
-const __dirname = path.dirname(__filename)
 
 // load env
 dotenv.config()
 
-initDb()
-seedIfEmpty()
+await initializeDatabase()
 
 const app: express.Application = express()
 
@@ -58,7 +51,9 @@ app.use(
 )
 app.use(express.json({ limit: '10mb' }))
 app.use(express.urlencoded({ extended: true, limit: '10mb' }))
-app.use(attachAuth)
+app.use((req: Request, res: Response, next: NextFunction) => {
+  void attachAuth(req, res, next).catch(next)
+})
 
 // 不再公开静态 /uploads，文件必须经鉴权路由下载
 app.use('/api/files', fileRoutes)
@@ -81,10 +76,11 @@ app.use('/api/ai', aiRoutes)
 /**
  * health
  */
-app.get('/api/health', (_req: Request, res: Response): void => {
-  res.status(200).json({
-    success: true,
-    message: 'ok',
+app.get('/api/health', async (_req: Request, res: Response): Promise<void> => {
+  const healthy = await checkDatabaseHealth()
+  res.status(healthy ? 200 : 503).json({
+    success: healthy,
+    message: healthy ? 'ok' : 'database unavailable',
   })
 })
 
@@ -92,6 +88,7 @@ app.get('/api/health', (_req: Request, res: Response): void => {
  * error handler middleware
  */
 app.use((error: Error, _req: Request, res: Response, _next: NextFunction) => {
+  void _next
   if (String(error?.message || '').includes('CORS')) {
     res.status(403).json({ success: false, error: '跨域请求被拒绝' })
     return

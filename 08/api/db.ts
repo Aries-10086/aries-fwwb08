@@ -1,512 +1,533 @@
-import Database from 'better-sqlite3'
-import fs from 'fs'
-import path from 'path'
-import { fileURLToPath } from 'url'
+import 'dotenv/config'
+import {
+  Pool,
+  type PoolClient,
+  type QueryResult,
+  type QueryResultRow,
+} from 'pg'
 import { nanoid } from 'nanoid'
 import type { ContentType, ExamStatus, QuestionType, UserRole } from '../shared/types.js'
 import { hashPassword } from './utils/password.js'
-import { randomPassword } from './utils/token.js'
-import { cleanupOrphanRecords, enableForeignKeys, ensureForeignKeySchema } from './utils/fk-schema.js'
+const connectionString =
+  process.env.DATABASE_URL ??
+  'postgresql://party_school:party_school@localhost:5432/party_school'
 
-const __filename = fileURLToPath(import.meta.url)
-const __dirname = path.dirname(__filename)
+const pool = new Pool({
+  connectionString,
+  max: Number(process.env.DB_POOL_MAX ?? 10),
+  idleTimeoutMillis: Number(process.env.DB_IDLE_TIMEOUT_MS ?? 30_000),
+  connectionTimeoutMillis: Number(process.env.DB_CONNECT_TIMEOUT_MS ?? 5_000),
+  ssl: process.env.DATABASE_SSL === '1' ? { rejectUnauthorized: false } : undefined,
+})
 
-const dataDir = path.resolve(__dirname, '../data')
-const dbPath = process.env.DB_PATH
-  ? path.resolve(process.env.DB_PATH)
-  : path.join(dataDir, 'app.sqlite')
+// 数据库重启或网络瞬断时，空闲连接会发出 error 事件；监听后连接池可自行补建连接。
+pool.on('error', (error) => {
+  console.error('PostgreSQL idle connection error:', error.message)
+})
 
-if (!fs.existsSync(dataDir)) fs.mkdirSync(dataDir, { recursive: true })
+export type TransactionClient = Pick<PoolClient, 'query'>
+export type TransactionCallback<T> = (client: TransactionClient) => Promise<T>
 
-export const db = new Database(dbPath)
-enableForeignKeys(db)
+export function query<T extends QueryResultRow = QueryResultRow>(
+  text: string,
+  values: readonly unknown[] = [],
+): Promise<QueryResult<T>> {
+  return pool.query<T>(text, [...values])
+}
 
-export function nowIso() {
+export async function withTransaction<T>(
+  callback: TransactionCallback<T>,
+): Promise<T> {
+  const client = await pool.connect()
+  try {
+    await client.query('BEGIN')
+    const result = await callback(client)
+    await client.query('COMMIT')
+    return result
+  } catch (error) {
+    await client.query('ROLLBACK')
+    throw error
+  } finally {
+    client.release()
+  }
+}
+
+export function nowIso(): string {
   return new Date().toISOString()
 }
 
-function json(value: unknown) {
-  return JSON.stringify(value ?? null)
+export async function audit(
+  userId: string,
+  action: string,
+  meta: unknown,
+): Promise<void> {
+  await query(
+    `INSERT INTO ai_logs (id, user_id, action, meta_json, created_at)
+     VALUES ($1, $2, $3, $4::jsonb, $5)`,
+    [`log_${nanoid(12)}`, userId, action, JSON.stringify(meta ?? null), nowIso()],
+  )
 }
 
-export function initDb() {
-  db.exec(`
-    PRAGMA journal_mode = WAL;
-
-    CREATE TABLE IF NOT EXISTS org_units (
-      id TEXT PRIMARY KEY,
-      name TEXT NOT NULL,
-      parent_id TEXT REFERENCES org_units(id) ON DELETE RESTRICT,
-      created_at TEXT NOT NULL
-    );
-
-    CREATE TABLE IF NOT EXISTS users (
-      id TEXT PRIMARY KEY,
-      name TEXT NOT NULL,
-      username TEXT,
-      password_hash TEXT,
-      role TEXT NOT NULL,
-      org_unit_id TEXT NOT NULL REFERENCES org_units(id) ON DELETE RESTRICT,
-      created_at TEXT NOT NULL
-    );
-
-    CREATE TABLE IF NOT EXISTS contents (
-      id TEXT PRIMARY KEY,
-      type TEXT NOT NULL,
-      title TEXT NOT NULL,
-      body TEXT NOT NULL,
-      category TEXT NOT NULL,
-      tags_json TEXT NOT NULL,
-      attachments_json TEXT NOT NULL DEFAULT '[]',
-      is_public INTEGER NOT NULL DEFAULT 0,
-      created_at TEXT NOT NULL,
-      updated_at TEXT NOT NULL
-    );
-
-    CREATE TABLE IF NOT EXISTS learning_tasks (
-      id TEXT PRIMARY KEY,
-      org_unit_id TEXT NOT NULL REFERENCES org_units(id) ON DELETE CASCADE,
-      title TEXT NOT NULL,
-      due_at TEXT,
-      created_at TEXT NOT NULL
-    );
-
-    CREATE TABLE IF NOT EXISTS task_contents (
-      task_id TEXT NOT NULL REFERENCES learning_tasks(id) ON DELETE CASCADE,
-      content_id TEXT NOT NULL REFERENCES contents(id) ON DELETE CASCADE,
-      PRIMARY KEY (task_id, content_id)
-    );
-
-    CREATE TABLE IF NOT EXISTS learning_records (
-      id TEXT PRIMARY KEY,
-      user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-      content_id TEXT NOT NULL REFERENCES contents(id) ON DELETE CASCADE,
-      duration_ms INTEGER NOT NULL,
-      is_completed INTEGER NOT NULL DEFAULT 0,
-      created_at TEXT NOT NULL
-    );
-
-    CREATE TABLE IF NOT EXISTS questions (
-      id TEXT PRIMARY KEY,
-      type TEXT NOT NULL,
-      category TEXT NOT NULL,
-      stem TEXT NOT NULL,
-      options_json TEXT,
-      answer_key_json TEXT,
-      created_at TEXT NOT NULL,
-      updated_at TEXT NOT NULL
-    );
-
-    CREATE TABLE IF NOT EXISTS papers (
-      id TEXT PRIMARY KEY,
-      title TEXT NOT NULL,
-      duration_min INTEGER NOT NULL,
-      pass_score INTEGER NOT NULL,
-      created_at TEXT NOT NULL
-    );
-
-    CREATE TABLE IF NOT EXISTS paper_questions (
-      paper_id TEXT NOT NULL REFERENCES papers(id) ON DELETE CASCADE,
-      question_id TEXT NOT NULL REFERENCES questions(id) ON DELETE RESTRICT,
-      score INTEGER NOT NULL,
-      order_no INTEGER NOT NULL,
-      PRIMARY KEY (paper_id, question_id)
-    );
-
-    CREATE TABLE IF NOT EXISTS exams (
-      id TEXT PRIMARY KEY,
-      org_unit_id TEXT NOT NULL REFERENCES org_units(id) ON DELETE CASCADE,
-      paper_id TEXT NOT NULL REFERENCES papers(id) ON DELETE RESTRICT,
-      title TEXT NOT NULL,
-      duration_min INTEGER NOT NULL,
-      pass_score INTEGER NOT NULL,
-      status TEXT NOT NULL,
-      created_at TEXT NOT NULL
-    );
-
-    CREATE TABLE IF NOT EXISTS exam_attempts (
-      id TEXT PRIMARY KEY,
-      exam_id TEXT NOT NULL REFERENCES exams(id) ON DELETE CASCADE,
-      user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-      total_score INTEGER NOT NULL,
-      is_pass INTEGER NOT NULL,
-      created_at TEXT NOT NULL
-    );
-
-    CREATE TABLE IF NOT EXISTS exam_answers (
-      id TEXT PRIMARY KEY,
-      attempt_id TEXT NOT NULL REFERENCES exam_attempts(id) ON DELETE CASCADE,
-      question_id TEXT NOT NULL REFERENCES questions(id) ON DELETE RESTRICT,
-      answer_json TEXT NOT NULL,
-      score INTEGER NOT NULL
-    );
-
-    CREATE TABLE IF NOT EXISTS ai_reports (
-      id TEXT PRIMARY KEY,
-      user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-      report_json TEXT NOT NULL,
-      created_at TEXT NOT NULL
-    );
-
-    CREATE TABLE IF NOT EXISTS ai_logs (
-      id TEXT PRIMARY KEY,
-      user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-      action TEXT NOT NULL,
-      meta_json TEXT NOT NULL,
-      created_at TEXT NOT NULL
-    );
-
-    CREATE INDEX IF NOT EXISTS idx_users_org ON users(org_unit_id);
-    CREATE INDEX IF NOT EXISTS idx_tasks_org ON learning_tasks(org_unit_id);
-    CREATE INDEX IF NOT EXISTS idx_records_user ON learning_records(user_id);
-    CREATE INDEX IF NOT EXISTS idx_exams_org ON exams(org_unit_id);
-    CREATE INDEX IF NOT EXISTS idx_attempts_exam ON exam_attempts(exam_id);
-    CREATE INDEX IF NOT EXISTS idx_ai_logs_user ON ai_logs(user_id);
-  `)
-
-  ensureAuthColumns()
-  ensureContentAttachmentsColumn()
-  ensureExamAndLearningSchema()
-  cleanupOrphanRecords(db)
-  ensureForeignKeySchema(db)
+type Migration = {
+  version: number
+  name: string
+  sql: string
 }
 
-function ensureExamAndLearningSchema() {
-  const examCols = tableColumns('exams')
-  if (!examCols.has('max_attempts')) {
-    db.exec('ALTER TABLE exams ADD COLUMN max_attempts INTEGER NOT NULL DEFAULT 3')
-  }
+const migrations: Migration[] = [
+  {
+    version: 1,
+    name: 'create_initial_postgresql_schema',
+    sql: `
+      CREATE TABLE org_units (
+        id TEXT PRIMARY KEY,
+        name TEXT NOT NULL,
+        parent_id TEXT REFERENCES org_units(id) ON DELETE RESTRICT,
+        created_at TIMESTAMPTZ NOT NULL
+      );
 
-  db.exec(`
-    CREATE TABLE IF NOT EXISTS exam_sessions (
-      id TEXT PRIMARY KEY,
-      exam_id TEXT NOT NULL REFERENCES exams(id) ON DELETE CASCADE,
-      user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-      started_at TEXT NOT NULL,
-      submitted INTEGER NOT NULL DEFAULT 0
-    );
-    CREATE INDEX IF NOT EXISTS idx_exam_sessions_user ON exam_sessions(user_id, exam_id);
-  `)
+      CREATE TABLE users (
+        id TEXT PRIMARY KEY,
+        name TEXT NOT NULL,
+        username TEXT,
+        password_hash TEXT,
+        role TEXT NOT NULL CHECK (role IN ('admin', 'secretary', 'member')),
+        org_unit_id TEXT NOT NULL REFERENCES org_units(id) ON DELETE RESTRICT,
+        created_at TIMESTAMPTZ NOT NULL
+      );
 
-  // 合并重复学习记录后再建唯一索引，避免时长虚高
-  const dupes = db
-    .prepare(
-      `SELECT user_id, content_id FROM learning_records
-       GROUP BY user_id, content_id HAVING COUNT(1) > 1`,
-    )
-    .all() as Array<{ user_id: string; content_id: string }>
+      CREATE TABLE contents (
+        id TEXT PRIMARY KEY,
+        type TEXT NOT NULL CHECK (type IN ('article', 'video')),
+        title TEXT NOT NULL,
+        body TEXT NOT NULL,
+        category TEXT NOT NULL,
+        tags_json JSONB NOT NULL DEFAULT '[]'::jsonb,
+        attachments_json JSONB NOT NULL DEFAULT '[]'::jsonb,
+        is_public BOOLEAN NOT NULL DEFAULT FALSE,
+        created_at TIMESTAMPTZ NOT NULL,
+        updated_at TIMESTAMPTZ NOT NULL
+      );
 
-  for (const d of dupes) {
-    const rows = db
-      .prepare(
-        `SELECT id, duration_ms, is_completed, created_at FROM learning_records
-         WHERE user_id = ? AND content_id = ? ORDER BY created_at ASC`,
+      CREATE TABLE learning_tasks (
+        id TEXT PRIMARY KEY,
+        org_unit_id TEXT NOT NULL REFERENCES org_units(id) ON DELETE CASCADE,
+        title TEXT NOT NULL,
+        due_at TIMESTAMPTZ,
+        created_at TIMESTAMPTZ NOT NULL
+      );
+
+      CREATE TABLE task_contents (
+        task_id TEXT NOT NULL REFERENCES learning_tasks(id) ON DELETE CASCADE,
+        content_id TEXT NOT NULL REFERENCES contents(id) ON DELETE CASCADE,
+        PRIMARY KEY (task_id, content_id)
+      );
+
+      CREATE TABLE learning_records (
+        id TEXT PRIMARY KEY,
+        user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        content_id TEXT NOT NULL REFERENCES contents(id) ON DELETE CASCADE,
+        duration_ms INTEGER NOT NULL CHECK (duration_ms >= 0),
+        is_completed BOOLEAN NOT NULL DEFAULT FALSE,
+        created_at TIMESTAMPTZ NOT NULL,
+        UNIQUE (user_id, content_id)
+      );
+
+      CREATE TABLE questions (
+        id TEXT PRIMARY KEY,
+        type TEXT NOT NULL CHECK (type IN ('single', 'multiple', 'tf')),
+        category TEXT NOT NULL,
+        stem TEXT NOT NULL,
+        options_json JSONB,
+        answer_key_json JSONB,
+        created_at TIMESTAMPTZ NOT NULL,
+        updated_at TIMESTAMPTZ NOT NULL
+      );
+
+      CREATE TABLE papers (
+        id TEXT PRIMARY KEY,
+        title TEXT NOT NULL,
+        duration_min INTEGER NOT NULL CHECK (duration_min > 0),
+        pass_score INTEGER NOT NULL CHECK (pass_score >= 0),
+        created_at TIMESTAMPTZ NOT NULL
+      );
+
+      CREATE TABLE paper_questions (
+        paper_id TEXT NOT NULL REFERENCES papers(id) ON DELETE CASCADE,
+        question_id TEXT NOT NULL REFERENCES questions(id) ON DELETE RESTRICT,
+        score INTEGER NOT NULL CHECK (score >= 0),
+        order_no INTEGER NOT NULL CHECK (order_no > 0),
+        PRIMARY KEY (paper_id, question_id),
+        UNIQUE (paper_id, order_no)
+      );
+
+      CREATE TABLE exams (
+        id TEXT PRIMARY KEY,
+        org_unit_id TEXT NOT NULL REFERENCES org_units(id) ON DELETE CASCADE,
+        paper_id TEXT NOT NULL REFERENCES papers(id) ON DELETE RESTRICT,
+        title TEXT NOT NULL,
+        duration_min INTEGER NOT NULL CHECK (duration_min > 0),
+        pass_score INTEGER NOT NULL CHECK (pass_score >= 0),
+        status TEXT NOT NULL CHECK (status IN ('draft', 'published', 'closed')),
+        max_attempts INTEGER NOT NULL DEFAULT 3 CHECK (max_attempts > 0),
+        created_at TIMESTAMPTZ NOT NULL
+      );
+
+      CREATE TABLE exam_attempts (
+        id TEXT PRIMARY KEY,
+        exam_id TEXT NOT NULL REFERENCES exams(id) ON DELETE CASCADE,
+        user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        total_score INTEGER NOT NULL CHECK (total_score >= 0),
+        is_pass BOOLEAN NOT NULL,
+        created_at TIMESTAMPTZ NOT NULL
+      );
+
+      CREATE TABLE exam_answers (
+        id TEXT PRIMARY KEY,
+        attempt_id TEXT NOT NULL REFERENCES exam_attempts(id) ON DELETE CASCADE,
+        question_id TEXT NOT NULL REFERENCES questions(id) ON DELETE RESTRICT,
+        answer_json JSONB NOT NULL,
+        score INTEGER NOT NULL CHECK (score >= 0),
+        UNIQUE (attempt_id, question_id)
+      );
+
+      CREATE TABLE exam_sessions (
+        id TEXT PRIMARY KEY,
+        exam_id TEXT NOT NULL REFERENCES exams(id) ON DELETE CASCADE,
+        user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        started_at TIMESTAMPTZ NOT NULL,
+        submitted BOOLEAN NOT NULL DEFAULT FALSE
+      );
+
+      CREATE TABLE ai_reports (
+        id TEXT PRIMARY KEY,
+        user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        report_json JSONB NOT NULL,
+        created_at TIMESTAMPTZ NOT NULL
+      );
+
+      CREATE TABLE ai_logs (
+        id TEXT PRIMARY KEY,
+        user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        action TEXT NOT NULL,
+        meta_json JSONB NOT NULL,
+        created_at TIMESTAMPTZ NOT NULL
+      );
+
+      CREATE UNIQUE INDEX idx_users_username
+        ON users (LOWER(username)) WHERE username IS NOT NULL;
+      CREATE INDEX idx_users_org ON users(org_unit_id);
+      CREATE INDEX idx_tasks_org ON learning_tasks(org_unit_id);
+      CREATE INDEX idx_task_contents_content ON task_contents(content_id);
+      CREATE INDEX idx_records_user ON learning_records(user_id);
+      CREATE INDEX idx_records_content ON learning_records(content_id);
+      CREATE INDEX idx_paper_questions_question ON paper_questions(question_id);
+      CREATE INDEX idx_exams_org ON exams(org_unit_id);
+      CREATE INDEX idx_exams_paper ON exams(paper_id);
+      CREATE INDEX idx_attempts_exam ON exam_attempts(exam_id);
+      CREATE INDEX idx_attempts_user ON exam_attempts(user_id);
+      CREATE INDEX idx_exam_answers_question ON exam_answers(question_id);
+      CREATE INDEX idx_exam_sessions_user ON exam_sessions(user_id, exam_id);
+      CREATE INDEX idx_ai_reports_user ON ai_reports(user_id);
+      CREATE INDEX idx_ai_logs_user ON ai_logs(user_id);
+    `,
+  },
+]
+
+async function runMigrations(): Promise<void> {
+  const client = await pool.connect()
+  let lockAcquired = false
+  try {
+    await client.query('SELECT pg_advisory_lock($1)', [80_202_601])
+    lockAcquired = true
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS schema_migrations (
+        version INTEGER PRIMARY KEY,
+        name TEXT NOT NULL,
+        applied_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
       )
-      .all(d.user_id, d.content_id) as any[]
-    if (rows.length < 2) continue
-    const keep = rows[0]
-    let duration = 0
-    let completed = 0
-    let latest = keep.created_at
-    for (const r of rows) {
-      duration += Number(r.duration_ms ?? 0)
-      if (Number(r.is_completed ?? 0) === 1) completed = 1
-      if (String(r.created_at) > String(latest)) latest = r.created_at
+    `)
+
+    for (const migration of migrations) {
+      const applied = await client.query(
+        'SELECT 1 FROM schema_migrations WHERE version = $1',
+        [migration.version],
+      )
+      if (applied.rowCount) continue
+
+      await client.query('BEGIN')
+      try {
+        await client.query(migration.sql)
+        await client.query(
+          'INSERT INTO schema_migrations (version, name) VALUES ($1, $2)',
+          [migration.version, migration.name],
+        )
+        await client.query('COMMIT')
+      } catch (error) {
+        await client.query('ROLLBACK')
+        throw error
+      }
     }
-    db.prepare('UPDATE learning_records SET duration_ms = ?, is_completed = ?, created_at = ? WHERE id = ?').run(
-      duration,
-      completed,
-      latest,
-      keep.id,
+  } finally {
+    try {
+      if (lockAcquired) {
+        await client.query('SELECT pg_advisory_unlock($1)', [80_202_601])
+      }
+    } finally {
+      client.release()
+    }
+  }
+}
+
+async function seedIfEmpty(): Promise<void> {
+  await withTransaction(async (client) => {
+    // 锁住根表，确保多个冷启动不会同时写入演示数据。
+    await client.query('LOCK TABLE org_units IN SHARE ROW EXCLUSIVE MODE')
+    const existing = await client.query('SELECT 1 FROM org_units LIMIT 1')
+    if (existing.rowCount) return
+
+    const ts = nowIso()
+    const orgs = [
+      { id: 'org_committee', name: '党委', parentId: null },
+      { id: 'org_branch_1', name: '第一党支部', parentId: 'org_committee' },
+      { id: 'org_branch_2', name: '第二党支部', parentId: 'org_committee' },
+      { id: 'org_branch_3', name: '第三党支部', parentId: 'org_committee' },
+    ]
+    for (const org of orgs) {
+      await client.query(
+        'INSERT INTO org_units (id, name, parent_id, created_at) VALUES ($1, $2, $3, $4)',
+        [org.id, org.name, org.parentId, ts],
+      )
+    }
+
+    const users: Array<{
+      id: string
+      name: string
+      username: string
+      password: string
+      role: UserRole
+      orgUnitId: string
+    }> = [
+      { id: 'u_admin_demo', name: '系统管理员（演示）', username: 'admin', password: 'admin123', role: 'admin', orgUnitId: 'org_committee' },
+      { id: 'u_secretary_demo', name: '支部书记（演示）', username: 'secretary', password: 'secretary123', role: 'secretary', orgUnitId: 'org_branch_3' },
+      { id: 'u_member_demo', name: '党员（演示）', username: 'member', password: 'member123', role: 'member', orgUnitId: 'org_branch_3' },
+      { id: 'u_member_2', name: '党员乙', username: 'member2', password: 'member123', role: 'member', orgUnitId: 'org_branch_3' },
+      { id: 'u_member_3', name: '党员丙', username: 'member3', password: 'member123', role: 'member', orgUnitId: 'org_branch_1' },
+    ]
+    for (const user of users) {
+      await client.query(
+        `INSERT INTO users
+          (id, name, username, password_hash, role, org_unit_id, created_at)
+         VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+        [
+          user.id,
+          user.name,
+          user.username,
+          hashPassword(user.password),
+          user.role,
+          user.orgUnitId,
+          ts,
+        ],
+      )
+    }
+
+    const contents: Array<{
+      id: string
+      type: ContentType
+      title: string
+      body: string
+      category: string
+      tags: string[]
+      isPublic: boolean
+    }> = [
+      {
+        id: 'c_article_1',
+        type: 'article',
+        title: '党史学习要点：从关键事件看精神谱系',
+        body: '学习建议：先梳理时间线，再用“事件—人物—意义—启示”结构复盘。',
+        category: '党史',
+        tags: ['党史', '时间线', '要点'],
+        isPublic: true,
+      },
+      {
+        id: 'c_article_2',
+        type: 'article',
+        title: '纪律学习：常见边界与案例提示',
+        body: '重点关注“边界条件”和“风险点”，并结合真实案例进行对照学习。',
+        category: '纪律',
+        tags: ['纪律', '案例', '边界'],
+        isPublic: true,
+      },
+      {
+        id: 'c_video_1',
+        type: 'video',
+        title: '微党课：基层党务工作常见流程（示例视频）',
+        body: 'https://example.com/video\n\n说明：演示用视频链接占位，可替换为真实地址。',
+        category: '党务',
+        tags: ['党务', '流程', '微党课'],
+        isPublic: true,
+      },
+      {
+        id: 'c_article_3',
+        type: 'article',
+        title: '支部工作清单：学习任务组织与落实',
+        body: '建议以支部为单位：任务发布→提醒→过程记录→复盘总结→统计归档。',
+        category: '党务',
+        tags: ['支部', '任务', '复盘'],
+        isPublic: false,
+      },
+    ]
+    for (const content of contents) {
+      await client.query(
+        `INSERT INTO contents
+          (id, type, title, body, category, tags_json, is_public, created_at, updated_at)
+         VALUES ($1, $2, $3, $4, $5, $6::jsonb, $7, $8, $8)`,
+        [
+          content.id,
+          content.type,
+          content.title,
+          content.body,
+          content.category,
+          JSON.stringify(content.tags),
+          content.isPublic,
+          ts,
+        ],
+      )
+    }
+
+    await client.query(
+      `INSERT INTO learning_tasks (id, org_unit_id, title, due_at, created_at)
+       VALUES ($1, $2, $3, $4, $5)`,
+      [
+        'task_demo_1',
+        'org_branch_3',
+        '本周学习任务：党史要点 + 纪律边界',
+        null,
+        ts,
+      ],
     )
-    for (const r of rows.slice(1)) {
-      db.prepare('DELETE FROM learning_records WHERE id = ?').run(r.id)
+    for (const contentId of ['c_article_1', 'c_article_2', 'c_article_3']) {
+      await client.query(
+        'INSERT INTO task_contents (task_id, content_id) VALUES ($1, $2)',
+        ['task_demo_1', contentId],
+      )
     }
-  }
 
-  db.exec(
-    'CREATE UNIQUE INDEX IF NOT EXISTS idx_learning_user_content ON learning_records(user_id, content_id)',
-  )
-}
-
-function tableColumns(table: string): Set<string> {
-  const rows = db.prepare(`PRAGMA table_info(${table})`).all() as Array<{ name: string }>
-  return new Set(rows.map((r) => r.name))
-}
-
-function ensureContentAttachmentsColumn() {
-  const cols = tableColumns('contents')
-  if (!cols.has('attachments_json')) {
-    db.exec(`ALTER TABLE contents ADD COLUMN attachments_json TEXT NOT NULL DEFAULT '[]'`)
-  }
-}
-
-function ensureAuthColumns() {
-  const cols = tableColumns('users')
-  if (!cols.has('username')) {
-    db.exec('ALTER TABLE users ADD COLUMN username TEXT')
-  }
-  if (!cols.has('password_hash')) {
-    db.exec('ALTER TABLE users ADD COLUMN password_hash TEXT')
-  }
-
-  db.exec('CREATE UNIQUE INDEX IF NOT EXISTS idx_users_username ON users(username) WHERE username IS NOT NULL')
-
-  const defaults: Array<{ id: string; username: string; password: string }> = [
-    { id: 'u_admin_demo', username: 'admin', password: 'admin123' },
-    { id: 'u_secretary_demo', username: 'secretary', password: 'secretary123' },
-    { id: 'u_member_demo', username: 'member', password: 'member123' },
-    { id: 'u_member_2', username: 'member2', password: 'member123' },
-    { id: 'u_member_3', username: 'member3', password: 'member123' },
-  ]
-
-  const updateCreds = db.prepare(
-    'UPDATE users SET username = ?, password_hash = ? WHERE id = ? AND (username IS NULL OR username = \'\' OR password_hash IS NULL OR password_hash = \'\')',
-  )
-  for (const item of defaults) {
-    updateCreds.run(item.username, hashPassword(item.password), item.id)
-  }
-
-  const orphans = db
-    .prepare("SELECT id, name FROM users WHERE username IS NULL OR username = '' OR password_hash IS NULL OR password_hash = ''")
-    .all() as Array<{ id: string; name: string }>
-
-  const fill = db.prepare('UPDATE users SET username = ?, password_hash = ? WHERE id = ?')
-  for (const row of orphans) {
-    const base = `user_${row.id.replace(/^u_/, '').slice(0, 8).toLowerCase()}`
-    let username = base
-    let n = 1
-    while (db.prepare('SELECT id FROM users WHERE username = ? AND id != ?').get(username, row.id)) {
-      username = `${base}_${n++}`
+    const questions: Array<{
+      id: string
+      type: QuestionType
+      category: string
+      stem: string
+      options?: { key: string; text: string }[]
+      answerKey: unknown
+    }> = [
+      {
+        id: 'q_1',
+        type: 'single',
+        category: '党史',
+        stem: '学习党史时，为提升学习效果，下列做法更优的是？',
+        options: [
+          { key: 'A', text: '只记结论，不关心过程与背景' },
+          { key: 'B', text: '以时间线为主线，结合人物与意义进行复盘' },
+          { key: 'C', text: '只看标题，不做笔记' },
+          { key: 'D', text: '只刷题，不做归纳总结' },
+        ],
+        answerKey: 'B',
+      },
+      {
+        id: 'q_2',
+        type: 'tf',
+        category: '纪律',
+        stem: '纪律学习中，理解“边界条件”有助于减少风险。',
+        answerKey: true,
+      },
+      {
+        id: 'q_3',
+        type: 'multiple',
+        category: '党务',
+        stem: '学习任务落实过程中，下列哪些环节有助于提升完成率？',
+        options: [
+          { key: 'A', text: '任务发布与明确截止' },
+          { key: 'B', text: '过程提醒与记录' },
+          { key: 'C', text: '复盘总结与归档' },
+          { key: 'D', text: '不做统计，凭感觉判断' },
+        ],
+        answerKey: ['A', 'B', 'C'],
+      },
+    ]
+    for (const question of questions) {
+      await client.query(
+        `INSERT INTO questions
+          (id, type, category, stem, options_json, answer_key_json, created_at, updated_at)
+         VALUES ($1, $2, $3, $4, $5::jsonb, $6::jsonb, $7, $7)`,
+        [
+          question.id,
+          question.type,
+          question.category,
+          question.stem,
+          question.options ? JSON.stringify(question.options) : null,
+          JSON.stringify(question.answerKey),
+          ts,
+        ],
+      )
     }
-    fill.run(username, hashPassword(randomPassword(16)), row.id)
-  }
-}
 
-export function audit(userId: string, action: string, meta: unknown) {
-  db.prepare('INSERT INTO ai_logs (id, user_id, action, meta_json, created_at) VALUES (?, ?, ?, ?, ?)')
-    .run(`log_${nanoid(12)}`, userId, action, json(meta), nowIso())
-}
+    await client.query(
+      `INSERT INTO papers (id, title, duration_min, pass_score, created_at)
+       VALUES ($1, $2, $3, $4, $5)`,
+      ['paper_1', '党校基础测验（演示卷）', 10, 60, ts],
+    )
+    const paperQuestions = [
+      ['q_1', 40, 1],
+      ['q_2', 30, 2],
+      ['q_3', 30, 3],
+    ] as const
+    for (const [questionId, score, orderNo] of paperQuestions) {
+      await client.query(
+        `INSERT INTO paper_questions (paper_id, question_id, score, order_no)
+         VALUES ($1, $2, $3, $4)`,
+        ['paper_1', questionId, score, orderNo],
+      )
+    }
 
-function count(table: string) {
-  const row = db.prepare(`SELECT COUNT(1) as c FROM ${table}`).get() as { c: number }
-  return Number(row?.c ?? 0)
-}
-
-export function seedIfEmpty() {
-  if (count('org_units') > 0) return
-
-  const ts = nowIso()
-
-  const orgInsert = db.prepare(
-    'INSERT INTO org_units (id, name, parent_id, created_at) VALUES (@id, @name, @parent_id, @created_at)',
-  )
-  const orgs = [
-    { id: 'org_committee', name: '党委', parent_id: null },
-    { id: 'org_branch_1', name: '第一党支部', parent_id: 'org_committee' },
-    { id: 'org_branch_2', name: '第二党支部', parent_id: 'org_committee' },
-    { id: 'org_branch_3', name: '第三党支部', parent_id: 'org_committee' },
-  ]
-  for (const o of orgs) orgInsert.run({ ...o, created_at: ts })
-
-  const userInsert = db.prepare(
-    'INSERT INTO users (id, name, username, password_hash, role, org_unit_id, created_at) VALUES (@id, @name, @username, @password_hash, @role, @org_unit_id, @created_at)',
-  )
-  const users: {
-    id: string
-    name: string
-    username: string
-    password: string
-    role: UserRole
-    org_unit_id: string
-  }[] = [
-    { id: 'u_admin_demo', name: '系统管理员（演示）', username: 'admin', password: 'admin123', role: 'admin', org_unit_id: 'org_committee' },
-    { id: 'u_secretary_demo', name: '支部书记（演示）', username: 'secretary', password: 'secretary123', role: 'secretary', org_unit_id: 'org_branch_3' },
-    { id: 'u_member_demo', name: '党员（演示）', username: 'member', password: 'member123', role: 'member', org_unit_id: 'org_branch_3' },
-    { id: 'u_member_2', name: '党员乙', username: 'member2', password: 'member123', role: 'member', org_unit_id: 'org_branch_3' },
-    { id: 'u_member_3', name: '党员丙', username: 'member3', password: 'member123', role: 'member', org_unit_id: 'org_branch_1' },
-  ]
-  for (const u of users) {
-    userInsert.run({
-      id: u.id,
-      name: u.name,
-      username: u.username,
-      password_hash: hashPassword(u.password),
-      role: u.role,
-      org_unit_id: u.org_unit_id,
-      created_at: ts,
-    })
-  }
-
-  const contentInsert = db.prepare(
-    `INSERT INTO contents (
-      id, type, title, body, category, tags_json, is_public, created_at, updated_at
-    ) VALUES (
-      @id, @type, @title, @body, @category, @tags_json, @is_public, @created_at, @updated_at
-    )`,
-  )
-
-  const contents: Array<{
-    id: string
-    type: ContentType
-    title: string
-    body: string
-    category: string
-    tags: string[]
-    isPublic: boolean
-  }> = [
-    {
-      id: 'c_article_1',
-      type: 'article',
-      title: '党史学习要点：从关键事件看精神谱系',
-      body: '学习建议：先梳理时间线，再用“事件—人物—意义—启示”结构复盘。',
-      category: '党史',
-      tags: ['党史', '时间线', '要点'],
-      isPublic: true,
-    },
-    {
-      id: 'c_article_2',
-      type: 'article',
-      title: '纪律学习：常见边界与案例提示',
-      body: '重点关注“边界条件”和“风险点”，并结合真实案例进行对照学习。',
-      category: '纪律',
-      tags: ['纪律', '案例', '边界'],
-      isPublic: true,
-    },
-    {
-      id: 'c_video_1',
-      type: 'video',
-      title: '微党课：基层党务工作常见流程（示例视频）',
-      body: 'https://example.com/video\n\n说明：演示用视频链接占位，可替换为真实地址。',
-      category: '党务',
-      tags: ['党务', '流程', '微党课'],
-      isPublic: true,
-    },
-    {
-      id: 'c_article_3',
-      type: 'article',
-      title: '支部工作清单：学习任务组织与落实',
-      body: '建议以支部为单位：任务发布→提醒→过程记录→复盘总结→统计归档。',
-      category: '党务',
-      tags: ['支部', '任务', '复盘'],
-      isPublic: false,
-    },
-  ]
-
-  for (const c of contents) {
-    contentInsert.run({
-      id: c.id,
-      type: c.type,
-      title: c.title,
-      body: c.body,
-      category: c.category,
-      tags_json: json(c.tags),
-      is_public: c.isPublic ? 1 : 0,
-      created_at: ts,
-      updated_at: ts,
-    })
-  }
-
-  const taskInsert = db.prepare(
-    'INSERT INTO learning_tasks (id, org_unit_id, title, due_at, created_at) VALUES (@id, @org_unit_id, @title, @due_at, @created_at)',
-  )
-  const taskContentInsert = db.prepare('INSERT INTO task_contents (task_id, content_id) VALUES (?, ?)')
-
-  const taskId = 'task_demo_1'
-  taskInsert.run({
-    id: taskId,
-    org_unit_id: 'org_branch_3',
-    title: '本周学习任务：党史要点 + 纪律边界',
-    due_at: null,
-    created_at: ts,
+    await client.query(
+      `INSERT INTO exams
+        (id, org_unit_id, paper_id, title, duration_min, pass_score, status, created_at)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
+      [
+        'exam_1',
+        'org_branch_3',
+        'paper_1',
+        '第三党支部：党校基础测验（演示）',
+        10,
+        60,
+        'published' as ExamStatus,
+        ts,
+      ],
+    )
   })
-  taskContentInsert.run(taskId, 'c_article_1')
-  taskContentInsert.run(taskId, 'c_article_2')
-  taskContentInsert.run(taskId, 'c_article_3')
-
-  const qInsert = db.prepare(
-    `INSERT INTO questions (id, type, category, stem, options_json, answer_key_json, created_at, updated_at)
-     VALUES (@id, @type, @category, @stem, @options_json, @answer_key_json, @created_at, @updated_at)`,
-  )
-
-  const questions: Array<{
-    id: string
-    type: QuestionType
-    category: string
-    stem: string
-    options?: { key: string; text: string }[]
-    answerKey: unknown
-  }> = [
-    {
-      id: 'q_1',
-      type: 'single',
-      category: '党史',
-      stem: '学习党史时，为提升学习效果，下列做法更优的是？',
-      options: [
-        { key: 'A', text: '只记结论，不关心过程与背景' },
-        { key: 'B', text: '以时间线为主线，结合人物与意义进行复盘' },
-        { key: 'C', text: '只看标题，不做笔记' },
-        { key: 'D', text: '只刷题，不做归纳总结' },
-      ],
-      answerKey: 'B',
-    },
-    {
-      id: 'q_2',
-      type: 'tf',
-      category: '纪律',
-      stem: '纪律学习中，理解“边界条件”有助于减少风险。',
-      answerKey: true,
-    },
-    {
-      id: 'q_3',
-      type: 'multiple',
-      category: '党务',
-      stem: '学习任务落实过程中，下列哪些环节有助于提升完成率？',
-      options: [
-        { key: 'A', text: '任务发布与明确截止' },
-        { key: 'B', text: '过程提醒与记录' },
-        { key: 'C', text: '复盘总结与归档' },
-        { key: 'D', text: '不做统计，凭感觉判断' },
-      ],
-      answerKey: ['A', 'B', 'C'],
-    },
-  ]
-
-  for (const q of questions) {
-    qInsert.run({
-      id: q.id,
-      type: q.type,
-      category: q.category,
-      stem: q.stem,
-      options_json: q.options ? json(q.options) : null,
-      answer_key_json: json(q.answerKey),
-      created_at: ts,
-      updated_at: ts,
-    })
-  }
-
-  db.prepare('INSERT INTO papers (id, title, duration_min, pass_score, created_at) VALUES (?, ?, ?, ?, ?)')
-    .run('paper_1', '党校基础测验（演示卷）', 10, 60, ts)
-
-  const pqInsert = db.prepare(
-    'INSERT INTO paper_questions (paper_id, question_id, score, order_no) VALUES (?, ?, ?, ?)',
-  )
-  pqInsert.run('paper_1', 'q_1', 40, 1)
-  pqInsert.run('paper_1', 'q_2', 30, 2)
-  pqInsert.run('paper_1', 'q_3', 30, 3)
-
-  const examInsert = db.prepare(
-    'INSERT INTO exams (id, org_unit_id, paper_id, title, duration_min, pass_score, status, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
-  )
-  examInsert.run(
-    'exam_1',
-    'org_branch_3',
-    'paper_1',
-    '第三党支部：党校基础测验（演示）',
-    10,
-    60,
-    'published' as ExamStatus,
-    ts,
-  )
 }
 
+let initialization: Promise<void> | undefined
+
+export function initializeDatabase(): Promise<void> {
+  if (!initialization) {
+    initialization = (async () => {
+      await runMigrations()
+      await seedIfEmpty()
+    })().catch((error) => {
+      initialization = undefined
+      throw error
+    })
+  }
+  return initialization
+}
+
+export async function checkDatabaseHealth(): Promise<boolean> {
+  try {
+    await query('SELECT 1')
+    return true
+  } catch {
+    return false
+  }
+}

@@ -1,28 +1,30 @@
 import { Router, type Request, type Response } from 'express'
 import { nanoid } from 'nanoid'
-import { db, nowIso, audit } from '../db.js'
+import { query, withTransaction, nowIso, audit } from '../db.js'
 import { getUserContext, requireAuth, requireRole, rejectUnauthorized } from '../utils/http.js'
 import { loadCompletedByUserIds, loadMemberIdsByOrg, loadTaskContentsMap } from '../utils/aggregates.js'
+import { wrapAsyncRouter } from '../utils/async-router.js'
 
 const router = Router()
 
-function getOrgUnitIdForUser(userId: string) {
-  const row = db.prepare('SELECT org_unit_id FROM users WHERE id = ?').get(userId) as any
+async function getOrgUnitIdForUser(userId: string) {
+  const row = (await query('SELECT org_unit_id FROM users WHERE id = $1', [userId])).rows[0]
   return row?.org_unit_id ? String(row.org_unit_id) : ''
 }
 
-function getContentIdsForTask(taskId: string) {
-  const rows = db.prepare('SELECT content_id FROM task_contents WHERE task_id = ?').all(taskId) as any[]
+async function getContentIdsForTask(taskId: string) {
+  const { rows } = await query('SELECT content_id FROM task_contents WHERE task_id = $1', [taskId])
   return rows.map((r) => String(r.content_id))
 }
 
-function getContentMetaMap(contentIds: string[]) {
+async function getContentMetaMap(contentIds: string[]) {
   const map = new Map<string, { id: string; title: string; type: string }>()
   if (contentIds.length === 0) return map
-  const placeholders = contentIds.map(() => '?').join(',')
-  const rows = db
-    .prepare(`SELECT id, title, type FROM contents WHERE id IN (${placeholders})`)
-    .all(...contentIds) as any[]
+  const placeholders = contentIds.map((_, i) => `$${i + 1}`).join(',')
+  const { rows } = await query(
+    `SELECT id, title, type FROM contents WHERE id IN (${placeholders})`,
+    contentIds,
+  )
   for (const r of rows) {
     map.set(String(r.id), { id: String(r.id), title: String(r.title ?? ''), type: String(r.type ?? 'article') })
   }
@@ -30,7 +32,7 @@ function getContentMetaMap(contentIds: string[]) {
 }
 
 function buildTaskPayload(
-  r: any,
+  r: Record<string, unknown>,
   contentIds: string[],
   opts: {
     contentMeta: Map<string, { id: string; title: string; type: string }>
@@ -87,7 +89,7 @@ function buildTaskPayload(
   }
 }
 
-router.get('/', (req: Request, res: Response) => {
+router.get('/', async (req: Request, res: Response) => {
   if (!requireAuth(req)) {
     rejectUnauthorized(res)
     return
@@ -100,7 +102,7 @@ router.get('/', (req: Request, res: Response) => {
     role === 'admin'
       ? orgUnitIdParam
       : role === 'secretary' || role === 'member'
-        ? getOrgUnitIdForUser(userId)
+        ? await getOrgUnitIdForUser(userId)
         : null
 
   // 非管理员必须绑定支部，避免未登录/未知角色拉全量
@@ -110,33 +112,32 @@ router.get('/', (req: Request, res: Response) => {
   }
 
   const where: string[] = []
-  const params: any[] = []
+  const params: unknown[] = []
 
   if (orgUnitId) {
-    where.push('org_unit_id = ?')
+    where.push(`org_unit_id = $${params.length + 1}`)
     params.push(orgUnitId)
   }
 
   const whereSql = where.length > 0 ? `WHERE ${where.join(' AND ')}` : ''
 
-  const rows = db
-    .prepare(
-      `SELECT id, org_unit_id, title, due_at, created_at
-       FROM learning_tasks
-       ${whereSql}
-       ORDER BY created_at DESC
-       LIMIT 200`,
-    )
-    .all(...params) as any[]
+  const { rows } = await query(
+    `SELECT id, org_unit_id, title, due_at, created_at
+     FROM learning_tasks
+     ${whereSql}
+     ORDER BY created_at DESC
+     LIMIT 200`,
+    params,
+  )
 
   const taskIds = rows.map((r) => String(r.id))
-  const contentsByTask = loadTaskContentsMap(taskIds)
+  const contentsByTask = await loadTaskContentsMap(taskIds)
   const allContentIds = [...new Set([...contentsByTask.values()].flat())]
-  const contentMeta = getContentMetaMap(allContentIds)
+  const contentMeta = await getContentMetaMap(allContentIds)
 
   const personalCompleted =
     role === 'member' || role === 'secretary'
-      ? (loadCompletedByUserIds([userId]).get(userId) ?? new Set<string>())
+      ? ((await loadCompletedByUserIds([userId])).get(userId) ?? new Set<string>())
       : null
 
   // 批量取相关支部党员与完成记录（管理员全量时一次取齐）
@@ -146,10 +147,12 @@ router.get('/', (req: Request, res: Response) => {
         ? [orgUnitId]
         : [...new Set(rows.map((r) => String(r.org_unit_id)))]
       : []
-  const membersByOrg = loadMemberIdsByOrg(relatedOrgIds)
+  const membersByOrg = await loadMemberIdsByOrg(relatedOrgIds)
   const allBranchMemberIds = [...new Set([...membersByOrg.values()].flat())]
   const completedByMember =
-    role === 'admin' || role === 'secretary' ? loadCompletedByUserIds(allBranchMemberIds) : undefined
+    role === 'admin' || role === 'secretary'
+      ? await loadCompletedByUserIds(allBranchMemberIds)
+      : undefined
 
   const data = rows.map((r) => {
     const tid = String(r.id)
@@ -167,14 +170,15 @@ router.get('/', (req: Request, res: Response) => {
   res.status(200).json({ success: true, data })
 })
 
-router.post('/', (req: Request, res: Response) => {
+router.post('/', async (req: Request, res: Response) => {
   if (!requireRole(req, ['admin', 'secretary'])) {
     res.status(403).json({ success: false, error: '无权限操作' })
     return
   }
 
   const { userId, role } = getUserContext(req)
-  const orgUnitId = role === 'secretary' ? getOrgUnitIdForUser(userId) : String(req.body?.orgUnitId ?? '')
+  const orgUnitId =
+    role === 'secretary' ? await getOrgUnitIdForUser(userId) : String(req.body?.orgUnitId ?? '')
   if (!orgUnitId) {
     res.status(400).json({ success: false, error: '缺少 orgUnitId' })
     return
@@ -184,17 +188,21 @@ router.post('/', (req: Request, res: Response) => {
   const ts = nowIso()
   const contentIds = Array.isArray(req.body?.contentIds) ? (req.body.contentIds as string[]) : []
 
-  db.prepare('INSERT INTO learning_tasks (id, org_unit_id, title, due_at, created_at) VALUES (?, ?, ?, ?, ?)')
-    .run(id, orgUnitId, String(req.body?.title ?? ''), req.body?.dueAt ? String(req.body.dueAt) : null, ts)
+  await withTransaction(async (client) => {
+    await client.query(
+      'INSERT INTO learning_tasks (id, org_unit_id, title, due_at, created_at) VALUES ($1, $2, $3, $4, $5)',
+      [id, orgUnitId, String(req.body?.title ?? ''), req.body?.dueAt ? String(req.body.dueAt) : null, ts],
+    )
+    for (const cid of contentIds) {
+      await client.query('INSERT INTO task_contents (task_id, content_id) VALUES ($1, $2)', [id, cid])
+    }
+  })
 
-  const insertTC = db.prepare('INSERT INTO task_contents (task_id, content_id) VALUES (?, ?)')
-  for (const cid of contentIds) insertTC.run(id, cid)
-
-  audit(userId || 'u_admin_demo', 'tasks.create', { id, orgUnitId, contentCount: contentIds.length })
+  await audit(userId || 'u_admin_demo', 'tasks.create', { id, orgUnitId, contentCount: contentIds.length })
   res.status(200).json({ success: true, data: { id } })
 })
 
-router.get('/:id', (req: Request, res: Response) => {
+router.get('/:id', async (req: Request, res: Response) => {
   if (!requireAuth(req)) {
     rejectUnauthorized(res)
     return
@@ -203,9 +211,12 @@ router.get('/:id', (req: Request, res: Response) => {
   const { role, userId } = getUserContext(req)
   const id = String(req.params.id)
 
-  const row = db
-    .prepare('SELECT id, org_unit_id, title, due_at, created_at FROM learning_tasks WHERE id = ?')
-    .get(id) as any
+  const row = (
+    await query(
+      'SELECT id, org_unit_id, title, due_at, created_at FROM learning_tasks WHERE id = $1',
+      [id],
+    )
+  ).rows[0]
 
   if (!row) {
     res.status(404).json({ success: false, error: '任务不存在' })
@@ -213,7 +224,7 @@ router.get('/:id', (req: Request, res: Response) => {
   }
 
   if (role === 'member' || role === 'secretary') {
-    const ownOrg = getOrgUnitIdForUser(userId)
+    const ownOrg = await getOrgUnitIdForUser(userId)
     if (String(row.org_unit_id) !== ownOrg) {
       res.status(403).json({ success: false, error: '无权限访问该任务' })
       return
@@ -228,12 +239,12 @@ router.get('/:id', (req: Request, res: Response) => {
       title: row.title,
       dueAt: row.due_at,
       createdAt: row.created_at,
-      contentIds: getContentIdsForTask(id),
+      contentIds: await getContentIdsForTask(id),
     },
   })
 })
 
-router.put('/:id', (req: Request, res: Response) => {
+router.put('/:id', async (req: Request, res: Response) => {
   if (!requireRole(req, ['admin', 'secretary'])) {
     res.status(403).json({ success: false, error: '无权限操作' })
     return
@@ -241,14 +252,14 @@ router.put('/:id', (req: Request, res: Response) => {
 
   const { userId, role } = getUserContext(req)
   const id = String(req.params.id)
-  const row = db.prepare('SELECT id, org_unit_id FROM learning_tasks WHERE id = ?').get(id) as any
+  const row = (await query('SELECT id, org_unit_id FROM learning_tasks WHERE id = $1', [id])).rows[0]
   if (!row) {
     res.status(404).json({ success: false, error: '任务不存在' })
     return
   }
 
   if (role === 'secretary') {
-    const ownOrg = getOrgUnitIdForUser(userId)
+    const ownOrg = await getOrgUnitIdForUser(userId)
     if (String(row.org_unit_id) !== ownOrg) {
       res.status(403).json({ success: false, error: '只能编辑本支部任务' })
       return
@@ -261,24 +272,24 @@ router.put('/:id', (req: Request, res: Response) => {
   const dueAt = req.body?.dueAt ? String(req.body.dueAt) : null
   const contentIds = Array.isArray(req.body?.contentIds) ? (req.body.contentIds as string[]) : null
 
-  db.prepare('UPDATE learning_tasks SET org_unit_id = ?, title = ?, due_at = ? WHERE id = ?').run(
-    orgUnitId,
-    title,
-    dueAt,
-    id,
-  )
+  await withTransaction(async (client) => {
+    await client.query(
+      'UPDATE learning_tasks SET org_unit_id = $1, title = $2, due_at = $3 WHERE id = $4',
+      [orgUnitId, title, dueAt, id],
+    )
+    if (contentIds) {
+      await client.query('DELETE FROM task_contents WHERE task_id = $1', [id])
+      for (const cid of contentIds) {
+        await client.query('INSERT INTO task_contents (task_id, content_id) VALUES ($1, $2)', [id, cid])
+      }
+    }
+  })
 
-  if (contentIds) {
-    db.prepare('DELETE FROM task_contents WHERE task_id = ?').run(id)
-    const insertTC = db.prepare('INSERT INTO task_contents (task_id, content_id) VALUES (?, ?)')
-    for (const cid of contentIds) insertTC.run(id, cid)
-  }
-
-  audit(userId || 'u_admin_demo', 'tasks.update', { id })
+  await audit(userId || 'u_admin_demo', 'tasks.update', { id })
   res.status(200).json({ success: true })
 })
 
-router.delete('/:id', (req: Request, res: Response) => {
+router.delete('/:id', async (req: Request, res: Response) => {
   if (!requireRole(req, ['admin', 'secretary'])) {
     res.status(403).json({ success: false, error: '无权限操作' })
     return
@@ -286,25 +297,27 @@ router.delete('/:id', (req: Request, res: Response) => {
 
   const { userId, role } = getUserContext(req)
   const id = String(req.params.id)
-  const row = db.prepare('SELECT id, org_unit_id FROM learning_tasks WHERE id = ?').get(id) as any
+  const row = (await query('SELECT id, org_unit_id FROM learning_tasks WHERE id = $1', [id])).rows[0]
   if (!row) {
     res.status(404).json({ success: false, error: '任务不存在' })
     return
   }
 
   if (role === 'secretary') {
-    const ownOrg = getOrgUnitIdForUser(userId)
+    const ownOrg = await getOrgUnitIdForUser(userId)
     if (String(row.org_unit_id) !== ownOrg) {
       res.status(403).json({ success: false, error: '只能删除本支部任务' })
       return
     }
   }
 
-  db.prepare('DELETE FROM task_contents WHERE task_id = ?').run(id)
-  db.prepare('DELETE FROM learning_tasks WHERE id = ?').run(id)
-  audit(userId || 'u_admin_demo', 'tasks.delete', { id })
+  await withTransaction(async (client) => {
+    await client.query('DELETE FROM task_contents WHERE task_id = $1', [id])
+    await client.query('DELETE FROM learning_tasks WHERE id = $1', [id])
+  })
+  await audit(userId || 'u_admin_demo', 'tasks.delete', { id })
   res.status(200).json({ success: true })
 })
 
-export default router
+export default wrapAsyncRouter(router)
 

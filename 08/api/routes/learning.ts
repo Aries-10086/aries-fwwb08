@@ -1,36 +1,37 @@
 import { Router, type Request, type Response } from 'express'
 import { nanoid } from 'nanoid'
-import { db, nowIso, audit } from '../db.js'
+import { query, nowIso, audit } from '../db.js'
 import { getUserContext, requireRole } from '../utils/http.js'
+import { wrapAsyncRouter } from '../utils/async-router.js'
 
 const router = Router()
 
-function upsertRecord(userId: string, contentId: string, durationMs: number, isCompleted: boolean) {
-  const existing = db
-    .prepare('SELECT id, duration_ms, is_completed FROM learning_records WHERE user_id = ? AND content_id = ?')
-    .get(userId, contentId) as any
-
+async function upsertRecord(userId: string, contentId: string, durationMs: number, isCompleted: boolean) {
   const addMs = Number.isFinite(durationMs) ? Math.max(0, Math.floor(durationMs)) : 0
   const ts = nowIso()
-
-  if (existing?.id) {
-    const nextDuration = Number(existing.duration_ms ?? 0) + addMs
-    const nextCompleted = Number(existing.is_completed ?? 0) === 1 || isCompleted ? 1 : 0
-    db.prepare(
-      'UPDATE learning_records SET duration_ms = ?, is_completed = ?, created_at = ? WHERE id = ?',
-    ).run(nextDuration, nextCompleted, ts, String(existing.id))
-    return { id: String(existing.id), durationMs: nextDuration, isCompleted: nextCompleted === 1 }
-  }
-
   const id = `lr_${nanoid(12)}`
-  db.prepare(
-    'INSERT INTO learning_records (id, user_id, content_id, duration_ms, is_completed, created_at) VALUES (?, ?, ?, ?, ?, ?)',
-  ).run(id, userId, contentId, addMs, isCompleted ? 1 : 0, ts)
-  return { id, durationMs: addMs, isCompleted }
+  const row = (
+    await query(
+      `INSERT INTO learning_records
+        (id, user_id, content_id, duration_ms, is_completed, created_at)
+       VALUES ($1, $2, $3, $4, $5, $6)
+       ON CONFLICT (user_id, content_id) DO UPDATE SET
+         duration_ms = learning_records.duration_ms + EXCLUDED.duration_ms,
+         is_completed = learning_records.is_completed OR EXCLUDED.is_completed,
+         created_at = EXCLUDED.created_at
+       RETURNING id, duration_ms, is_completed`,
+      [id, userId, contentId, addMs, isCompleted, ts],
+    )
+  ).rows[0]
+  return {
+    id: String(row.id),
+    durationMs: Number(row.duration_ms),
+    isCompleted: Boolean(row.is_completed),
+  }
 }
 
 /** 学习进度：单条或全部 */
-router.get('/progress', (req: Request, res: Response) => {
+router.get('/progress', async (req: Request, res: Response) => {
   if (!requireRole(req, ['member', 'secretary', 'admin'])) {
     res.status(403).json({ success: false, error: '未登录' })
     return
@@ -40,18 +41,20 @@ router.get('/progress', (req: Request, res: Response) => {
   const contentId = req.query.contentId ? String(req.query.contentId) : null
 
   if (contentId) {
-    const row = db
-      .prepare(
-        'SELECT id, content_id, duration_ms, is_completed, created_at FROM learning_records WHERE user_id = ? AND content_id = ?',
+    const row = (
+      await query(
+        `SELECT id, content_id, duration_ms, is_completed, created_at
+         FROM learning_records WHERE user_id = $1 AND content_id = $2`,
+        [userId, contentId],
       )
-      .get(userId, contentId) as any
+    ).rows[0]
     res.status(200).json({
       success: true,
       data: row
         ? {
             contentId: String(row.content_id),
             durationMs: Number(row.duration_ms ?? 0),
-            isCompleted: Number(row.is_completed ?? 0) === 1,
+            isCompleted: Boolean(row.is_completed),
             updatedAt: row.created_at,
           }
         : { contentId, durationMs: 0, isCompleted: false, updatedAt: null },
@@ -59,24 +62,24 @@ router.get('/progress', (req: Request, res: Response) => {
     return
   }
 
-  const rows = db
-    .prepare(
-      'SELECT content_id, duration_ms, is_completed, created_at FROM learning_records WHERE user_id = ? ORDER BY created_at DESC',
-    )
-    .all(userId) as any[]
+  const { rows } = await query(
+    `SELECT content_id, duration_ms, is_completed, created_at
+     FROM learning_records WHERE user_id = $1 ORDER BY created_at DESC`,
+    [userId],
+  )
 
   res.status(200).json({
     success: true,
     data: rows.map((r) => ({
       contentId: String(r.content_id),
       durationMs: Number(r.duration_ms ?? 0),
-      isCompleted: Number(r.is_completed ?? 0) === 1,
+      isCompleted: Boolean(r.is_completed),
       updatedAt: r.created_at,
     })),
   })
 })
 
-router.post('/record', (req: Request, res: Response) => {
+router.post('/record', async (req: Request, res: Response) => {
   if (!requireRole(req, ['member', 'secretary', 'admin'])) {
     res.status(403).json({ success: false, error: '未登录' })
     return
@@ -92,9 +95,9 @@ router.post('/record', (req: Request, res: Response) => {
     return
   }
 
-  const data = upsertRecord(userId, contentId, durationMs, isCompleted)
-  audit(userId, 'learning.record', { contentId, durationMs, isCompleted })
+  const data = await upsertRecord(userId, contentId, durationMs, isCompleted)
+  await audit(userId, 'learning.record', { contentId, durationMs, isCompleted })
   res.status(200).json({ success: true, data })
 })
 
-export default router
+export default wrapAsyncRouter(router)

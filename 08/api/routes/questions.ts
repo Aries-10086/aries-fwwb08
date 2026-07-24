@@ -1,8 +1,9 @@
 import { Router, type Request, type Response } from 'express'
 import { nanoid } from 'nanoid'
-import { db, nowIso, audit } from '../db.js'
+import { query, withTransaction, nowIso, audit } from '../db.js'
 import { getUserContext, requireRole } from '../utils/http.js'
 import { json, parseJson } from '../utils/json.js'
+import { wrapAsyncRouter } from '../utils/async-router.js'
 
 const router = Router()
 
@@ -25,7 +26,7 @@ function parseTabular(text: string) {
   return rows
 }
 
-router.get('/', (req: Request, res: Response) => {
+router.get('/', async (req: Request, res: Response) => {
   if (!requireRole(req, ['admin'])) {
     res.status(403).json({ success: false, error: '仅管理员可操作' })
     return
@@ -36,32 +37,31 @@ router.get('/', (req: Request, res: Response) => {
   const q = req.query.q ? String(req.query.q) : null
 
   const where: string[] = []
-  const params: any[] = []
+  const params: unknown[] = []
 
   if (category) {
-    where.push('category = ?')
+    where.push(`category = $${params.length + 1}`)
     params.push(category)
   }
   if (type) {
-    where.push('type = ?')
+    where.push(`type = $${params.length + 1}`)
     params.push(type)
   }
   if (q) {
-    where.push('stem LIKE ?')
+    where.push(`stem ILIKE $${params.length + 1}`)
     params.push(`%${q}%`)
   }
 
   const whereSql = where.length > 0 ? `WHERE ${where.join(' AND ')}` : ''
 
-  const rows = db
-    .prepare(
-      `SELECT id, type, category, stem, options_json, answer_key_json, created_at, updated_at
-       FROM questions
-       ${whereSql}
-       ORDER BY updated_at DESC
-       LIMIT 500`,
-    )
-    .all(...params) as any[]
+  const { rows } = await query(
+    `SELECT id, type, category, stem, options_json, answer_key_json, created_at, updated_at
+     FROM questions
+     ${whereSql}
+     ORDER BY updated_at DESC
+     LIMIT 500`,
+    params,
+  )
 
   const data = rows.map((r) => ({
     id: r.id,
@@ -77,7 +77,7 @@ router.get('/', (req: Request, res: Response) => {
   res.status(200).json({ success: true, data })
 })
 
-router.post('/', (req: Request, res: Response) => {
+router.post('/', async (req: Request, res: Response) => {
   if (!requireRole(req, ['admin'])) {
     res.status(403).json({ success: false, error: '仅管理员可操作' })
     return
@@ -87,25 +87,26 @@ router.post('/', (req: Request, res: Response) => {
   const id = `q_${nanoid(10)}`
   const ts = nowIso()
 
-  db.prepare(
+  await query(
     `INSERT INTO questions (id, type, category, stem, options_json, answer_key_json, created_at, updated_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-  ).run(
-    id,
-    String(req.body?.type ?? 'single'),
-    String(req.body?.category ?? ''),
-    String(req.body?.stem ?? ''),
-    json(req.body?.options ?? null),
-    json(req.body?.answerKey ?? null),
-    ts,
-    ts,
+     VALUES ($1, $2, $3, $4, $5::jsonb, $6::jsonb, $7, $8)`,
+    [
+      id,
+      String(req.body?.type ?? 'single'),
+      String(req.body?.category ?? ''),
+      String(req.body?.stem ?? ''),
+      json(req.body?.options ?? null),
+      json(req.body?.answerKey ?? null),
+      ts,
+      ts,
+    ],
   )
 
-  audit(userId || 'u_admin_demo', 'questions.create', { id })
+  await audit(userId || 'u_admin_demo', 'questions.create', { id })
   res.status(200).json({ success: true, data: { id } })
 })
 
-router.put('/:id', (req: Request, res: Response) => {
+router.put('/:id', async (req: Request, res: Response) => {
   if (!requireRole(req, ['admin'])) {
     res.status(403).json({ success: false, error: '仅管理员可操作' })
     return
@@ -115,24 +116,26 @@ router.put('/:id', (req: Request, res: Response) => {
   const id = String(req.params.id)
   const ts = nowIso()
 
-  db.prepare(
-    `UPDATE questions SET type = ?, category = ?, stem = ?, options_json = ?, answer_key_json = ?, updated_at = ?
-     WHERE id = ?`,
-  ).run(
-    String(req.body?.type ?? 'single'),
-    String(req.body?.category ?? ''),
-    String(req.body?.stem ?? ''),
-    json(req.body?.options ?? null),
-    json(req.body?.answerKey ?? null),
-    ts,
-    id,
+  await query(
+    `UPDATE questions SET type = $1, category = $2, stem = $3,
+       options_json = $4::jsonb, answer_key_json = $5::jsonb, updated_at = $6
+     WHERE id = $7`,
+    [
+      String(req.body?.type ?? 'single'),
+      String(req.body?.category ?? ''),
+      String(req.body?.stem ?? ''),
+      json(req.body?.options ?? null),
+      json(req.body?.answerKey ?? null),
+      ts,
+      id,
+    ],
   )
 
-  audit(userId || 'u_admin_demo', 'questions.update', { id })
+  await audit(userId || 'u_admin_demo', 'questions.update', { id })
   res.status(200).json({ success: true })
 })
 
-router.delete('/:id', (req: Request, res: Response) => {
+router.delete('/:id', async (req: Request, res: Response) => {
   if (!requireRole(req, ['admin'])) {
     res.status(403).json({ success: false, error: '仅管理员可操作' })
     return
@@ -140,24 +143,26 @@ router.delete('/:id', (req: Request, res: Response) => {
 
   const { userId } = getUserContext(req)
   const id = String(req.params.id)
-  const exists = db.prepare('SELECT id FROM questions WHERE id = ?').get(id)
+  const exists = (await query('SELECT id FROM questions WHERE id = $1', [id])).rows[0]
   if (!exists) {
     res.status(404).json({ success: false, error: '题目不存在' })
     return
   }
 
-  const used = db.prepare('SELECT paper_id FROM paper_questions WHERE question_id = ? LIMIT 1').get(id)
+  const used = (
+    await query('SELECT paper_id FROM paper_questions WHERE question_id = $1 LIMIT 1', [id])
+  ).rows[0]
   if (used) {
     res.status(400).json({ success: false, error: '题目已被试卷引用，请先从试卷中移除' })
     return
   }
 
-  db.prepare('DELETE FROM questions WHERE id = ?').run(id)
-  audit(userId || 'u_admin_demo', 'questions.delete', { id })
+  await query('DELETE FROM questions WHERE id = $1', [id])
+  await audit(userId || 'u_admin_demo', 'questions.delete', { id })
   res.status(200).json({ success: true })
 })
 
-router.post('/import', (req: Request, res: Response) => {
+router.post('/import', async (req: Request, res: Response) => {
   if (!requireRole(req, ['admin'])) {
     res.status(403).json({ success: false, error: '仅管理员可操作' })
     return
@@ -172,10 +177,6 @@ router.post('/import', (req: Request, res: Response) => {
     return
   }
 
-  const insert = db.prepare(
-    `INSERT INTO questions (id, type, category, stem, options_json, answer_key_json, created_at, updated_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-  )
   const ts = nowIso()
   const result: { ok: number; failed: number; errors: Array<{ line: number; reason: string }> } = {
     ok: 0,
@@ -183,44 +184,51 @@ router.post('/import', (req: Request, res: Response) => {
     errors: [],
   }
 
-  rows.forEach((r, idx) => {
-    const line = idx + 2
-    const type = String(r.type ?? r.题型 ?? 'single').trim()
-    const category = String(r.category ?? r.分类 ?? '未分类').trim()
-    const stem = String(r.stem ?? r.题干 ?? '').trim()
-    const optionsRaw = String(r.optionsJson ?? r.options ?? r.选项 ?? '').trim()
-    const answerRaw = String(r.answerKeyJson ?? r.answerKey ?? r.答案 ?? '').trim()
+  await withTransaction(async (client) => {
+    for (const [idx, r] of rows.entries()) {
+      const line = idx + 2
+      const type = String(r.type ?? r.题型 ?? 'single').trim()
+      const category = String(r.category ?? r.分类 ?? '未分类').trim()
+      const stem = String(r.stem ?? r.题干 ?? '').trim()
+      const optionsRaw = String(r.optionsJson ?? r.options ?? r.选项 ?? '').trim()
+      const answerRaw = String(r.answerKeyJson ?? r.answerKey ?? r.答案 ?? '').trim()
 
-    if (!stem) {
-      result.failed += 1
-      result.errors.push({ line, reason: '缺少题干' })
-      return
+      if (!stem) {
+        result.failed += 1
+        result.errors.push({ line, reason: '缺少题干' })
+        continue
+      }
+      if (!['single', 'multiple', 'tf'].includes(type)) {
+        result.failed += 1
+        result.errors.push({ line, reason: '题型必须为 single、multiple 或 tf' })
+        continue
+      }
+
+      let options: unknown = null
+      let answerKey: unknown = null
+
+      try {
+        options = optionsRaw ? JSON.parse(optionsRaw) : null
+        answerKey = answerRaw ? JSON.parse(answerRaw) : null
+      } catch {
+        result.failed += 1
+        result.errors.push({ line, reason: 'optionsJson 或 answerKeyJson 不是合法 JSON' })
+        continue
+      }
+
+      const id = `q_${nanoid(10)}`
+      await client.query(
+        `INSERT INTO questions
+          (id, type, category, stem, options_json, answer_key_json, created_at, updated_at)
+         VALUES ($1, $2, $3, $4, $5::jsonb, $6::jsonb, $7, $8)`,
+        [id, type, category, stem, json(options), json(answerKey), ts, ts],
+      )
+      result.ok += 1
     }
-    if (!['single', 'multiple', 'tf'].includes(type)) {
-      result.failed += 1
-      result.errors.push({ line, reason: '题型必须为 single、multiple 或 tf' })
-      return
-    }
-
-    let options: unknown = null
-    let answerKey: unknown = null
-
-    try {
-      options = optionsRaw ? JSON.parse(optionsRaw) : null
-      answerKey = answerRaw ? JSON.parse(answerRaw) : null
-    } catch {
-      result.failed += 1
-      result.errors.push({ line, reason: 'optionsJson 或 answerKeyJson 不是合法 JSON' })
-      return
-    }
-
-    const id = `q_${nanoid(10)}`
-    insert.run(id, type, category, stem, json(options), json(answerKey), ts, ts)
-    result.ok += 1
   })
 
-  audit(userId || 'u_admin_demo', 'questions.import', { ok: result.ok, failed: result.failed })
+  await audit(userId || 'u_admin_demo', 'questions.import', { ok: result.ok, failed: result.failed })
   res.status(200).json({ success: true, data: result })
 })
 
-export default router
+export default wrapAsyncRouter(router)
