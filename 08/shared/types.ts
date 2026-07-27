@@ -86,6 +86,7 @@ export interface LearningTask {
 
 export interface LearningProgress {
   contentId: string
+  /** 累计学习时长（毫秒） */
   durationMs: number
   isCompleted: boolean
   updatedAt?: string | null
@@ -95,9 +96,11 @@ export interface LearningRecord {
   id: string
   userId?: string
   contentId?: string
+  /** 累计学习时长（毫秒）；写入时入参为增量 */
   durationMs: number
   isCompleted: boolean
   createdAt?: string
+  updatedAt?: string
 }
 
 export interface QuestionOption {

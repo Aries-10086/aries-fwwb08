@@ -6,15 +6,27 @@ function placeholders(count: number, start = 1) {
 }
 
 /** 批量加载用户已完成内容集合 */
-export async function loadCompletedByUserIds(userIds: string[]): Promise<Map<string, Set<string>>> {
+export async function loadCompletedByUserIds(
+  userIds: string[],
+  range?: { from: Date | null; to: Date | null },
+): Promise<Map<string, Set<string>>> {
   const map = new Map<string, Set<string>>()
   for (const id of userIds) map.set(id, new Set())
   if (userIds.length === 0) return map
 
+  const params: unknown[] = [...userIds]
+  let timeSql = ''
+  if (range?.from && range?.to) {
+    params.push(range.from.toISOString(), range.to.toISOString())
+    const fromIdx = userIds.length + 1
+    const toIdx = userIds.length + 2
+    timeSql = ` AND updated_at >= $${fromIdx}::timestamptz AND updated_at < $${toIdx}::timestamptz`
+  }
+
   const { rows } = await query(
     `SELECT user_id, content_id FROM learning_records
-     WHERE is_completed = true AND user_id IN (${placeholders(userIds.length)})`,
-    userIds,
+     WHERE is_completed = true AND user_id IN (${placeholders(userIds.length)})${timeSql}`,
+    params,
   )
 
   for (const r of rows) {
@@ -130,7 +142,10 @@ export type ExamAgg = {
 }
 
 /** 批量聚合成员测验成绩（含最近一次） */
-export async function loadExamAggByUserIds(userIds: string[]): Promise<Map<string, ExamAgg>> {
+export async function loadExamAggByUserIds(
+  userIds: string[],
+  range?: { from: Date | null; to: Date | null },
+): Promise<Map<string, ExamAgg>> {
   const map = new Map<string, ExamAgg>()
   for (const id of userIds) {
     map.set(id, {
@@ -147,6 +162,14 @@ export async function loadExamAggByUserIds(userIds: string[]): Promise<Map<strin
   if (userIds.length === 0) return map
 
   const userPlaceholders = placeholders(userIds.length)
+  const params: unknown[] = [...userIds]
+  let timeSql = ''
+  if (range?.from && range?.to) {
+    params.push(range.from.toISOString(), range.to.toISOString())
+    const fromIdx = userIds.length + 1
+    const toIdx = userIds.length + 2
+    timeSql = ` AND created_at >= $${fromIdx}::timestamptz AND created_at < $${toIdx}::timestamptz`
+  }
 
   const { rows: aggRows } = await query(
     `SELECT user_id,
@@ -154,9 +177,9 @@ export async function loadExamAggByUserIds(userIds: string[]): Promise<Map<strin
             AVG(total_score) AS avg_score,
             SUM(CASE WHEN is_pass = true THEN 1 ELSE 0 END) AS pass_count
      FROM exam_attempts
-     WHERE user_id IN (${userPlaceholders})
+     WHERE user_id IN (${userPlaceholders})${timeSql}
      GROUP BY user_id`,
-    userIds,
+    params,
   )
 
   for (const r of aggRows) {
@@ -175,14 +198,23 @@ export async function loadExamAggByUserIds(userIds: string[]): Promise<Map<strin
     })
   }
 
+  const latestParams: unknown[] = [...userIds]
+  let latestTimeSql = ''
+  if (range?.from && range?.to) {
+    latestParams.push(range.from.toISOString(), range.to.toISOString())
+    const fromIdx = userIds.length + 1
+    const toIdx = userIds.length + 2
+    latestTimeSql = ` AND ea.created_at >= $${fromIdx}::timestamptz AND ea.created_at < $${toIdx}::timestamptz`
+  }
+
   const { rows: latestRows } = await query(
     `SELECT DISTINCT ON (ea.user_id)
             ea.user_id, ea.total_score, ea.is_pass, ea.created_at, e.title AS exam_title
      FROM exam_attempts ea
      LEFT JOIN exams e ON e.id = ea.exam_id
-     WHERE ea.user_id IN (${userPlaceholders})
+     WHERE ea.user_id IN (${userPlaceholders})${latestTimeSql}
      ORDER BY ea.user_id, ea.created_at DESC, ea.id DESC`,
-    userIds,
+    latestParams,
   )
 
   for (const r of latestRows) {
@@ -198,18 +230,30 @@ export async function loadExamAggByUserIds(userIds: string[]): Promise<Map<strin
   return map
 }
 
-/** 批量加载学习时长 */
-export async function loadDurationByUserIds(userIds: string[]): Promise<Map<string, number>> {
+/** 批量加载学习时长（= SUM(duration_ms)，基于 (user_id, content_id) 唯一行） */
+export async function loadDurationByUserIds(
+  userIds: string[],
+  range?: { from: Date | null; to: Date | null },
+): Promise<Map<string, number>> {
   const map = new Map<string, number>()
   for (const id of userIds) map.set(id, 0)
   if (userIds.length === 0) return map
 
+  const params: unknown[] = [...userIds]
+  let timeSql = ''
+  if (range?.from && range?.to) {
+    params.push(range.from.toISOString(), range.to.toISOString())
+    const fromIdx = userIds.length + 1
+    const toIdx = userIds.length + 2
+    timeSql = ` AND updated_at >= $${fromIdx}::timestamptz AND updated_at < $${toIdx}::timestamptz`
+  }
+
   const { rows } = await query(
     `SELECT user_id, COALESCE(SUM(duration_ms), 0) AS s
      FROM learning_records
-     WHERE user_id IN (${placeholders(userIds.length)})
+     WHERE user_id IN (${placeholders(userIds.length)})${timeSql}
      GROUP BY user_id`,
-    userIds,
+    params,
   )
 
   for (const r of rows) map.set(String(r.user_id), Number(r.s ?? 0))
@@ -217,18 +261,35 @@ export async function loadDurationByUserIds(userIds: string[]): Promise<Map<stri
 }
 
 /** 组织范围内考试汇总（一次查询） */
-export async function loadOrgExamSummary(orgUnitId: string | null): Promise<{
+export async function loadOrgExamSummary(
+  orgUnitId: string | null,
+  range?: { from: Date | null; to: Date | null },
+): Promise<{
   attemptCount: number
   avgExamScore: number
   passRate: number
 }> {
+  const params: unknown[] = []
+  const where: string[] = []
+  if (orgUnitId) {
+    params.push(orgUnitId)
+    where.push(`u.org_unit_id = $${params.length}`)
+  }
+  if (range?.from && range?.to) {
+    params.push(range.from.toISOString(), range.to.toISOString())
+    where.push(
+      `ea.created_at >= $${params.length - 1}::timestamptz AND ea.created_at < $${params.length}::timestamptz`,
+    )
+  }
+  const whereSql = where.length > 0 ? `WHERE ${where.join(' AND ')}` : ''
+
   const { rows } = await query(
     `SELECT COUNT(1) AS c, AVG(ea.total_score) AS avg_score,
             SUM(CASE WHEN ea.is_pass = true THEN 1 ELSE 0 END) AS pass_c
      FROM exam_attempts ea
      JOIN users u ON u.id = ea.user_id
-     ${orgUnitId ? 'WHERE u.org_unit_id = $1' : ''}`,
-    orgUnitId ? [orgUnitId] : [],
+     ${whereSql}`,
+    params,
   )
   const row = rows[0]
 

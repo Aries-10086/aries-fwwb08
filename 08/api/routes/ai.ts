@@ -5,6 +5,9 @@ import { getUserContext, requireRole } from '../utils/http.js'
 import { parseJson, json } from '../utils/json.js'
 import { llmText } from '../services/llm.js'
 import { wrapAsyncRouter } from '../utils/async-router.js'
+import { computeEvaluation } from '../utils/evaluation.js'
+import { loadExamAggByUserIds } from '../utils/aggregates.js'
+import { loadLearningAggByUserIds } from '../utils/learning-records.js'
 
 const router = Router()
 
@@ -224,76 +227,93 @@ router.post('/query', async (req: Request, res: Response) => {
   res.status(200).json({ success: true, data: { text: summary.text, chart } })
 })
 
-function scoreClamp(n: number) {
-  return Math.max(0, Math.min(100, Math.round(n)))
-}
-
 router.post('/report', async (req: Request, res: Response) => {
   if (!requireRole(req, ['member', 'secretary', 'admin'])) {
     res.status(403).json({ success: false, error: '未登录' })
     return
   }
 
-  const { userId } = getUserContext(req)
-  // 禁止通过 body.userId 越权查看他人报告
+  const { userId, role } = getUserContext(req)
   const targetUserId = userId
 
-  const durationRow = (
-    await query('SELECT SUM(duration_ms) as s FROM learning_records WHERE user_id = $1', [
-      targetUserId,
-    ])
-  ).rows[0]
-  const durationHours = Number(durationRow?.s ?? 0) / 3600000
+  const [learnAggMap, examAggMap] = await Promise.all([
+    loadLearningAggByUserIds([targetUserId]),
+    loadExamAggByUserIds([targetUserId]),
+  ])
+  const learn = learnAggMap.get(targetUserId) ?? {
+    durationMs: 0,
+    completedContentCount: 0,
+    recordCount: 0,
+  }
+  const exam = examAggMap.get(targetUserId)!
+  const evaluation = computeEvaluation({
+    durationMs: learn.durationMs,
+    completedContentCount: learn.completedContentCount,
+    avgExamScore: exam.avgScore,
+  })
 
-  const completed = (
-    await query(
-      'SELECT COUNT(1) as c FROM learning_records WHERE user_id = $1 AND is_completed = true',
-      [targetUserId],
+  // 支部内个人排名
+  let branchRank: number | null = null
+  let branchMemberCount: number | null = null
+  const orgId = await userOrgId(targetUserId)
+  if (orgId && role === 'member') {
+    const { rows: peers } = await query(
+      `SELECT id FROM users WHERE role = 'member' AND org_unit_id = $1`,
+      [orgId],
     )
-  ).rows[0]
-  const completedCount = Number(completed?.c ?? 0)
-
-  const { rows: examRows } = await query(
-    'SELECT total_score, is_pass FROM exam_attempts WHERE user_id = $1 ORDER BY created_at DESC LIMIT 3',
-    [targetUserId],
-  )
-
-  const avgExamScore =
-    examRows.length > 0
-      ? examRows.reduce((a, b) => a + Number(b.total_score ?? 0), 0) / examRows.length
-      : 0
-
-  const passCount = examRows.filter((r) => Boolean(r.is_pass)).length
-
-  const score =
-    scoreClamp(Math.min(20, durationHours * 5)) +
-    scoreClamp(Math.min(20, completedCount * 5)) +
-    scoreClamp(Math.min(60, avgExamScore * 0.6))
-
-  const level = score >= 85 ? '优秀' : score >= 70 ? '良好' : score >= 55 ? '合格' : '需加强'
+    const peerIds = peers.map((p) => String(p.id))
+    const [peerLearn, peerExam] = await Promise.all([
+      loadLearningAggByUserIds(peerIds),
+      loadExamAggByUserIds(peerIds),
+    ])
+    const peerScores = peerIds
+      .map((id) => {
+        const l = peerLearn.get(id) ?? { durationMs: 0, completedContentCount: 0, recordCount: 0 }
+        const e = peerExam.get(id)!
+        return {
+          userId: id,
+          score: computeEvaluation({
+            durationMs: l.durationMs,
+            completedContentCount: l.completedContentCount,
+            avgExamScore: e.avgScore,
+          }).score,
+        }
+      })
+      .sort((a, b) => b.score - a.score)
+    branchMemberCount = peerScores.length
+    const idx = peerScores.findIndex((p) => p.userId === targetUserId)
+    branchRank = idx >= 0 ? idx + 1 : null
+  }
 
   const text = await llmText({
     purpose: 'report',
-    prompt: `你是党校学习助手，请基于数据生成“评语 + 3 条改进建议（可执行）”。要求语气庄重、简洁。`,
+    prompt: `你是党校学习助手，请基于数据生成“评语 + 3 条改进建议（可执行）”。要求语气庄重、简洁。可提及综合排名位置（若有）。`,
     data: {
-      durationHours: Math.round(durationHours * 10) / 10,
-      completedCount,
-      avgExamScore: Math.round(avgExamScore),
-      passCount,
-      score,
-      level,
+      durationHours: evaluation.metrics.durationHours,
+      completedCount: evaluation.metrics.completedCount,
+      avgExamScore: evaluation.metrics.avgExamScore,
+      passCount: exam.passCount,
+      score: evaluation.score,
+      level: evaluation.level,
+      branchRank,
+      branchMemberCount,
     },
   })
 
   const report = {
-    score,
-    level,
+    score: evaluation.score,
+    level: evaluation.level,
     metrics: {
-      durationHours: Math.round(durationHours * 10) / 10,
-      completedCount,
-      avgExamScore: Math.round(avgExamScore),
-      passCount,
+      durationHours: evaluation.metrics.durationHours,
+      completedCount: evaluation.metrics.completedCount,
+      avgExamScore: evaluation.metrics.avgExamScore,
+      passCount: exam.passCount,
     },
+    ranking: {
+      branchRank,
+      branchMemberCount,
+    },
+    parts: evaluation.parts,
     comment: text.text,
     generatedAt: nowIso(),
   }
@@ -304,7 +324,7 @@ router.post('/report', async (req: Request, res: Response) => {
     [`rpt_${nanoid(12)}`, targetUserId, json(report), nowIso()],
   )
 
-  await audit(targetUserId, 'ai.report', { score, level })
+  await audit(targetUserId, 'ai.report', { score: evaluation.score, level: evaluation.level, branchRank })
   res.status(200).json({ success: true, data: report })
 })
 

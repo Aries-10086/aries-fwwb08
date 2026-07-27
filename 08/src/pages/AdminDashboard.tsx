@@ -10,19 +10,49 @@ import {
   ChartBar,
   ArrowsClockwise,
   Sparkle,
+  CaretRight,
+  Users,
+  X,
 } from '@phosphor-icons/react'
 import type { EChartsOption } from 'echarts'
 
 type Org = { id: string; name: string; parentId: string | null }
+type MemberRankRow = {
+  userId: string
+  name: string
+  username?: string
+  orgUnitId: string
+  orgName: string
+  rank: number
+  score: number
+  level: string
+  durationHours: number
+  completedContentCount: number
+  avgExamScore: number | null
+  attemptCount?: number
+  passRate?: number | null
+}
 type Overview = {
   orgUnitId: string | null
+  range: string
+  rangeLabel: string
   memberCount: number
   durationHours: number
   avgExamScore: number
   passRate: number
   latestTaskCompletionRate: number
-  rank: { orgUnitId: string; orgName: string; avgScore: number }[]
+  rank: { orgUnitId: string; orgName: string; avgScore: number; attemptCount?: number }[]
+  memberRank: MemberRankRow[]
 }
+
+type RangeKey = 'all' | 'month' | 'quarter' | 'year'
+
+const RANGE_OPTIONS: { value: RangeKey; label: string }[] = [
+  { value: 'all', label: '全部时间' },
+  { value: 'month', label: '本月' },
+  { value: 'quarter', label: '本季' },
+  { value: 'year', label: '今年' },
+]
 
 export default function AdminDashboard() {
   const nav = useNavigate()
@@ -32,6 +62,8 @@ export default function AdminDashboard() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [orgUnitId, setOrgUnitId] = useState('')
+  const [range, setRange] = useState<RangeKey>('all')
+  const [drillOrgId, setDrillOrgId] = useState<string | null>(null)
 
   useEffect(() => {
     if (!user) nav('/login')
@@ -53,6 +85,7 @@ export default function AdminDashboard() {
     try {
       const query = new URLSearchParams()
       if (orgUnitId) query.set('orgUnitId', orgUnitId)
+      if (range && range !== 'all') query.set('range', range)
       const res = await apiFetch<Overview>(`/api/stats/overview${query.size ? `?${query.toString()}` : ''}`)
       setData(res)
     } catch (e: any) {
@@ -68,7 +101,28 @@ export default function AdminDashboard() {
 
   useEffect(() => {
     load()
-  }, [orgUnitId])
+  }, [orgUnitId, range])
+
+  const drillOrgName = useMemo(() => {
+    if (!drillOrgId) return ''
+    return orgs.find((o) => o.id === drillOrgId)?.name || data?.rank.find((r) => r.orgUnitId === drillOrgId)?.orgName || ''
+  }, [drillOrgId, orgs, data])
+
+  const drillMembers = useMemo(() => {
+    if (!drillOrgId || !data?.memberRank) return []
+    // 若当前已筛选到该支部，直接用 memberRank；否则按 orgUnitId 过滤（全部支部视图时 overview 返回全量 memberRank）
+    return data.memberRank.filter((m) => m.orgUnitId === drillOrgId)
+  }, [drillOrgId, data])
+
+  function drillIntoBranch(id: string) {
+    setDrillOrgId(id)
+    setOrgUnitId(id)
+  }
+
+  function clearDrill() {
+    setDrillOrgId(null)
+    setOrgUnitId('')
+  }
 
   const option = useMemo((): EChartsOption => {
     const d = data
@@ -108,15 +162,34 @@ export default function AdminDashboard() {
             <div className="page-eyebrow">管理中枢</div>
             <h1 className="page-title text-3xl md:text-4xl">统计看板</h1>
             <div className="page-subtitle mt-2 max-w-2xl">
-              学习、任务与测验数据统一沉淀，为组织管理提供持续可读的视角。
+              按支部与时间筛选学习、任务与测验数据；点击支部可下钻党员明细。
             </div>
           </div>
           <div className="flex flex-wrap items-center gap-2">
-            <select value={orgUnitId} onChange={(e) => setOrgUnitId(e.target.value)} className="input-shell min-w-[180px]">
+            <select
+              value={orgUnitId}
+              onChange={(e) => {
+                const v = e.target.value
+                setOrgUnitId(v)
+                setDrillOrgId(v || null)
+              }}
+              className="input-shell min-w-[160px]"
+            >
               <option value="">全部支部</option>
               {orgs.map((org) => (
                 <option key={org.id} value={org.id}>
                   {org.name}
+                </option>
+              ))}
+            </select>
+            <select
+              value={range}
+              onChange={(e) => setRange(e.target.value as RangeKey)}
+              className="input-shell min-w-[120px]"
+            >
+              {RANGE_OPTIONS.map((opt) => (
+                <option key={opt.value} value={opt.value}>
+                  {opt.label}
                 </option>
               ))}
             </select>
@@ -126,6 +199,12 @@ export default function AdminDashboard() {
             </Button>
           </div>
         </div>
+        {data && (
+          <div className="mt-3 text-xs text-[rgba(18,21,28,0.5)]">
+            当前范围：{data.rangeLabel}
+            {orgUnitId ? ` · ${orgs.find((o) => o.id === orgUnitId)?.name ?? '所选支部'}` : ' · 全部支部'}
+          </div>
+        )}
         {loading && !data ? (
           <div className="mt-6 grid gap-3 md:grid-cols-4">
             {[0, 1, 2, 3].map((i) => (
@@ -185,6 +264,7 @@ export default function AdminDashboard() {
             </CardTitle>
           </CardHeader>
           <CardContent>
+            <div className="mb-2 text-xs text-[rgba(18,21,28,0.45)]">点击支部可下钻查看党员明细</div>
             {loading && !data ? (
               <div className="grid gap-2">
                 {[0, 1, 2, 3].map((i) => (
@@ -194,16 +274,29 @@ export default function AdminDashboard() {
             ) : data ? (
               <div className="grid gap-2">
                 {data.rank.map((r) => (
-                  <div key={r.orgUnitId} className="list-surface flex items-center justify-between gap-3">
+                  <button
+                    key={r.orgUnitId}
+                    type="button"
+                    onClick={() => drillIntoBranch(String(r.orgUnitId))}
+                    className={[
+                      'list-surface flex w-full items-center justify-between gap-3 text-left transition hover:bg-[rgba(158,27,43,0.04)]',
+                      drillOrgId === r.orgUnitId ? 'ring-1 ring-[#9e1b2b]/40' : '',
+                    ].join(' ')}
+                  >
                     <div>
-                      <div className="text-sm font-medium text-[#12151c]">{r.orgName}</div>
-                      <div className="mt-1 text-xs text-[rgba(18,21,28,0.55)]">支部综合表现</div>
+                      <div className="flex items-center gap-1 text-sm font-medium text-[#12151c]">
+                        {r.orgName}
+                        <CaretRight className="h-3.5 w-3.5 text-[rgba(18,21,28,0.35)]" />
+                      </div>
+                      <div className="mt-1 text-xs text-[rgba(18,21,28,0.55)]">
+                        点击下钻党员 · {r.attemptCount ?? 0} 次作答
+                      </div>
                     </div>
                     <div className="font-serif text-lg font-bold tabular-nums text-[#9e1b2b]">{r.avgScore}</div>
-                  </div>
+                  </button>
                 ))}
                 {data.rank.length === 0 && (
-                  <Empty title="暂无排行" description="完成测验后，支部均分排行会出现在这里。" />
+                  <Empty title="暂无排行" description="当前时间范围内暂无测验数据。" />
                 )}
               </div>
             ) : (
@@ -212,6 +305,109 @@ export default function AdminDashboard() {
           </CardContent>
         </Card>
       </div>
+
+      {drillOrgId && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex flex-wrap items-center justify-between gap-3">
+              <span className="flex items-center gap-2">
+                <Users className="h-5 w-5 text-[#9e1b2b]" weight="duotone" />
+                下钻：{drillOrgName || '支部'}党员明细
+              </span>
+              <Button variant="ghost" className="px-3 py-1.5 text-xs" onClick={clearDrill}>
+                <X className="h-3.5 w-3.5" />
+                返回全部
+              </Button>
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="mb-3 text-xs text-[rgba(18,21,28,0.5)]">
+              时间范围：{data?.rangeLabel ?? RANGE_OPTIONS.find((r) => r.value === range)?.label}
+              ；按综合评价排序
+            </div>
+            {loading ? (
+              <div className="grid gap-2">
+                {[0, 1, 2].map((i) => (
+                  <div key={i} className="skeleton h-14 w-full" />
+                ))}
+              </div>
+            ) : drillMembers.length > 0 ? (
+              <div className="grid gap-2">
+                {drillMembers.map((m) => (
+                  <div key={m.userId} className="list-surface flex items-center justify-between gap-3">
+                    <div className="flex items-center gap-3">
+                      <div className="grid h-8 w-8 place-items-center rounded-full bg-[rgba(158,27,43,0.1)] text-sm font-bold text-[#9e1b2b]">
+                        {m.rank}
+                      </div>
+                      <div>
+                        <div className="text-sm font-medium text-[#12151c]">{m.name}</div>
+                        <div className="mt-1 text-xs text-[rgba(18,21,28,0.55)]">
+                          {m.username ? `@${m.username} · ` : ''}
+                          时长 {m.durationHours}h · 完成 {m.completedContentCount} · 均分 {m.avgExamScore ?? '-'}
+                          {m.attemptCount != null ? ` · ${m.attemptCount} 次` : ''}
+                        </div>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <div className="font-serif text-lg font-bold tabular-nums text-[#9e1b2b]">{m.score}</div>
+                      <div className="text-[11px] text-[rgba(18,21,28,0.5)]">{m.level}</div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <Empty title="该支部暂无党员数据" description="当前时间范围内无学习或测验记录。" />
+            )}
+          </CardContent>
+        </Card>
+      )}
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Sparkle className="h-5 w-5 text-[#9e1b2b]" weight="duotone" />
+            党员综合评价排行
+            {orgUnitId ? `（${orgs.find((o) => o.id === orgUnitId)?.name ?? '支部'}）` : '（全部）'}
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="mb-3 text-xs text-[rgba(18,21,28,0.5)]">
+            综合分 = 学习时长（≤20）+ 完成内容（≤20）+ 测验均分×0.6（≤60）；已按时间范围过滤
+          </div>
+          {loading && !data ? (
+            <div className="grid gap-2">
+              {[0, 1, 2, 3, 4].map((i) => (
+                <div key={i} className="skeleton h-14 w-full" />
+              ))}
+            </div>
+          ) : data && data.memberRank?.length > 0 ? (
+            <div className="grid gap-2">
+              {data.memberRank.slice(0, 15).map((m) => (
+                <div key={m.userId} className="list-surface flex items-center justify-between gap-3">
+                  <div className="flex items-center gap-3">
+                    <div className="grid h-8 w-8 place-items-center rounded-full bg-[rgba(158,27,43,0.1)] text-sm font-bold text-[#9e1b2b]">
+                      {m.rank}
+                    </div>
+                    <div>
+                      <div className="text-sm font-medium text-[#12151c]">{m.name}</div>
+                      <div className="mt-1 text-xs text-[rgba(18,21,28,0.55)]">
+                        {m.orgName || '未分配支部'} · 时长 {m.durationHours}h · 完成 {m.completedContentCount} · 均分{' '}
+                        {m.avgExamScore ?? '-'}
+                      </div>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <div className="font-serif text-lg font-bold tabular-nums text-[#9e1b2b]">{m.score}</div>
+                    <div className="text-[11px] text-[rgba(18,21,28,0.5)]">{m.level}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <Empty title="暂无个人排行" description="当前筛选下暂无党员学习或测验数据。" />
+          )}
+        </CardContent>
+      </Card>
     </div>
   )
 }

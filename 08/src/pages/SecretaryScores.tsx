@@ -23,6 +23,11 @@ type MemberScore = {
   latestIsPass: boolean | null
   latestExamTitle: string | null
   latestAt: string | null
+  evalScore?: number
+  evalLevel?: string
+  evalRank?: number | null
+  durationHours?: number
+  completedContentCount?: number
 }
 
 type MemberScoresData = {
@@ -81,7 +86,7 @@ export default function SecretaryScores() {
           <div className="page-eyebrow">支部成绩</div>
           <h1 className="page-title text-3xl md:text-4xl">支部成绩</h1>
           <div className="page-subtitle mt-2 max-w-2xl">
-            查看本支部下级党员的测验成绩汇总与明细
+            按综合评价对党员个人排名，并查看测验成绩明细
             {data?.orgName ? `（${data.orgName}）` : ''}。
           </div>
         </div>
@@ -121,18 +126,31 @@ export default function SecretaryScores() {
 
       <Card>
         <CardHeader>
-          <CardTitle>成员成绩明细</CardTitle>
+          <CardTitle>党员综合评价排行</CardTitle>
         </CardHeader>
         <CardContent>
+          <div className="mb-3 text-xs text-black/45">
+            综合分 = 学习时长（≤20）+ 完成内容（≤20）+ 测验均分×0.6（≤60）；列表已按个人名次排序
+          </div>
           <div className="grid gap-2">
             {(data?.members ?? []).map((m) => (
               <div
                 key={m.userId}
-                className="grid gap-3 rounded-2xl bg-white/90 px-4 py-4 shadow-[inset_0_0_0_1px_rgba(0,0,0,0.06)] md:grid-cols-[1.3fr_0.7fr_0.7fr_1.4fr]"
+                className="grid gap-3 rounded-2xl bg-white/90 px-4 py-4 shadow-[inset_0_0_0_1px_rgba(0,0,0,0.06)] md:grid-cols-[auto_1.1fr_0.7fr_0.7fr_0.7fr_1.3fr]"
               >
+                <div className="grid h-9 w-9 place-items-center rounded-full bg-[#9e1b2b]/10 text-sm font-bold text-[#9e1b2b]">
+                  {m.evalRank ?? '-'}
+                </div>
                 <div>
                   <div className="text-sm font-medium text-[#12151c]">{m.name}</div>
-                  <div className="mt-1 text-xs text-black/45">{m.username ? `@${m.username}` : m.userId}</div>
+                  <div className="mt-1 text-xs text-black/45">
+                    {m.username ? `@${m.username}` : m.userId}
+                    {m.evalLevel ? ` · ${m.evalLevel}` : ''}
+                  </div>
+                </div>
+                <div className="text-sm text-black/70">
+                  <div className="text-xs font-medium text-black/40">综合分</div>
+                  <div className="mt-1 font-semibold text-[#9e1b2b]">{m.evalScore ?? 0}</div>
                 </div>
                 <div className="text-sm text-black/70">
                   <div className="text-xs font-medium text-black/40">均分 / 次数</div>
@@ -148,7 +166,9 @@ export default function SecretaryScores() {
                 <div className="text-sm text-black/70">
                   <div className="text-xs font-medium text-black/40">最近一次</div>
                   {m.latestScore == null ? (
-                    <div className="mt-1 text-black/45">暂无考试记录</div>
+                    <div className="mt-1 text-black/45">
+                      暂无考试 · 时长 {m.durationHours ?? 0}h · 完成 {m.completedContentCount ?? 0}
+                    </div>
                   ) : (
                     <div className="mt-1">
                       <span className="font-semibold">{m.latestScore} 分</span>

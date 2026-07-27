@@ -20,6 +20,15 @@ type Report = {
     avgExamScore: number
     passCount: number
   }
+  ranking?: {
+    branchRank: number | null
+    branchMemberCount: number | null
+  }
+  parts?: {
+    duration: number
+    completed: number
+    exam: number
+  }
   comment: string
   generatedAt: string
 }
@@ -137,6 +146,30 @@ export default function MobileReport() {
                   <div className="metric-value text-5xl text-[#12151c]">{report.score}</div>
                   <div className="pb-2 page-eyebrow">/ 100</div>
                 </div>
+                {report.ranking?.branchRank != null && (
+                  <div className="list-surface flex items-center justify-between text-sm">
+                    <span className="text-[rgba(18,21,28,0.55)]">支部个人排名</span>
+                    <span className="font-semibold text-[#9e1b2b]">
+                      第 {report.ranking.branchRank} / {report.ranking.branchMemberCount}
+                    </span>
+                  </div>
+                )}
+                {report.parts && (
+                  <div className="grid grid-cols-3 gap-2 text-center text-xs">
+                    <div className="list-surface py-2">
+                      <div className="text-[rgba(18,21,28,0.45)]">时长分</div>
+                      <div className="mt-1 font-semibold">{report.parts.duration}/20</div>
+                    </div>
+                    <div className="list-surface py-2">
+                      <div className="text-[rgba(18,21,28,0.45)]">完成分</div>
+                      <div className="mt-1 font-semibold">{report.parts.completed}/20</div>
+                    </div>
+                    <div className="list-surface py-2">
+                      <div className="text-[rgba(18,21,28,0.45)]">测验分</div>
+                      <div className="mt-1 font-semibold">{report.parts.exam}/60</div>
+                    </div>
+                  </div>
+                )}
                 <div className="list-surface text-sm leading-relaxed text-[rgba(18,21,28,0.75)]">
                   {report.comment}
                 </div>

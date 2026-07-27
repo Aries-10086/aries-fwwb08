@@ -232,6 +232,25 @@ const migrations: Migration[] = [
       CREATE INDEX idx_ai_logs_user ON ai_logs(user_id);
     `,
   },
+  {
+    version: 2,
+    name: 'learning_records_upsert_updated_at',
+    sql: `
+      -- 统一口径：一行一用户一内容；duration_ms 为累计时长；updated_at 为最近写入时间
+      ALTER TABLE learning_records
+        ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ;
+
+      UPDATE learning_records
+      SET updated_at = created_at
+      WHERE updated_at IS NULL;
+
+      ALTER TABLE learning_records
+        ALTER COLUMN updated_at SET DEFAULT NOW();
+
+      ALTER TABLE learning_records
+        ALTER COLUMN updated_at SET NOT NULL;
+    `,
+  },
 ]
 
 async function runMigrations(): Promise<void> {

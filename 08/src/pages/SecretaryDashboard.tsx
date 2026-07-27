@@ -12,6 +12,9 @@ import {
   ArrowsClockwise,
   Trophy,
   Users,
+  Warning,
+  ListBullets,
+  Sparkle,
 } from '@phosphor-icons/react'
 import type { EChartsOption } from 'echarts'
 
@@ -51,6 +54,26 @@ type BranchDashboard = {
     avgScore: number | null
     passCount: number
   }>
+  weakCategories?: Array<{
+    category: string
+    wrongCount: number
+    memberCount: number
+    sharePercent: number
+  }>
+  wrongTop?: Array<{
+    questionId: string
+    stem: string
+    category: string
+    type: string
+    wrongCount: number
+    memberCount: number
+  }>
+}
+
+const typeLabel: Record<string, string> = {
+  single: '单选',
+  multiple: '多选',
+  tf: '判断',
 }
 
 export default function SecretaryDashboard() {
@@ -167,8 +190,8 @@ export default function SecretaryDashboard() {
             <div className="page-eyebrow">支部看板</div>
             <h1 className="page-title text-3xl md:text-5xl">支部数据看板</h1>
             <div className="page-subtitle mt-2 max-w-2xl">
-              汇总本支部学习时长、任务完成率与测验表现
-              {data?.orgName ? `（${data.orgName}）` : ''}。
+              汇总本支部学习时长、任务完成率、测验表现与薄弱知识点
+              {data?.orgName ? `（${data.orgName}）` : ''}，便于支部讲评。
             </div>
           </div>
           <div className="flex flex-wrap items-center gap-2">
@@ -176,6 +199,12 @@ export default function SecretaryDashboard() {
               <Button variant="secondary">
                 <Trophy className="h-4 w-4" />
                 成绩明细
+              </Button>
+            </Link>
+            <Link to="/m/report">
+              <Button variant="secondary">
+                <Sparkle className="h-4 w-4" />
+                AI 报告
               </Button>
             </Link>
             <Button variant="ghost" onClick={() => load()} disabled={loading}>
@@ -247,6 +276,96 @@ export default function SecretaryDashboard() {
               <Chart option={memberDurationOption} height={300} />
             ) : (
               <div className="py-10 text-sm text-zinc-400">暂无党员学习记录</div>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+
+      <div className="grid gap-4 md:grid-cols-12">
+        <Card className="md:col-span-5">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Warning className="h-5 w-5 text-[#9e1b2b]" weight="fill" />
+              薄弱知识点
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {(data?.weakCategories?.length ?? 0) > 0 ? (
+              <div className="grid gap-3">
+                <div className="text-xs text-[rgba(18,21,28,0.5)]">
+                  按本支部党员测验错题次数汇总，优先安排对应主题学习与讲评
+                </div>
+                {(data?.weakCategories ?? []).map((w, idx) => (
+                  <div
+                    key={w.category}
+                    className="rounded-xl bg-white/90 px-4 py-3 shadow-[inset_0_0_0_1px_rgba(0,0,0,0.06)]"
+                  >
+                    <div className="flex items-center justify-between gap-3">
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-2 text-sm font-medium text-[#12151c]">
+                          <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-[rgba(158,27,43,0.1)] text-[11px] font-semibold text-[#9e1b2b]">
+                            {idx + 1}
+                          </span>
+                          {w.category}
+                        </div>
+                        <div className="mt-1 text-xs text-zinc-500">
+                          错 {w.wrongCount} 次 · 涉及 {w.memberCount} 人 · 占比 {w.sharePercent}%
+                        </div>
+                      </div>
+                    </div>
+                    <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-black/5">
+                      <div
+                        className="h-full rounded-full bg-[#9e1b2b]"
+                        style={{ width: `${Math.min(100, Math.max(6, w.sharePercent))}%` }}
+                      />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="py-10 text-sm text-zinc-400">暂无错题数据，党员完成测验后将自动汇总</div>
+            )}
+          </CardContent>
+        </Card>
+
+        <Card className="md:col-span-7">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <ListBullets className="h-5 w-5 text-[#9e1b2b]" />
+              错题 Top
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {(data?.wrongTop?.length ?? 0) > 0 ? (
+              <div className="grid gap-2">
+                <div className="text-xs text-[rgba(18,21,28,0.5)]">
+                  本支部答错次数最多的题目，可用于集中讲解
+                </div>
+                {(data?.wrongTop ?? []).map((q, idx) => (
+                  <div
+                    key={q.questionId}
+                    className="rounded-xl bg-white/90 px-4 py-3 shadow-[inset_0_0_0_1px_rgba(0,0,0,0.06)]"
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0 flex-1">
+                        <div className="flex flex-wrap items-center gap-2 text-xs text-zinc-500">
+                          <span className="font-semibold text-[#9e1b2b]">#{idx + 1}</span>
+                          <span>{q.category}</span>
+                          <span>·</span>
+                          <span>{typeLabel[q.type] ?? q.type}</span>
+                        </div>
+                        <div className="mt-1 line-clamp-2 text-sm text-[#12151c]">{q.stem}</div>
+                      </div>
+                      <div className="shrink-0 text-right">
+                        <div className="text-sm font-bold text-[#9e1b2b]">{q.wrongCount}</div>
+                        <div className="text-[11px] text-zinc-500">次错 / {q.memberCount} 人</div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="py-10 text-sm text-zinc-400">暂无高频错题</div>
             )}
           </CardContent>
         </Card>
