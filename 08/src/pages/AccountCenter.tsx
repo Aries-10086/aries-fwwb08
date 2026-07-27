@@ -14,6 +14,7 @@ import {
   FloppyDisk,
   Trophy,
   User,
+  Sparkle as SparkleIcon,
 } from '@phosphor-icons/react'
 
 type MyCenter = {
@@ -50,6 +51,12 @@ type MyCenter = {
       isPass: boolean
       createdAt: string
     }>
+  }
+  evaluation?: {
+    score: number | null
+    level: string | null
+    rank: number | null
+    memberCount: number | null
   }
 }
 
@@ -153,6 +160,9 @@ export default function AccountCenter() {
   const learning = data?.learning
   const exams = data?.exams
   const profile = data?.profile
+  const evaluation = data?.evaluation
+  const isAdmin = user?.role === 'admin' || profile?.role === 'admin'
+  const showLearningModules = !isAdmin
 
   return (
     <div className="grid gap-6">
@@ -162,7 +172,9 @@ export default function AccountCenter() {
             <div className="page-eyebrow">个人中心</div>
             <h1 className="page-title text-3xl md:text-5xl">个人中心</h1>
             <div className="page-subtitle mt-2 max-w-2xl">
-              查看与管理个人资料、学习时长、测验成绩，并可修改登录密码。
+              {isAdmin
+                ? '查看与管理个人资料，并可修改登录密码。'
+                : '查看与管理个人资料、学习时长、测验成绩，并可修改登录密码。'}
             </div>
           </div>
           <Button variant="ghost" onClick={() => load()} disabled={loading}>
@@ -171,17 +183,24 @@ export default function AccountCenter() {
           </Button>
         </div>
 
-        {learning && exams && (
-          <div className="mt-6 grid gap-3 md:grid-cols-2 lg:grid-cols-4">
+        {showLearningModules && learning && exams && (
+          <div className="mt-6 grid gap-3 md:grid-cols-2 lg:grid-cols-5">
             {[
               ['学习时长', `${learning.durationHours} h`, Clock],
               ['已完成内容', `${learning.completedContentCount}`, BookOpen],
               ['测验均分', exams.avgScore == null ? '-' : `${exams.avgScore}`, ChartBar],
               [
-                '支部时长排名',
-                learning.branchRank != null
-                  ? `${learning.branchRank}/${learning.branchMemberCount ?? '-'}`
-                  : '-',
+                '综合评价',
+                evaluation?.score != null ? `${evaluation.score}·${evaluation.level ?? ''}` : '-',
+                SparkleIcon,
+              ],
+              [
+                '支部综合排名',
+                evaluation?.rank != null
+                  ? `${evaluation.rank}/${evaluation.memberCount ?? '-'}`
+                  : learning.branchRank != null
+                    ? `时长 ${learning.branchRank}/${learning.branchMemberCount ?? '-'}`
+                    : '-',
                 Trophy,
               ],
             ].map(([label, value, Icon]) => {
@@ -310,110 +329,121 @@ export default function AccountCenter() {
         </Card>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-12">
-        <Card className="md:col-span-4">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Clock className="h-5 w-5 text-[#9e1b2b]" />
-              学习时长汇总
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            {learning ? (
-              <div className="grid gap-3 text-sm">
-                <div className="list-surface flex justify-between">
-                  <span className="text-[rgba(18,21,28,0.55)]">累计时长</span>
-                  <span className="font-semibold">
-                    {learning.durationHours} 小时（{learning.durationMinutes} 分钟）
-                  </span>
-                </div>
-                <div className="list-surface flex justify-between">
-                  <span className="text-[rgba(18,21,28,0.55)]">已完成内容</span>
-                  <span className="font-semibold">{learning.completedContentCount} 项</span>
-                </div>
-                <div className="list-surface flex justify-between">
-                  <span className="text-[rgba(18,21,28,0.55)]">学习记录条数</span>
-                  <span className="font-semibold">{learning.recordCount}</span>
-                </div>
-                {learning.branchRank != null && (
+      {showLearningModules && (
+        <div className="grid gap-4 md:grid-cols-12">
+          <Card className="md:col-span-4">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Clock className="h-5 w-5 text-[#9e1b2b]" />
+                学习时长汇总
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {learning ? (
+                <div className="grid gap-3 text-sm">
                   <div className="list-surface flex justify-between">
-                    <span className="text-[rgba(18,21,28,0.55)]">支部学习时长排名</span>
-                    <span className="font-semibold text-[#9e1b2b]">
-                      第 {learning.branchRank} / {learning.branchMemberCount}
+                    <span className="text-[rgba(18,21,28,0.55)]">累计时长</span>
+                    <span className="font-semibold">
+                      {learning.durationHours} 小时（{learning.durationMinutes} 分钟）
                     </span>
                   </div>
-                )}
-              </div>
-            ) : (
-              <div className="py-8 text-sm text-zinc-400">暂无数据</div>
-            )}
-          </CardContent>
-        </Card>
-
-        <Card className="md:col-span-8">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Trophy className="h-5 w-5 text-[#9e1b2b]" />
-              我的成绩
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            {exams ? (
-              <div className="grid gap-3">
-                <div className="grid gap-2 md:grid-cols-4">
-                  {[
-                    ['作答次数', `${exams.attemptCount}`],
-                    ['均分', exams.avgScore == null ? '-' : `${exams.avgScore}`],
-                    ['最高分', exams.bestScore == null ? '-' : `${exams.bestScore}`],
-                    ['通过率', exams.passRate == null ? '-' : `${exams.passRate}%`],
-                  ].map(([k, v]) => (
-                    <div key={k} className="rounded-xl bg-white/90 px-4 py-3 shadow-[inset_0_0_0_1px_rgba(0,0,0,0.06)]">
-                      <div className="text-[11px] uppercase tracking-[0.18em] text-[rgba(18,21,28,0.4)]">{k}</div>
-                      <div className="mt-1 text-xl font-bold text-[#12151c]">{v}</div>
+                  <div className="list-surface flex justify-between">
+                    <span className="text-[rgba(18,21,28,0.55)]">已完成内容</span>
+                    <span className="font-semibold">{learning.completedContentCount} 项</span>
+                  </div>
+                  <div className="list-surface flex justify-between">
+                    <span className="text-[rgba(18,21,28,0.55)]">学习记录条数</span>
+                    <span className="font-semibold">{learning.recordCount}</span>
+                  </div>
+                  {evaluation?.rank != null && (
+                    <div className="list-surface flex justify-between">
+                      <span className="text-[rgba(18,21,28,0.55)]">支部综合评价排名</span>
+                      <span className="font-semibold text-[#9e1b2b]">
+                        第 {evaluation.rank} / {evaluation.memberCount}
+                        {evaluation.score != null ? ` · ${evaluation.score}分（${evaluation.level}）` : ''}
+                      </span>
                     </div>
-                  ))}
-                </div>
-                <div className="grid gap-2">
-                  {exams.attempts.map((a) => (
-                    <Link
-                      key={a.id}
-                      to={`/m/exam-result/${a.id}`}
-                      className="flex flex-wrap items-center justify-between gap-3 rounded-xl bg-white/90 px-4 py-3 shadow-[inset_0_0_0_1px_rgba(0,0,0,0.06)] transition hover:bg-[rgba(158,27,43,0.05)]"
-                    >
-                      <div>
-                        <div className="text-sm font-medium text-[#12151c]">{a.examTitle}</div>
-                        <div className="mt-1 text-xs text-[rgba(18,21,28,0.45)]">
-                          {new Date(a.createdAt).toLocaleString()}
-                          {a.passScore != null ? ` · 及格线 ${a.passScore}` : ''}
-                          <span className="ml-2 text-[#9e1b2b]">查看回顾</span>
-                        </div>
-                      </div>
-                      <div className="text-right">
-                        <div className="text-lg font-bold text-[#12151c]">{a.totalScore} 分</div>
-                        <span
-                          className={[
-                            'mt-1 inline-block rounded-full px-2 py-0.5 text-[11px] font-medium',
-                            a.isPass
-                              ? 'bg-emerald-500/10 text-emerald-700'
-                              : 'bg-[rgba(158,27,43,0.08)] text-[#9e1b2b]',
-                          ].join(' ')}
-                        >
-                          {a.isPass ? '通过' : '未通过'}
-                        </span>
-                      </div>
-                    </Link>
-                  ))}
-                  {exams.attempts.length === 0 && (
-                    <div className="py-8 text-sm text-zinc-400">暂无考试记录，去测验页试一试</div>
+                  )}
+                  {learning.branchRank != null && (
+                    <div className="list-surface flex justify-between">
+                      <span className="text-[rgba(18,21,28,0.55)]">支部学习时长排名</span>
+                      <span className="font-semibold text-[#9e1b2b]">
+                        第 {learning.branchRank} / {learning.branchMemberCount}
+                      </span>
+                    </div>
                   )}
                 </div>
-              </div>
-            ) : (
-              <div className="py-8 text-sm text-zinc-400">暂无数据</div>
-            )}
-          </CardContent>
-        </Card>
-      </div>
+              ) : (
+                <div className="py-8 text-sm text-zinc-400">暂无数据</div>
+              )}
+            </CardContent>
+          </Card>
+
+          <Card className="md:col-span-8">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Trophy className="h-5 w-5 text-[#9e1b2b]" />
+                我的成绩
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {exams ? (
+                <div className="grid gap-3">
+                  <div className="grid gap-2 md:grid-cols-4">
+                    {[
+                      ['作答次数', `${exams.attemptCount}`],
+                      ['均分', exams.avgScore == null ? '-' : `${exams.avgScore}`],
+                      ['最高分', exams.bestScore == null ? '-' : `${exams.bestScore}`],
+                      ['通过率', exams.passRate == null ? '-' : `${exams.passRate}%`],
+                    ].map(([k, v]) => (
+                      <div key={k} className="rounded-xl bg-white/90 px-4 py-3 shadow-[inset_0_0_0_1px_rgba(0,0,0,0.06)]">
+                        <div className="text-[11px] uppercase tracking-[0.18em] text-[rgba(18,21,28,0.4)]">{k}</div>
+                        <div className="mt-1 text-xl font-bold text-[#12151c]">{v}</div>
+                      </div>
+                    ))}
+                  </div>
+                  <div className="grid gap-2">
+                    {exams.attempts.map((a) => (
+                      <Link
+                        key={a.id}
+                        to={`/m/exam-result/${a.id}`}
+                        className="flex flex-wrap items-center justify-between gap-3 rounded-xl bg-white/90 px-4 py-3 shadow-[inset_0_0_0_1px_rgba(0,0,0,0.06)] transition hover:bg-[rgba(158,27,43,0.05)]"
+                      >
+                        <div>
+                          <div className="text-sm font-medium text-[#12151c]">{a.examTitle}</div>
+                          <div className="mt-1 text-xs text-[rgba(18,21,28,0.45)]">
+                            {new Date(a.createdAt).toLocaleString()}
+                            {a.passScore != null ? ` · 及格线 ${a.passScore}` : ''}
+                            <span className="ml-2 text-[#9e1b2b]">查看回顾</span>
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <div className="text-lg font-bold text-[#12151c]">{a.totalScore} 分</div>
+                          <span
+                            className={[
+                              'mt-1 inline-block rounded-full px-2 py-0.5 text-[11px] font-medium',
+                              a.isPass
+                                ? 'bg-emerald-500/10 text-emerald-700'
+                                : 'bg-[rgba(158,27,43,0.08)] text-[#9e1b2b]',
+                            ].join(' ')}
+                          >
+                            {a.isPass ? '通过' : '未通过'}
+                          </span>
+                        </div>
+                      </Link>
+                    ))}
+                    {exams.attempts.length === 0 && (
+                      <div className="py-8 text-sm text-zinc-400">暂无考试记录，去测验页试一试</div>
+                    )}
+                  </div>
+                </div>
+              ) : (
+                <div className="py-8 text-sm text-zinc-400">暂无数据</div>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+      )}
     </div>
   )
 }

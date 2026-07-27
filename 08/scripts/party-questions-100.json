@@ -1,0 +1,2082 @@
+[
+  {
+    "type": "single",
+    "category": "党史",
+    "stem": "中国共产党第一次全国代表大会召开于哪一年？",
+    "options": [
+      {
+        "key": "A",
+        "text": "1920年"
+      },
+      {
+        "key": "B",
+        "text": "1921年"
+      },
+      {
+        "key": "C",
+        "text": "1922年"
+      },
+      {
+        "key": "D",
+        "text": "1923年"
+      }
+    ],
+    "answerKey": "B"
+  },
+  {
+    "type": "single",
+    "category": "党史",
+    "stem": "中国共产党第一次全国代表大会最后一天会议转移到哪里继续举行？",
+    "options": [
+      {
+        "key": "A",
+        "text": "杭州西湖"
+      },
+      {
+        "key": "B",
+        "text": "嘉兴南湖"
+      },
+      {
+        "key": "C",
+        "text": "绍兴东湖"
+      },
+      {
+        "key": "D",
+        "text": "宁波东钱湖"
+      }
+    ],
+    "answerKey": "B"
+  },
+  {
+    "type": "single",
+    "category": "党史",
+    "stem": "我国将哪一天作为中国共产党诞生纪念日？",
+    "options": [
+      {
+        "key": "A",
+        "text": "7月1日"
+      },
+      {
+        "key": "B",
+        "text": "7月23日"
+      },
+      {
+        "key": "C",
+        "text": "10月1日"
+      },
+      {
+        "key": "D",
+        "text": "8月1日"
+      }
+    ],
+    "answerKey": "A"
+  },
+  {
+    "type": "single",
+    "category": "党史",
+    "stem": "中国共产党在哪次会议上第一次明确提出反帝反封建的民主革命纲领？",
+    "options": [
+      {
+        "key": "A",
+        "text": "党的一大"
+      },
+      {
+        "key": "B",
+        "text": "党的二大"
+      },
+      {
+        "key": "C",
+        "text": "党的三大"
+      },
+      {
+        "key": "D",
+        "text": "党的四大"
+      }
+    ],
+    "answerKey": "B"
+  },
+  {
+    "type": "single",
+    "category": "党史",
+    "stem": "第一次国共合作正式形成的标志是？",
+    "options": [
+      {
+        "key": "A",
+        "text": "中共三大的召开"
+      },
+      {
+        "key": "B",
+        "text": "黄埔军校的建立"
+      },
+      {
+        "key": "C",
+        "text": "国民党一大的召开"
+      },
+      {
+        "key": "D",
+        "text": "广东国民政府的成立"
+      }
+    ],
+    "answerKey": "C"
+  },
+  {
+    "type": "single",
+    "category": "党史",
+    "stem": "1927年8月1日，哪一事件打响了武装反抗国民党反动派的第一枪？",
+    "options": [
+      {
+        "key": "A",
+        "text": "秋收起义"
+      },
+      {
+        "key": "B",
+        "text": "南昌起义"
+      },
+      {
+        "key": "C",
+        "text": "广州起义"
+      },
+      {
+        "key": "D",
+        "text": "百色起义"
+      }
+    ],
+    "answerKey": "B"
+  },
+  {
+    "type": "single",
+    "category": "党史",
+    "stem": "毛泽东率领秋收起义部队创建井冈山，开始创建第一个农村革命根据地是在？",
+    "options": [
+      {
+        "key": "A",
+        "text": "1927年"
+      },
+      {
+        "key": "B",
+        "text": "1928年"
+      },
+      {
+        "key": "C",
+        "text": "1929年"
+      },
+      {
+        "key": "D",
+        "text": "1930年"
+      }
+    ],
+    "answerKey": "A"
+  },
+  {
+    "type": "single",
+    "category": "党史",
+    "stem": "1935年1月召开的哪次会议确立了毛泽东在党和红军中的领导地位，是党的历史上一个生死攸关的转折点？",
+    "options": [
+      {
+        "key": "A",
+        "text": "八七会议"
+      },
+      {
+        "key": "B",
+        "text": "古田会议"
+      },
+      {
+        "key": "C",
+        "text": "遵义会议"
+      },
+      {
+        "key": "D",
+        "text": "瓦窑堡会议"
+      }
+    ],
+    "answerKey": "C"
+  },
+  {
+    "type": "single",
+    "category": "党史",
+    "stem": "1937年9月，八路军一一五师在哪里伏击日军，取得抗战以来首次大捷？",
+    "options": [
+      {
+        "key": "A",
+        "text": "台儿庄"
+      },
+      {
+        "key": "B",
+        "text": "平型关"
+      },
+      {
+        "key": "C",
+        "text": "百团大战"
+      },
+      {
+        "key": "D",
+        "text": "淞沪会战"
+      }
+    ],
+    "answerKey": "B"
+  },
+  {
+    "type": "single",
+    "category": "党史",
+    "stem": "1940年8月至12月，八路军在华北发动的大规模破袭战是？",
+    "options": [
+      {
+        "key": "A",
+        "text": "百团大战"
+      },
+      {
+        "key": "B",
+        "text": "平型关大捷"
+      },
+      {
+        "key": "C",
+        "text": "太原会战"
+      },
+      {
+        "key": "D",
+        "text": "徐州会战"
+      }
+    ],
+    "answerKey": "A"
+  },
+  {
+    "type": "single",
+    "category": "党史",
+    "stem": "1945年党的七大在延安举行，将哪一思想作为党的指导思想写入党章？",
+    "options": [
+      {
+        "key": "A",
+        "text": "马克思列宁主义"
+      },
+      {
+        "key": "B",
+        "text": "毛泽东思想"
+      },
+      {
+        "key": "C",
+        "text": "邓小平理论"
+      },
+      {
+        "key": "D",
+        "text": "“三个代表”重要思想"
+      }
+    ],
+    "answerKey": "B"
+  },
+  {
+    "type": "single",
+    "category": "党史",
+    "stem": "抗日战争胜利后，中国共产党和国民党为争取和平民主举行的谈判是？",
+    "options": [
+      {
+        "key": "A",
+        "text": "西安谈判"
+      },
+      {
+        "key": "B",
+        "text": "重庆谈判"
+      },
+      {
+        "key": "C",
+        "text": "北平谈判"
+      },
+      {
+        "key": "D",
+        "text": "南京谈判"
+      }
+    ],
+    "answerKey": "B"
+  },
+  {
+    "type": "single",
+    "category": "党史",
+    "stem": "1949年3月，党的七届二中全会着重讨论的战略转移问题是？",
+    "options": [
+      {
+        "key": "A",
+        "text": "从农村到城市"
+      },
+      {
+        "key": "B",
+        "text": "从城市到农村"
+      },
+      {
+        "key": "C",
+        "text": "从国内到国外"
+      },
+      {
+        "key": "D",
+        "text": "从战争到建设"
+      }
+    ],
+    "answerKey": "A"
+  },
+  {
+    "type": "single",
+    "category": "党史",
+    "stem": "中华人民共和国成立于哪一年？",
+    "options": [
+      {
+        "key": "A",
+        "text": "1945年"
+      },
+      {
+        "key": "B",
+        "text": "1948年"
+      },
+      {
+        "key": "C",
+        "text": "1949年"
+      },
+      {
+        "key": "D",
+        "text": "1950年"
+      }
+    ],
+    "answerKey": "C"
+  },
+  {
+    "type": "single",
+    "category": "党史",
+    "stem": "1950年6月，中央人民政府颁布了哪一法律，在新解放区农村开展土地改革？",
+    "options": [
+      {
+        "key": "A",
+        "text": "《土地法》"
+      },
+      {
+        "key": "B",
+        "text": "《中华人民共和国土地改革法》"
+      },
+      {
+        "key": "C",
+        "text": "《农业法》"
+      },
+      {
+        "key": "D",
+        "text": "《共同纲领》"
+      }
+    ],
+    "answerKey": "B"
+  },
+  {
+    "type": "single",
+    "category": "党史",
+    "stem": "全国绝大部分地区基本上完成对生产资料私有制的社会主义改造是在哪一年？",
+    "options": [
+      {
+        "key": "A",
+        "text": "1955年"
+      },
+      {
+        "key": "B",
+        "text": "1956年"
+      },
+      {
+        "key": "C",
+        "text": "1957年"
+      },
+      {
+        "key": "D",
+        "text": "1958年"
+      }
+    ],
+    "answerKey": "B"
+  },
+  {
+    "type": "single",
+    "category": "党史",
+    "stem": "抗美援朝战争历时约多久？",
+    "options": [
+      {
+        "key": "A",
+        "text": "一年五个月"
+      },
+      {
+        "key": "B",
+        "text": "一年九个月"
+      },
+      {
+        "key": "C",
+        "text": "两年五个月"
+      },
+      {
+        "key": "D",
+        "text": "两年九个月"
+      }
+    ],
+    "answerKey": "D"
+  },
+  {
+    "type": "single",
+    "category": "党史",
+    "stem": "在万隆会议上，周恩来鲜明提出的方针是？",
+    "options": [
+      {
+        "key": "A",
+        "text": "和平共处"
+      },
+      {
+        "key": "B",
+        "text": "独立自主"
+      },
+      {
+        "key": "C",
+        "text": "求同存异"
+      },
+      {
+        "key": "D",
+        "text": "一边倒"
+      }
+    ],
+    "answerKey": "C"
+  },
+  {
+    "type": "single",
+    "category": "党史",
+    "stem": "美国总统尼克松访华的时间是？",
+    "options": [
+      {
+        "key": "A",
+        "text": "1970年2月"
+      },
+      {
+        "key": "B",
+        "text": "1971年2月"
+      },
+      {
+        "key": "C",
+        "text": "1972年2月"
+      },
+      {
+        "key": "D",
+        "text": "1973年3月"
+      }
+    ],
+    "answerKey": "C"
+  },
+  {
+    "type": "single",
+    "category": "党史",
+    "stem": "被誉为“小球转动大球”的乒乓外交，主要促进了哪一关系的发展？",
+    "options": [
+      {
+        "key": "A",
+        "text": "中美关系"
+      },
+      {
+        "key": "B",
+        "text": "中日关系"
+      },
+      {
+        "key": "C",
+        "text": "中苏关系"
+      },
+      {
+        "key": "D",
+        "text": "中法关系"
+      }
+    ],
+    "answerKey": "A"
+  },
+  {
+    "type": "single",
+    "category": "党史",
+    "stem": "1978年12月召开的哪次会议开启了改革开放和社会主义现代化建设新时期？",
+    "options": [
+      {
+        "key": "A",
+        "text": "七届二中全会"
+      },
+      {
+        "key": "B",
+        "text": "九届二中全会"
+      },
+      {
+        "key": "C",
+        "text": "十届二中全会"
+      },
+      {
+        "key": "D",
+        "text": "十一届三中全会"
+      }
+    ],
+    "answerKey": "D"
+  },
+  {
+    "type": "single",
+    "category": "党史",
+    "stem": "党的哪次代表大会明确提出建设有中国特色的社会主义的重大命题和“小康”战略目标？",
+    "options": [
+      {
+        "key": "A",
+        "text": "十一届三中全会"
+      },
+      {
+        "key": "B",
+        "text": "十二大"
+      },
+      {
+        "key": "C",
+        "text": "十三大"
+      },
+      {
+        "key": "D",
+        "text": "十四大"
+      }
+    ],
+    "answerKey": "B"
+  },
+  {
+    "type": "single",
+    "category": "党史",
+    "stem": "1986年中共中央、国务院决定实施发展高科技的计划是？",
+    "options": [
+      {
+        "key": "A",
+        "text": "“861计划”"
+      },
+      {
+        "key": "B",
+        "text": "“862计划”"
+      },
+      {
+        "key": "C",
+        "text": "“863计划”"
+      },
+      {
+        "key": "D",
+        "text": "“864计划”"
+      }
+    ],
+    "answerKey": "C"
+  },
+  {
+    "type": "single",
+    "category": "党史",
+    "stem": "党的哪次代表大会提出了党在社会主义初级阶段的基本纲领？",
+    "options": [
+      {
+        "key": "A",
+        "text": "十二大"
+      },
+      {
+        "key": "B",
+        "text": "十三大"
+      },
+      {
+        "key": "C",
+        "text": "十四大"
+      },
+      {
+        "key": "D",
+        "text": "十五大"
+      }
+    ],
+    "answerKey": "D"
+  },
+  {
+    "type": "single",
+    "category": "党史",
+    "stem": "将“三个代表”重要思想确立为党的指导思想，是哪次大会的历史性决策？",
+    "options": [
+      {
+        "key": "A",
+        "text": "十四大"
+      },
+      {
+        "key": "B",
+        "text": "十五大"
+      },
+      {
+        "key": "C",
+        "text": "十六大"
+      },
+      {
+        "key": "D",
+        "text": "十七大"
+      }
+    ],
+    "answerKey": "C"
+  },
+  {
+    "type": "single",
+    "category": "党史",
+    "stem": "确定科学发展观为党的指导思想，是哪次大会作出的重要决策？",
+    "options": [
+      {
+        "key": "A",
+        "text": "十六大"
+      },
+      {
+        "key": "B",
+        "text": "十七大"
+      },
+      {
+        "key": "C",
+        "text": "十八大"
+      },
+      {
+        "key": "D",
+        "text": "十九大"
+      }
+    ],
+    "answerKey": "C"
+  },
+  {
+    "type": "single",
+    "category": "党史",
+    "stem": "2003年首次实现载人航天飞行的飞船是？",
+    "options": [
+      {
+        "key": "A",
+        "text": "神舟三号"
+      },
+      {
+        "key": "B",
+        "text": "神舟四号"
+      },
+      {
+        "key": "C",
+        "text": "神舟五号"
+      },
+      {
+        "key": "D",
+        "text": "神舟六号"
+      }
+    ],
+    "answerKey": "C"
+  },
+  {
+    "type": "single",
+    "category": "党史",
+    "stem": "2010年我国经济总量跃升至世界第几位？",
+    "options": [
+      {
+        "key": "A",
+        "text": "第一"
+      },
+      {
+        "key": "B",
+        "text": "第二"
+      },
+      {
+        "key": "C",
+        "text": "第三"
+      },
+      {
+        "key": "D",
+        "text": "第四"
+      }
+    ],
+    "answerKey": "B"
+  },
+  {
+    "type": "single",
+    "category": "党史",
+    "stem": "党的十八届三中全会强调经济体制改革的核心问题是？",
+    "options": [
+      {
+        "key": "A",
+        "text": "坚持两个毫不动摇"
+      },
+      {
+        "key": "B",
+        "text": "处理好政府和市场的关系"
+      },
+      {
+        "key": "C",
+        "text": "增强市场活力"
+      },
+      {
+        "key": "D",
+        "text": "坚持公有制主体地位"
+      }
+    ],
+    "answerKey": "B"
+  },
+  {
+    "type": "single",
+    "category": "理论",
+    "stem": "习近平在庆祝改革开放40周年大会上指出，改革开放40年来我们党全部理论和实践的主题是坚持和发展？",
+    "options": [
+      {
+        "key": "A",
+        "text": "中国特色社会主义"
+      },
+      {
+        "key": "B",
+        "text": "社会主义建设"
+      },
+      {
+        "key": "C",
+        "text": "社会主义革命"
+      },
+      {
+        "key": "D",
+        "text": "新民主主义"
+      }
+    ],
+    "answerKey": "A"
+  },
+  {
+    "type": "single",
+    "category": "理论",
+    "stem": "政治方向是党生存发展第一位的问题，事关党的前途命运和事业兴衰成败。这句话强调的是？",
+    "options": [
+      {
+        "key": "A",
+        "text": "政治方向"
+      },
+      {
+        "key": "B",
+        "text": "经济导向"
+      },
+      {
+        "key": "C",
+        "text": "纪律方向"
+      },
+      {
+        "key": "D",
+        "text": "文化导向"
+      }
+    ],
+    "answerKey": "A"
+  },
+  {
+    "type": "single",
+    "category": "党章",
+    "stem": "中国共产党的根本宗旨是？",
+    "options": [
+      {
+        "key": "A",
+        "text": "实事求是"
+      },
+      {
+        "key": "B",
+        "text": "全心全意为人民服务"
+      },
+      {
+        "key": "C",
+        "text": "自力更生"
+      },
+      {
+        "key": "D",
+        "text": "改革开放"
+      }
+    ],
+    "answerKey": "B"
+  },
+  {
+    "type": "single",
+    "category": "党章",
+    "stem": "中国共产党是中国特色社会主义事业的？",
+    "options": [
+      {
+        "key": "A",
+        "text": "参与者"
+      },
+      {
+        "key": "B",
+        "text": "协助者"
+      },
+      {
+        "key": "C",
+        "text": "领导核心"
+      },
+      {
+        "key": "D",
+        "text": "监督者"
+      }
+    ],
+    "answerKey": "C"
+  },
+  {
+    "type": "single",
+    "category": "党章",
+    "stem": "党的最高理想和最终目标是？",
+    "options": [
+      {
+        "key": "A",
+        "text": "全面建成小康社会"
+      },
+      {
+        "key": "B",
+        "text": "实现社会主义现代化"
+      },
+      {
+        "key": "C",
+        "text": "实现共产主义"
+      },
+      {
+        "key": "D",
+        "text": "实现中华民族伟大复兴"
+      }
+    ],
+    "answerKey": "C"
+  },
+  {
+    "type": "single",
+    "category": "党章",
+    "stem": "党员必须履行的义务不包括下列哪一项？",
+    "options": [
+      {
+        "key": "A",
+        "text": "认真学习党的理论"
+      },
+      {
+        "key": "B",
+        "text": "执行党的决定"
+      },
+      {
+        "key": "C",
+        "text": "谋取个人特殊利益"
+      },
+      {
+        "key": "D",
+        "text": "密切联系群众"
+      }
+    ],
+    "answerKey": "C"
+  },
+  {
+    "type": "single",
+    "category": "纪律",
+    "stem": "党的纪律处分种类不包括？",
+    "options": [
+      {
+        "key": "A",
+        "text": "警告"
+      },
+      {
+        "key": "B",
+        "text": "严重警告"
+      },
+      {
+        "key": "C",
+        "text": "开除党籍"
+      },
+      {
+        "key": "D",
+        "text": "行政拘留"
+      }
+    ],
+    "answerKey": "D"
+  },
+  {
+    "type": "single",
+    "category": "纪律",
+    "stem": "全面从严治党的根本是？",
+    "options": [
+      {
+        "key": "A",
+        "text": "加强纪律建设"
+      },
+      {
+        "key": "B",
+        "text": "加强作风建设"
+      },
+      {
+        "key": "C",
+        "text": "加强思想建设"
+      },
+      {
+        "key": "D",
+        "text": "加强组织建设"
+      }
+    ],
+    "answerKey": "A"
+  },
+  {
+    "type": "single",
+    "category": "纪律",
+    "stem": "“四个意识”不包括？",
+    "options": [
+      {
+        "key": "A",
+        "text": "政治意识"
+      },
+      {
+        "key": "B",
+        "text": "大局意识"
+      },
+      {
+        "key": "C",
+        "text": "核心意识"
+      },
+      {
+        "key": "D",
+        "text": "竞争意识"
+      }
+    ],
+    "answerKey": "D"
+  },
+  {
+    "type": "single",
+    "category": "党务",
+    "stem": "党支部是党的基础组织，是党组织开展工作的？",
+    "options": [
+      {
+        "key": "A",
+        "text": "基本单元"
+      },
+      {
+        "key": "B",
+        "text": "最高机关"
+      },
+      {
+        "key": "C",
+        "text": "临时机构"
+      },
+      {
+        "key": "D",
+        "text": "议事协调机构"
+      }
+    ],
+    "answerKey": "A"
+  },
+  {
+    "type": "single",
+    "category": "党务",
+    "stem": "党员大会是党支部的议事决策机构，一般每季度召开？",
+    "options": [
+      {
+        "key": "A",
+        "text": "1次"
+      },
+      {
+        "key": "B",
+        "text": "2次"
+      },
+      {
+        "key": "C",
+        "text": "3次"
+      },
+      {
+        "key": "D",
+        "text": "4次"
+      }
+    ],
+    "answerKey": "A"
+  },
+  {
+    "type": "single",
+    "category": "党务",
+    "stem": "发展党员必须把哪一项作为首要条件？",
+    "options": [
+      {
+        "key": "A",
+        "text": "工作业绩"
+      },
+      {
+        "key": "B",
+        "text": "政治标准"
+      },
+      {
+        "key": "C",
+        "text": "学历层次"
+      },
+      {
+        "key": "D",
+        "text": "社会关系"
+      }
+    ],
+    "answerKey": "B"
+  },
+  {
+    "type": "single",
+    "category": "党史",
+    "stem": "五四运动爆发于哪一年？",
+    "options": [
+      {
+        "key": "A",
+        "text": "1917年"
+      },
+      {
+        "key": "B",
+        "text": "1919年"
+      },
+      {
+        "key": "C",
+        "text": "1921年"
+      },
+      {
+        "key": "D",
+        "text": "1924年"
+      }
+    ],
+    "answerKey": "B"
+  },
+  {
+    "type": "single",
+    "category": "党史",
+    "stem": "八七会议确定的总方针主要是？",
+    "options": [
+      {
+        "key": "A",
+        "text": "国共合作"
+      },
+      {
+        "key": "B",
+        "text": "土地革命和武装反抗国民党反动派"
+      },
+      {
+        "key": "C",
+        "text": "抗日民族统一战线"
+      },
+      {
+        "key": "D",
+        "text": "和平民主建国"
+      }
+    ],
+    "answerKey": "B"
+  },
+  {
+    "type": "single",
+    "category": "党史",
+    "stem": "古田会议决议确立了思想建党、政治建军原则，召开地点在？",
+    "options": [
+      {
+        "key": "A",
+        "text": "井冈山"
+      },
+      {
+        "key": "B",
+        "text": "古田"
+      },
+      {
+        "key": "C",
+        "text": "遵义"
+      },
+      {
+        "key": "D",
+        "text": "延安"
+      }
+    ],
+    "answerKey": "B"
+  },
+  {
+    "type": "single",
+    "category": "党史",
+    "stem": "西安事变发生在哪一年？",
+    "options": [
+      {
+        "key": "A",
+        "text": "1935年"
+      },
+      {
+        "key": "B",
+        "text": "1936年"
+      },
+      {
+        "key": "C",
+        "text": "1937年"
+      },
+      {
+        "key": "D",
+        "text": "1938年"
+      }
+    ],
+    "answerKey": "B"
+  },
+  {
+    "type": "single",
+    "category": "党史",
+    "stem": "新民主主义革命取得全国性胜利的重要标志是？",
+    "options": [
+      {
+        "key": "A",
+        "text": "抗日战争胜利"
+      },
+      {
+        "key": "B",
+        "text": "解放战争胜利"
+      },
+      {
+        "key": "C",
+        "text": "中华人民共和国成立"
+      },
+      {
+        "key": "D",
+        "text": "抗美援朝胜利"
+      }
+    ],
+    "answerKey": "C"
+  },
+  {
+    "type": "single",
+    "category": "党史",
+    "stem": "改革开放后我国设立的经济特区之一、重要窗口是？",
+    "options": [
+      {
+        "key": "A",
+        "text": "深圳"
+      },
+      {
+        "key": "B",
+        "text": "北京"
+      },
+      {
+        "key": "C",
+        "text": "上海浦东新区（非经济特区）"
+      },
+      {
+        "key": "D",
+        "text": "重庆"
+      }
+    ],
+    "answerKey": "A"
+  },
+  {
+    "type": "single",
+    "category": "理论",
+    "stem": "“三个代表”重要思想写入党章是在？",
+    "options": [
+      {
+        "key": "A",
+        "text": "党的十四大"
+      },
+      {
+        "key": "B",
+        "text": "党的十五大"
+      },
+      {
+        "key": "C",
+        "text": "党的十六大"
+      },
+      {
+        "key": "D",
+        "text": "党的十七大"
+      }
+    ],
+    "answerKey": "C"
+  },
+  {
+    "type": "single",
+    "category": "理论",
+    "stem": "推动建设（ ）是中华民族伟大复兴的基础工程。",
+    "options": [
+      {
+        "key": "A",
+        "text": "科技强国"
+      },
+      {
+        "key": "B",
+        "text": "文化强国"
+      },
+      {
+        "key": "C",
+        "text": "教育强国"
+      },
+      {
+        "key": "D",
+        "text": "经济强国"
+      }
+    ],
+    "answerKey": "C"
+  },
+  {
+    "type": "single",
+    "category": "党史",
+    "stem": "1970年4月我国成功发射第一颗人造地球卫星，名称是？",
+    "options": [
+      {
+        "key": "A",
+        "text": "神舟一号"
+      },
+      {
+        "key": "B",
+        "text": "东方红一号"
+      },
+      {
+        "key": "C",
+        "text": "长征一号"
+      },
+      {
+        "key": "D",
+        "text": "风云一号"
+      }
+    ],
+    "answerKey": "B"
+  },
+  {
+    "type": "multiple",
+    "category": "党史",
+    "stem": "关于中国共产党第一次全国代表大会，下列说法正确的有？",
+    "options": [
+      {
+        "key": "A",
+        "text": "1921年在上海开幕"
+      },
+      {
+        "key": "B",
+        "text": "最后一天转移到嘉兴南湖举行"
+      },
+      {
+        "key": "C",
+        "text": "宣告中国共产党正式成立"
+      },
+      {
+        "key": "D",
+        "text": "通过了第一部《中华人民共和国宪法》"
+      }
+    ],
+    "answerKey": [
+      "A",
+      "B",
+      "C"
+    ]
+  },
+  {
+    "type": "multiple",
+    "category": "党史",
+    "stem": "关于遵义会议，下列说法正确的有？",
+    "options": [
+      {
+        "key": "A",
+        "text": "确立了毛泽东在党中央和红军中的领导地位"
+      },
+      {
+        "key": "B",
+        "text": "是党的历史上一个生死攸关的转折点"
+      },
+      {
+        "key": "C",
+        "text": "标志着中国共产党在政治上开始走向成熟"
+      },
+      {
+        "key": "D",
+        "text": "召开于抗日战争全面爆发之后"
+      }
+    ],
+    "answerKey": [
+      "A",
+      "B",
+      "C"
+    ]
+  },
+  {
+    "type": "multiple",
+    "category": "党史",
+    "stem": "“三大改造”是指对哪些方面的社会主义改造？",
+    "options": [
+      {
+        "key": "A",
+        "text": "农业"
+      },
+      {
+        "key": "B",
+        "text": "手工业"
+      },
+      {
+        "key": "C",
+        "text": "官僚资本"
+      },
+      {
+        "key": "D",
+        "text": "资本主义工商业"
+      }
+    ],
+    "answerKey": [
+      "A",
+      "B",
+      "D"
+    ]
+  },
+  {
+    "type": "multiple",
+    "category": "党史",
+    "stem": "1949年上半年，毛泽东提出的三条基本外交方针包括？",
+    "options": [
+      {
+        "key": "A",
+        "text": "另起炉灶"
+      },
+      {
+        "key": "B",
+        "text": "打扫干净屋子再请客"
+      },
+      {
+        "key": "C",
+        "text": "一致对外"
+      },
+      {
+        "key": "D",
+        "text": "一边倒"
+      }
+    ],
+    "answerKey": [
+      "A",
+      "B",
+      "D"
+    ]
+  },
+  {
+    "type": "multiple",
+    "category": "党史",
+    "stem": "伟大的抗美援朝战争的历史意义包括？",
+    "options": [
+      {
+        "key": "A",
+        "text": "抵御了帝国主义侵略扩张"
+      },
+      {
+        "key": "B",
+        "text": "捍卫了新中国安全"
+      },
+      {
+        "key": "C",
+        "text": "保卫了中国人民和平生活"
+      },
+      {
+        "key": "D",
+        "text": "稳定了朝鲜半岛局势"
+      }
+    ],
+    "answerKey": [
+      "A",
+      "B",
+      "C",
+      "D"
+    ]
+  },
+  {
+    "type": "multiple",
+    "category": "理论",
+    "stem": "“三个代表”重要思想是指我们党必须始终？",
+    "options": [
+      {
+        "key": "A",
+        "text": "代表中国先进生产力的发展要求"
+      },
+      {
+        "key": "B",
+        "text": "代表中国先进文化的前进方向"
+      },
+      {
+        "key": "C",
+        "text": "代表中国最广大人民的根本利益"
+      },
+      {
+        "key": "D",
+        "text": "代表中国特色社会主义发展道路"
+      }
+    ],
+    "answerKey": [
+      "A",
+      "B",
+      "C"
+    ]
+  },
+  {
+    "type": "multiple",
+    "category": "理论",
+    "stem": "始终做到“三个代表”是我们党的？",
+    "options": [
+      {
+        "key": "A",
+        "text": "立党之本"
+      },
+      {
+        "key": "B",
+        "text": "政治基石"
+      },
+      {
+        "key": "C",
+        "text": "执政之基"
+      },
+      {
+        "key": "D",
+        "text": "力量之源"
+      }
+    ],
+    "answerKey": [
+      "A",
+      "C",
+      "D"
+    ]
+  },
+  {
+    "type": "multiple",
+    "category": "理论",
+    "stem": "可持续发展就是要促进人与自然的和谐，坚持走怎样的文明发展道路？",
+    "options": [
+      {
+        "key": "A",
+        "text": "生产发展"
+      },
+      {
+        "key": "B",
+        "text": "生活美好"
+      },
+      {
+        "key": "C",
+        "text": "生活富裕"
+      },
+      {
+        "key": "D",
+        "text": "生态良好"
+      }
+    ],
+    "answerKey": [
+      "A",
+      "C",
+      "D"
+    ]
+  },
+  {
+    "type": "multiple",
+    "category": "理论",
+    "stem": "脱贫攻坚精神包括下列哪些内容？",
+    "options": [
+      {
+        "key": "A",
+        "text": "上下同心、尽锐出战"
+      },
+      {
+        "key": "B",
+        "text": "精准务实、开拓创新"
+      },
+      {
+        "key": "C",
+        "text": "攻坚克难、不负人民"
+      },
+      {
+        "key": "D",
+        "text": "封闭保守、单打独斗"
+      }
+    ],
+    "answerKey": [
+      "A",
+      "B",
+      "C"
+    ]
+  },
+  {
+    "type": "multiple",
+    "category": "理论",
+    "stem": "“十三五”时期全面取得重大突破/进展/成果的“三个全面”是？",
+    "options": [
+      {
+        "key": "A",
+        "text": "全面深化改革"
+      },
+      {
+        "key": "B",
+        "text": "全面依法治国"
+      },
+      {
+        "key": "C",
+        "text": "全面从严治党"
+      },
+      {
+        "key": "D",
+        "text": "全面反腐倡廉"
+      }
+    ],
+    "answerKey": [
+      "A",
+      "B",
+      "C"
+    ]
+  },
+  {
+    "type": "multiple",
+    "category": "理论",
+    "stem": "坚持把发展经济着力点放在实体经济上，坚定不移建设？",
+    "options": [
+      {
+        "key": "A",
+        "text": "制造强国"
+      },
+      {
+        "key": "B",
+        "text": "质量强国"
+      },
+      {
+        "key": "C",
+        "text": "网络强国"
+      },
+      {
+        "key": "D",
+        "text": "数字中国"
+      }
+    ],
+    "answerKey": [
+      "A",
+      "B",
+      "C",
+      "D"
+    ]
+  },
+  {
+    "type": "multiple",
+    "category": "理论",
+    "stem": "全面实施乡村振兴战略，推动形成怎样的新型工农城乡关系？",
+    "options": [
+      {
+        "key": "A",
+        "text": "工农互促"
+      },
+      {
+        "key": "B",
+        "text": "城乡互补"
+      },
+      {
+        "key": "C",
+        "text": "协调发展"
+      },
+      {
+        "key": "D",
+        "text": "共同繁荣"
+      }
+    ],
+    "answerKey": [
+      "A",
+      "B",
+      "C",
+      "D"
+    ]
+  },
+  {
+    "type": "multiple",
+    "category": "理论",
+    "stem": "实现“十四五”规划和二〇三五年远景目标，要高举哪些旗帜？",
+    "options": [
+      {
+        "key": "A",
+        "text": "和平"
+      },
+      {
+        "key": "B",
+        "text": "发展"
+      },
+      {
+        "key": "C",
+        "text": "合作"
+      },
+      {
+        "key": "D",
+        "text": "共赢"
+      }
+    ],
+    "answerKey": [
+      "A",
+      "B",
+      "C",
+      "D"
+    ]
+  },
+  {
+    "type": "multiple",
+    "category": "党章",
+    "stem": "中国共产党是中国工人阶级的先锋队，同时是？",
+    "options": [
+      {
+        "key": "A",
+        "text": "中国人民的先锋队"
+      },
+      {
+        "key": "B",
+        "text": "中华民族的先锋队"
+      },
+      {
+        "key": "C",
+        "text": "世界无产阶级的先锋队"
+      },
+      {
+        "key": "D",
+        "text": "全体公民的先锋队"
+      }
+    ],
+    "answerKey": [
+      "A",
+      "B"
+    ]
+  },
+  {
+    "type": "multiple",
+    "category": "党章",
+    "stem": "党的建设必须坚决实现的基本要求包括？",
+    "options": [
+      {
+        "key": "A",
+        "text": "坚持党的基本路线"
+      },
+      {
+        "key": "B",
+        "text": "坚持解放思想、实事求是、与时俱进、求真务实"
+      },
+      {
+        "key": "C",
+        "text": "坚持全心全意为人民服务"
+      },
+      {
+        "key": "D",
+        "text": "坚持民主集中制"
+      }
+    ],
+    "answerKey": [
+      "A",
+      "B",
+      "C",
+      "D"
+    ]
+  },
+  {
+    "type": "multiple",
+    "category": "纪律",
+    "stem": "“四个意识”是指？",
+    "options": [
+      {
+        "key": "A",
+        "text": "政治意识"
+      },
+      {
+        "key": "B",
+        "text": "大局意识"
+      },
+      {
+        "key": "C",
+        "text": "核心意识"
+      },
+      {
+        "key": "D",
+        "text": "看齐意识"
+      }
+    ],
+    "answerKey": [
+      "A",
+      "B",
+      "C",
+      "D"
+    ]
+  },
+  {
+    "type": "multiple",
+    "category": "纪律",
+    "stem": "“四个自信”是指？",
+    "options": [
+      {
+        "key": "A",
+        "text": "道路自信"
+      },
+      {
+        "key": "B",
+        "text": "理论自信"
+      },
+      {
+        "key": "C",
+        "text": "制度自信"
+      },
+      {
+        "key": "D",
+        "text": "文化自信"
+      }
+    ],
+    "answerKey": [
+      "A",
+      "B",
+      "C",
+      "D"
+    ]
+  },
+  {
+    "type": "multiple",
+    "category": "纪律",
+    "stem": "党的六大纪律包括政治纪律、组织纪律、廉洁纪律以及？",
+    "options": [
+      {
+        "key": "A",
+        "text": "群众纪律"
+      },
+      {
+        "key": "B",
+        "text": "工作纪律"
+      },
+      {
+        "key": "C",
+        "text": "生活纪律"
+      },
+      {
+        "key": "D",
+        "text": "经济纪律"
+      }
+    ],
+    "answerKey": [
+      "A",
+      "B",
+      "C"
+    ]
+  },
+  {
+    "type": "multiple",
+    "category": "党务",
+    "stem": "学习任务落实过程中，下列哪些环节有助于提升完成率？",
+    "options": [
+      {
+        "key": "A",
+        "text": "任务发布与明确截止"
+      },
+      {
+        "key": "B",
+        "text": "过程提醒与记录"
+      },
+      {
+        "key": "C",
+        "text": "复盘总结与归档"
+      },
+      {
+        "key": "D",
+        "text": "不做统计，凭感觉判断"
+      }
+    ],
+    "answerKey": [
+      "A",
+      "B",
+      "C"
+    ]
+  },
+  {
+    "type": "multiple",
+    "category": "党务",
+    "stem": "党支部工作必须遵循的原则包括？",
+    "options": [
+      {
+        "key": "A",
+        "text": "坚持围绕中心、服务大局"
+      },
+      {
+        "key": "B",
+        "text": "坚持以上率下、示范带动"
+      },
+      {
+        "key": "C",
+        "text": "坚持问题导向、务求实效"
+      },
+      {
+        "key": "D",
+        "text": "坚持闭门造车、脱离群众"
+      }
+    ],
+    "answerKey": [
+      "A",
+      "B",
+      "C"
+    ]
+  },
+  {
+    "type": "multiple",
+    "category": "党史",
+    "stem": "中国共产党在抗日战争时期的重要会议包括？",
+    "options": [
+      {
+        "key": "A",
+        "text": "洛川会议"
+      },
+      {
+        "key": "B",
+        "text": "遵义会议"
+      },
+      {
+        "key": "C",
+        "text": "六届六中全会"
+      },
+      {
+        "key": "D",
+        "text": "七大"
+      }
+    ],
+    "answerKey": [
+      "A",
+      "C",
+      "D"
+    ]
+  },
+  {
+    "type": "multiple",
+    "category": "党史",
+    "stem": "抗疫斗争伟大实践再次证明的内容包括？",
+    "options": [
+      {
+        "key": "A",
+        "text": "中国共产党坚强领导力是主心骨"
+      },
+      {
+        "key": "B",
+        "text": "中国特色社会主义制度具有显著优势"
+      },
+      {
+        "key": "C",
+        "text": "中国人民具有不屈不挠的意志力"
+      },
+      {
+        "key": "D",
+        "text": "可以脱离群众独自应对风险"
+      }
+    ],
+    "answerKey": [
+      "A",
+      "B",
+      "C"
+    ]
+  },
+  {
+    "type": "multiple",
+    "category": "理论",
+    "stem": "必须注重加强怎样的民生建设，保障群众基本生活？",
+    "options": [
+      {
+        "key": "A",
+        "text": "普惠性"
+      },
+      {
+        "key": "B",
+        "text": "基础性"
+      },
+      {
+        "key": "C",
+        "text": "精准性"
+      },
+      {
+        "key": "D",
+        "text": "兜底性"
+      }
+    ],
+    "answerKey": [
+      "A",
+      "B",
+      "D"
+    ]
+  },
+  {
+    "type": "multiple",
+    "category": "理论",
+    "stem": "更好构筑中国精神、中国价值、中国力量，必须坚定？",
+    "options": [
+      {
+        "key": "A",
+        "text": "中国理念"
+      },
+      {
+        "key": "B",
+        "text": "中国精神"
+      },
+      {
+        "key": "C",
+        "text": "中国价值"
+      },
+      {
+        "key": "D",
+        "text": "中国力量"
+      }
+    ],
+    "answerKey": [
+      "B",
+      "C",
+      "D"
+    ]
+  },
+  {
+    "type": "multiple",
+    "category": "党史",
+    "stem": "根据用和平方式解决西安事变的方针，迫使蒋介石作出的承诺包括？",
+    "options": [
+      {
+        "key": "A",
+        "text": "停止内战"
+      },
+      {
+        "key": "B",
+        "text": "停止剿共"
+      },
+      {
+        "key": "C",
+        "text": "联红抗日"
+      },
+      {
+        "key": "D",
+        "text": "共同抗日"
+      }
+    ],
+    "answerKey": [
+      "B",
+      "C"
+    ]
+  },
+  {
+    "type": "tf",
+    "category": "党史",
+    "stem": "中国共产党成立于1921年。",
+    "options": null,
+    "answerKey": true
+  },
+  {
+    "type": "tf",
+    "category": "党史",
+    "stem": "中国共产党第一次全国代表大会全程都在北京召开。",
+    "options": null,
+    "answerKey": false
+  },
+  {
+    "type": "tf",
+    "category": "党史",
+    "stem": "中国共产党的成立是中国历史上开天辟地的大事变。",
+    "options": null,
+    "answerKey": true
+  },
+  {
+    "type": "tf",
+    "category": "党史",
+    "stem": "遵义会议是党的历史上一个生死攸关的转折点。",
+    "options": null,
+    "answerKey": true
+  },
+  {
+    "type": "tf",
+    "category": "党史",
+    "stem": "西安事变的和平解决标志着十年内战局面基本结束，抗日民族统一战线初步形成。",
+    "options": null,
+    "answerKey": true
+  },
+  {
+    "type": "tf",
+    "category": "党史",
+    "stem": "中华人民共和国的成立，标志着从新民主主义到社会主义社会的转变已经完成。",
+    "options": null,
+    "answerKey": false
+  },
+  {
+    "type": "tf",
+    "category": "党史",
+    "stem": "1978年党的十一届三中全会开启了改革开放和社会主义现代化建设新时期。",
+    "options": null,
+    "answerKey": true
+  },
+  {
+    "type": "tf",
+    "category": "党史",
+    "stem": "1965年我国在国际上首次人工合成牛胰岛素结晶。",
+    "options": null,
+    "answerKey": true
+  },
+  {
+    "type": "tf",
+    "category": "党史",
+    "stem": "1970年4月我国成功发射第一颗人造地球卫星“东方红一号”。",
+    "options": null,
+    "answerKey": true
+  },
+  {
+    "type": "tf",
+    "category": "党史",
+    "stem": "党的十六大提出实现全面建设小康社会奋斗目标的新要求。",
+    "options": null,
+    "answerKey": false
+  },
+  {
+    "type": "tf",
+    "category": "党史",
+    "stem": "《中华人民共和国民法典》是新中国历史上第一部法典化的法律。",
+    "options": null,
+    "answerKey": true
+  },
+  {
+    "type": "tf",
+    "category": "党史",
+    "stem": "中国是2020年唯一实现正增长的世界主要经济体。",
+    "options": null,
+    "answerKey": true
+  },
+  {
+    "type": "tf",
+    "category": "纪律",
+    "stem": "纪律学习中，理解“边界条件”有助于减少风险。",
+    "options": null,
+    "answerKey": true
+  },
+  {
+    "type": "tf",
+    "category": "纪律",
+    "stem": "全面从严治党永远在路上，党的自我革命永远在路上。",
+    "options": null,
+    "answerKey": true
+  },
+  {
+    "type": "tf",
+    "category": "纪律",
+    "stem": "党员可以隐瞒入党动机，只要工作成绩突出即可发展入党。",
+    "options": null,
+    "answerKey": false
+  },
+  {
+    "type": "tf",
+    "category": "纪律",
+    "stem": "党的纪律是党的各级组织和全体党员必须遵守的行为规则。",
+    "options": null,
+    "answerKey": true
+  },
+  {
+    "type": "tf",
+    "category": "纪律",
+    "stem": "政治纪律是最重要、最根本、最关键的纪律。",
+    "options": null,
+    "answerKey": true
+  },
+  {
+    "type": "tf",
+    "category": "党章",
+    "stem": "中国共产党的根本宗旨是全心全意为人民服务。",
+    "options": null,
+    "answerKey": true
+  },
+  {
+    "type": "tf",
+    "category": "党章",
+    "stem": "民主集中制是民主基础上的集中和集中指导下的民主相结合。",
+    "options": null,
+    "answerKey": true
+  },
+  {
+    "type": "tf",
+    "category": "党章",
+    "stem": "预备党员的义务同正式党员一样，权利也完全相同。",
+    "options": null,
+    "answerKey": false
+  },
+  {
+    "type": "tf",
+    "category": "党务",
+    "stem": "党支部应当严格执行党的组织生活制度。",
+    "options": null,
+    "answerKey": true
+  },
+  {
+    "type": "tf",
+    "category": "党务",
+    "stem": "“三会一课”制度是党支部开展日常工作的基本制度之一。",
+    "options": null,
+    "answerKey": true
+  },
+  {
+    "type": "tf",
+    "category": "党务",
+    "stem": "发展党员可以跳过教育考察环节直接吸收入党。",
+    "options": null,
+    "answerKey": false
+  },
+  {
+    "type": "tf",
+    "category": "理论",
+    "stem": "中国特色社会主义最本质的特征是中国共产党领导。",
+    "options": null,
+    "answerKey": true
+  },
+  {
+    "type": "tf",
+    "category": "理论",
+    "stem": "构建人类命运共同体所具有的广泛感召力，是应对人类共同挑战的人间正道。",
+    "options": null,
+    "answerKey": true
+  }
+]

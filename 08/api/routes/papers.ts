@@ -44,6 +44,57 @@ router.get('/', async (req: Request, res: Response) => {
   res.status(200).json({ success: true, data })
 })
 
+router.get('/:id', async (req: Request, res: Response) => {
+  if (!requireRole(req, ['admin'])) {
+    res.status(403).json({ success: false, error: '仅管理员可操作' })
+    return
+  }
+
+  const id = String(req.params.id)
+  const paper = (
+    await query(
+      'SELECT id, title, duration_min, pass_score, created_at FROM papers WHERE id = $1',
+      [id],
+    )
+  ).rows[0]
+
+  if (!paper) {
+    res.status(404).json({ success: false, error: '试卷不存在' })
+    return
+  }
+
+  const { rows: pqRows } = await query(
+    `SELECT pq.question_id, pq.score, pq.order_no,
+            q.type, q.category, q.stem, q.options_json, q.answer_key_json
+     FROM paper_questions pq
+     JOIN questions q ON q.id = pq.question_id
+     WHERE pq.paper_id = $1
+     ORDER BY pq.order_no ASC`,
+    [id],
+  )
+
+  res.status(200).json({
+    success: true,
+    data: {
+      id: paper.id,
+      title: paper.title,
+      durationMin: Number(paper.duration_min ?? 0),
+      passScore: Number(paper.pass_score ?? 0),
+      createdAt: paper.created_at,
+      questions: pqRows.map((r) => ({
+        questionId: String(r.question_id),
+        score: Number(r.score ?? 0),
+        orderNo: Number(r.order_no ?? 0),
+        type: String(r.type ?? ''),
+        category: String(r.category ?? ''),
+        stem: String(r.stem ?? ''),
+        options: r.options_json ?? null,
+        answerKey: r.answer_key_json ?? null,
+      })),
+    },
+  })
+})
+
 router.post('/', async (req: Request, res: Response) => {
   if (!requireRole(req, ['admin'])) {
     res.status(403).json({ success: false, error: '仅管理员可操作' })

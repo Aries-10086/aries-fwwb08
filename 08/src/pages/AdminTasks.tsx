@@ -43,7 +43,6 @@ function fromDatetimeLocal(v: string) {
 export default function AdminTasks() {
   const nav = useNavigate()
   const { user } = useAuthStore()
-  const isSecretary = user?.role === 'secretary'
   const [orgs, setOrgs] = useState<Org[]>([])
   const [contents, setContents] = useState<Content[]>([])
   const [tasks, setTasks] = useState<Task[]>([])
@@ -60,7 +59,7 @@ export default function AdminTasks() {
 
   useEffect(() => {
     if (!user) nav('/login')
-    if (user && user.role !== 'admin' && user.role !== 'secretary') nav('/m/home')
+    if (user && user.role !== 'admin') nav('/m/home')
   }, [nav, user])
 
   const contentById = useMemo(() => new Map(contents.map((c) => [c.id, c])), [contents])
@@ -81,9 +80,7 @@ export default function AdminTasks() {
         c.map((x) => ({ id: x.id, title: x.title, category: x.category, isPublic: x.isPublic })) as Content[],
       )
       setTasks(t)
-      if (isSecretary && user?.orgUnitId) {
-        setForm((p) => ({ ...p, orgUnitId: user.orgUnitId || p.orgUnitId }))
-      } else if (!form.orgUnitId) {
+      if (!form.orgUnitId) {
         const first = o.find((x) => x.parentId)
         if (first) setForm((p) => ({ ...p, orgUnitId: first.id }))
       }
@@ -101,7 +98,7 @@ export default function AdminTasks() {
   function resetForm() {
     setEditingId(null)
     setForm({
-      orgUnitId: isSecretary && user?.orgUnitId ? user.orgUnitId : branchOrgs[0]?.id ?? '',
+      orgUnitId: branchOrgs[0]?.id ?? '',
       title: '学习任务（新建）',
       dueAt: '',
       contentIds: [],
@@ -155,10 +152,10 @@ export default function AdminTasks() {
     <div className="grid gap-6">
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <div className="page-eyebrow">{isSecretary ? '支部端' : '管理后台'}</div>
+          <div className="page-eyebrow">管理后台</div>
           <h1 className="page-title text-3xl md:text-4xl">学习任务发布</h1>
           <div className="page-subtitle mt-2 max-w-2xl">
-            {isSecretary ? '为本支部发布、编辑学习任务' : '按支部分发指定学习内容'}
+            按支部分发指定学习内容
           </div>
         </div>
         <Button variant="ghost" onClick={() => load()} disabled={loading}>
@@ -183,22 +180,20 @@ export default function AdminTasks() {
           </CardHeader>
           <CardContent>
             <div className="grid gap-3">
-              {!isSecretary && (
-                <label className="grid gap-1 text-sm">
-                  <span className="field-label">支部</span>
-                  <select
-                    value={form.orgUnitId}
-                    onChange={(e) => setForm((p) => ({ ...p, orgUnitId: e.target.value }))}
-                    className="input-shell"
-                  >
-                    {branchOrgs.map((o) => (
-                      <option key={o.id} value={o.id}>
-                        {o.name}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-              )}
+              <label className="grid gap-1 text-sm">
+                <span className="field-label">支部</span>
+                <select
+                  value={form.orgUnitId}
+                  onChange={(e) => setForm((p) => ({ ...p, orgUnitId: e.target.value }))}
+                  className="input-shell"
+                >
+                  {branchOrgs.map((o) => (
+                    <option key={o.id} value={o.id}>
+                      {o.name}
+                    </option>
+                  ))}
+                </select>
+              </label>
               <label className="grid gap-1 text-sm">
                 <span className="field-label">任务标题</span>
                 <input
@@ -215,6 +210,9 @@ export default function AdminTasks() {
                   onChange={(e) => setForm((p) => ({ ...p, dueAt: e.target.value }))}
                   className="input-shell"
                 />
+                <div className="mt-1 text-[11px] text-[rgba(18,21,28,0.45)]">
+                  设置后，党员端将在截止前 24 小时收到页内提醒；开启浏览器通知后还可系统推送
+                </div>
               </label>
               <div className="text-xs text-zinc-500">选择内容（可多选）</div>
               <div className="max-h-[220px] space-y-2 overflow-auto pr-1">

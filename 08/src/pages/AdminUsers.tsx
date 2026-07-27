@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/Card'
 import { Button } from '@/components/Button'
 import { apiFetch } from '@/utils/api'
@@ -14,6 +14,7 @@ import {
   Trash,
   MagnifyingGlass,
   FloppyDisk,
+  X,
 } from '@phosphor-icons/react'
 
 type Org = { id: string; name: string; parentId: string | null }
@@ -23,6 +24,7 @@ type User = SharedUser
 
 export default function AdminUsers() {
   const nav = useNavigate()
+  const [searchParams] = useSearchParams()
   const { user } = useAuthStore()
   const [orgs, setOrgs] = useState<Org[]>([])
   const [items, setItems] = useState<User[]>([])
@@ -33,8 +35,13 @@ export default function AdminUsers() {
     'name,username,password,role,orgUnitName\n张三,zhangsan,Pass1234,member,第三党支部\n李四,lisi,Pass1234,member,第三党支部',
   )
   const [saving, setSaving] = useState(false)
-  const [filters, setFilters] = useState({ name: '', role: '', orgUnitId: '' })
+  const [filters, setFilters] = useState({
+    name: '',
+    role: '',
+    orgUnitId: searchParams.get('orgUnitId') ?? '',
+  })
   const [importFileName, setImportFileName] = useState('')
+  const [listQuery, setListQuery] = useState('')
 
   const [form, setForm] = useState({ name: '', username: '', password: '', role: 'member', orgUnitId: 'org_branch_3' })
 
@@ -46,14 +53,25 @@ export default function AdminUsers() {
   const orgName = useMemo(() => new Map(orgs.map((o) => [o.id, o.name])), [orgs])
   const selected = useMemo(() => items.find((item) => item.id === selectedId) ?? null, [items, selectedId])
 
-  async function load() {
+  const listFiltered = useMemo(() => {
+    const q = listQuery.trim().toLowerCase()
+    if (!q) return items
+    return items.filter((u) => {
+      const haystack = [u.name, u.username ?? '', u.role, orgName.get(u.orgUnitId) ?? u.orgUnitId]
+        .join(' ')
+        .toLowerCase()
+      return haystack.includes(q)
+    })
+  }, [items, listQuery, orgName])
+
+  async function load(nextFilters = filters, preferUserId?: string | null) {
     setLoading(true)
     setError(null)
     try {
       const query = new URLSearchParams()
-      if (filters.name.trim()) query.set('name', filters.name.trim())
-      if (filters.role) query.set('role', filters.role)
-      if (filters.orgUnitId) query.set('orgUnitId', filters.orgUnitId)
+      if (nextFilters.name.trim()) query.set('name', nextFilters.name.trim())
+      if (nextFilters.role) query.set('role', nextFilters.role)
+      if (nextFilters.orgUnitId) query.set('orgUnitId', nextFilters.orgUnitId)
 
       const [o, u] = await Promise.all([
         apiFetch<Org[]>('/api/org-units'),
@@ -61,7 +79,8 @@ export default function AdminUsers() {
       ])
       setOrgs(o)
       setItems(u)
-      setSelectedId((prev) => (u.some((item) => item.id === prev) ? prev : u[0]?.id ?? null))
+      const preferred = preferUserId && u.some((item) => item.id === preferUserId) ? preferUserId : null
+      setSelectedId((prev) => preferred ?? (prev && u.some((item) => item.id === prev) ? prev : u[0]?.id ?? null))
     } catch (e: any) {
       setError(e?.message ?? '加载失败')
     } finally {
@@ -70,8 +89,12 @@ export default function AdminUsers() {
   }
 
   useEffect(() => {
-    load()
-  }, [])
+    const orgFromUrl = searchParams.get('orgUnitId') ?? ''
+    const userFromUrl = searchParams.get('userId')
+    const next = { ...filters, orgUnitId: orgFromUrl || filters.orgUnitId }
+    setFilters(next)
+    void load(next, userFromUrl)
+  }, [searchParams])
 
   useEffect(() => {
     if (!selected) {
@@ -80,7 +103,7 @@ export default function AdminUsers() {
         username: '',
         password: '',
         role: 'member',
-        orgUnitId: orgs.find((o) => o.parentId)?.id ?? 'org_branch_3',
+        orgUnitId: filters.orgUnitId || orgs.find((o) => o.parentId)?.id || 'org_branch_3',
       })
       return
     }
@@ -91,7 +114,7 @@ export default function AdminUsers() {
       role: selected.role,
       orgUnitId: selected.orgUnitId,
     })
-  }, [selectedId, orgs])
+  }, [selectedId, orgs, filters.orgUnitId])
 
   async function create() {
     setError(null)
@@ -355,11 +378,38 @@ export default function AdminUsers() {
 
       <Card>
         <CardHeader>
-          <CardTitle>人员列表</CardTitle>
+          <CardTitle>
+            人员列表
+            <span className="ml-2 text-sm font-normal text-zinc-500">
+              ({listFiltered.length}
+              {listQuery.trim() ? ` / ${items.length}` : ''})
+            </span>
+          </CardTitle>
         </CardHeader>
         <CardContent>
+          <div className="mb-3 flex items-center gap-2">
+            <div className="input-shell flex min-w-0 flex-1 items-center gap-2 px-3">
+              <MagnifyingGlass className="h-4 w-4 shrink-0 text-[#9e1b2b]" />
+              <input
+                value={listQuery}
+                onChange={(e) => setListQuery(e.target.value)}
+                placeholder="按姓名或账号搜索…"
+                className="w-full bg-transparent py-2 text-sm outline-none"
+              />
+              {listQuery.trim() && (
+                <button
+                  type="button"
+                  onClick={() => setListQuery('')}
+                  className="rounded-full p-1 text-zinc-400 hover:bg-black/5 hover:text-[#9e1b2b]"
+                  aria-label="清空搜索"
+                >
+                  <X className="h-3.5 w-3.5" />
+                </button>
+              )}
+            </div>
+          </div>
           <div className="grid gap-2">
-            {items.map((u) => (
+            {listFiltered.map((u) => (
               <div
                 key={u.id}
                 className={[
@@ -389,7 +439,11 @@ export default function AdminUsers() {
                 </div>
               </div>
             ))}
-            {items.length === 0 && <div className="py-10 text-sm text-black/45">暂无人员</div>}
+            {listFiltered.length === 0 && (
+              <div className="py-10 text-sm text-black/45">
+                {listQuery.trim() ? '无匹配人员，试试其他姓名或账号' : '暂无人员'}
+              </div>
+            )}
           </div>
         </CardContent>
       </Card>

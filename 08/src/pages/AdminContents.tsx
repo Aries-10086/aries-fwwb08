@@ -13,6 +13,7 @@ import {
   ArrowsClockwise,
   Trash,
   X,
+  MagnifyingGlass,
 } from '@phosphor-icons/react'
 import type { Content, ContentAttachment } from '../../shared/types'
 
@@ -33,8 +34,21 @@ export default function AdminContents() {
   const [loading, setLoading] = useState(false)
   const [saving, setSaving] = useState(false)
   const [uploading, setUploading] = useState(false)
+  const [query, setQuery] = useState('')
 
   const selected = useMemo(() => items.find((x) => x.id === selectedId) ?? null, [items, selectedId])
+
+  const filteredItems = useMemo(() => {
+    const q = query.trim().toLowerCase()
+    if (!q) return items
+    return items.filter((c) => {
+      const tags = (c.tags ?? []).join(' ')
+      const haystack = [c.title, c.category, c.type, c.body, tags, c.isPublic ? '公共' : '非公共']
+        .join(' ')
+        .toLowerCase()
+      return haystack.includes(q)
+    })
+  }, [items, query])
 
   const [form, setForm] = useState({
     type: 'article' as 'article' | 'video',
@@ -208,11 +222,37 @@ export default function AdminContents() {
       <div className="grid gap-4 md:grid-cols-12">
         <Card className="md:col-span-5">
           <CardHeader>
-            <CardTitle>内容列表</CardTitle>
+            <CardTitle>
+              内容列表
+              <span className="ml-2 text-sm font-normal text-zinc-500">
+                ({filteredItems.length}{query.trim() ? ` / ${items.length}` : ''})
+              </span>
+            </CardTitle>
           </CardHeader>
           <CardContent>
+            <div className="mb-3 flex items-center gap-2">
+              <div className="input-shell flex min-w-0 flex-1 items-center gap-2 px-3">
+                <MagnifyingGlass className="h-4 w-4 shrink-0 text-[#9e1b2b]" />
+                <input
+                  value={query}
+                  onChange={(e) => setQuery(e.target.value)}
+                  placeholder="搜索标题 / 分类 / 标签 / 正文…"
+                  className="w-full bg-transparent py-2 text-sm outline-none"
+                />
+                {query.trim() && (
+                  <button
+                    type="button"
+                    onClick={() => setQuery('')}
+                    className="rounded-full p-1 text-zinc-400 hover:bg-black/5 hover:text-[#9e1b2b]"
+                    aria-label="清空搜索"
+                  >
+                    <X className="h-3.5 w-3.5" />
+                  </button>
+                )}
+              </div>
+            </div>
             <div className="max-h-[560px] space-y-2 overflow-auto pr-1">
-              {items.map((c) => (
+              {filteredItems.map((c) => (
                 <button
                   key={c.id}
                   onClick={() => setSelectedId(c.id)}
@@ -234,7 +274,11 @@ export default function AdminContents() {
                   </div>
                 </button>
               ))}
-              {items.length === 0 && <div className="py-10 text-sm text-[rgba(18,21,28,0.4)]">暂无内容</div>}
+              {filteredItems.length === 0 && (
+                <div className="py-10 text-sm text-[rgba(18,21,28,0.4)]">
+                  {query.trim() ? '无匹配内容，试试其他关键词' : '暂无内容'}
+                </div>
+              )}
             </div>
           </CardContent>
         </Card>

@@ -8,6 +8,7 @@ import {
   Users,
   TreeStructure,
   BookOpen,
+  BookBookmark,
   ClipboardText,
   FileText,
   Brain,
@@ -32,9 +33,9 @@ const adminNav = [
 const secretaryNav = [
   { to: '/m/dashboard', label: '支部看板', icon: SquaresFour },
   { to: '/m/scores', label: '支部成绩', icon: ChartBar },
-  { to: '/admin/tasks', label: '任务', icon: ClipboardText },
   { to: '/m/home', label: '学习', icon: BookOpen },
   { to: '/m/exams', label: '测验', icon: ClipboardText },
+  { to: '/m/wrong-book', label: '错题本', icon: BookBookmark },
   { to: '/m/report', label: 'AI 报告', icon: Sparkle },
   { to: '/account', label: '我的', icon: User },
 ] as const
@@ -42,6 +43,7 @@ const secretaryNav = [
 const memberNav = [
   { to: '/m/home', label: '学习', icon: BookOpen },
   { to: '/m/exams', label: '测验', icon: ClipboardText },
+  { to: '/m/wrong-book', label: '错题本', icon: BookBookmark },
   { to: '/m/report', label: 'AI 报告', icon: Sparkle },
   { to: '/account', label: '我的', icon: User },
 ] as const
