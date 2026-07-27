@@ -8,6 +8,7 @@ import {
   ArrowRight,
   ClipboardText,
   ClockCounterClockwise,
+  BookBookmark,
   Sparkle,
 } from '@phosphor-icons/react'
 
@@ -82,12 +83,20 @@ export default function MobileExams() {
             参与本支部测验；可查看历史成绩与错题回顾
           </div>
         </div>
-        <Link to="/m/report">
-          <Button>
-            <Sparkle className="h-4 w-4" />
-            AI 报告
-          </Button>
-        </Link>
+        <div className="flex flex-wrap gap-2">
+          <Link to="/m/wrong-book">
+            <Button variant="secondary">
+              <BookBookmark className="h-4 w-4" />
+              错题本
+            </Button>
+          </Link>
+          <Link to="/m/report">
+            <Button>
+              <Sparkle className="h-4 w-4" />
+              AI 报告
+            </Button>
+          </Link>
+        </div>
       </div>
 
       {error && (
