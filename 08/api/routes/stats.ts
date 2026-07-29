@@ -417,6 +417,8 @@ router.get('/branch-dashboard', async (req: Request, res: Response) => {
   ).rows[0]
   const durationMs = Number(durationRow?.s ?? 0)
   const durationHours = Math.round((durationMs / 3600000) * 10) / 10
+  const avgDurationHours =
+    memberCount > 0 ? Math.round((durationHours / memberCount) * 10) / 10 : 0
 
   const examSummary = await loadOrgExamSummary(orgUnitId)
 
@@ -431,9 +433,18 @@ router.get('/branch-dashboard', async (req: Request, res: Response) => {
   const examAgg = await loadExamAggByUserIds(memberIds)
   const contentsByTask = await loadTaskContentsMap(tasks.map((t) => String(t.id)))
 
+  const memberNameById = new Map(members.map((m) => [String(m.id), String(m.name)]))
   const taskStats = tasks.map((t) => {
     const cids = contentsByTask.get(String(t.id)) ?? []
-    const completedMemberCount = countMembersFullyDone(memberIds, cids, completedByUser)
+    const completedIds =
+      cids.length === 0
+        ? []
+        : memberIds.filter((uid) => {
+            const done = completedByUser.get(uid) ?? new Set<string>()
+            return cids.every((cid) => done.has(cid))
+          })
+    const pendingIds = memberIds.filter((uid) => !completedIds.includes(uid))
+    const completedMemberCount = completedIds.length
     return {
       id: String(t.id),
       title: String(t.title),
@@ -442,6 +453,14 @@ router.get('/branch-dashboard', async (req: Request, res: Response) => {
       contentCount: cids.length,
       completedMemberCount,
       completionRate: memberCount > 0 ? Math.round((completedMemberCount / memberCount) * 100) : 0,
+      completedMembers: completedIds.map((uid) => ({
+        userId: uid,
+        name: memberNameById.get(uid) ?? uid,
+      })),
+      pendingMembers: pendingIds.map((uid) => ({
+        userId: uid,
+        name: memberNameById.get(uid) ?? uid,
+      })),
     }
   })
 
@@ -552,6 +571,7 @@ router.get('/branch-dashboard', async (req: Request, res: Response) => {
       summary: {
         memberCount,
         durationHours,
+        avgDurationHours,
         avgExamScore: examSummary.avgExamScore,
         passRate: examSummary.passRate,
         attemptCount: examSummary.attemptCount,
@@ -568,10 +588,155 @@ router.get('/branch-dashboard', async (req: Request, res: Response) => {
         contentCount: task.contentCount,
         completedMemberCount: task.completedMemberCount,
         completionRate: task.completionRate,
+        completedMembers: task.completedMembers,
+        pendingMembers: task.pendingMembers,
       })),
       members: memberRows,
       weakCategories,
       wrongTop,
+    },
+  })
+})
+
+/** 支部各次测验成绩矩阵 + 未参与人员 */
+router.get('/branch-exams', async (req: Request, res: Response) => {
+  if (!requireRole(req, ['admin', 'secretary'])) {
+    res.status(403).json({ success: false, error: '无权限访问' })
+    return
+  }
+
+  const { role, userId } = getUserContext(req)
+  const orgUnitId =
+    role === 'admin'
+      ? req.query.orgUnitId
+        ? String(req.query.orgUnitId)
+        : (await getOrgUnitIdForUser(userId)) || null
+      : await getOrgUnitIdForUser(userId)
+
+  if (!orgUnitId) {
+    res.status(400).json({ success: false, error: '未指定支部（书记须绑定所属支部）' })
+    return
+  }
+
+  const orgName = String(
+    (await query('SELECT name FROM org_units WHERE id = $1', [orgUnitId])).rows[0]?.name ?? '',
+  )
+
+  const { rows: members } = await query(
+    `SELECT id, name, username FROM users
+     WHERE org_unit_id = $1 AND role = 'member'
+     ORDER BY name ASC`,
+    [orgUnitId],
+  )
+
+  const { rows: exams } = await query(
+    `SELECT id, title, pass_score, status, created_at
+     FROM exams
+     WHERE org_unit_id = $1
+     ORDER BY created_at DESC
+     LIMIT 50`,
+    [orgUnitId],
+  )
+
+  const examIds = exams.map((e) => String(e.id))
+  const latestByExamUser = new Map<string, Map<string, { score: number; isPass: boolean; at: string | null; attemptId: string }>>()
+
+  if (examIds.length > 0 && members.length > 0) {
+    const placeholders = examIds.map((_, i) => `$${i + 1}`).join(',')
+    const { rows: attempts } = await query(
+      `SELECT DISTINCT ON (att.exam_id, att.user_id)
+              att.id, att.exam_id, att.user_id, att.total_score, att.submitted_at, e.pass_score
+       FROM exam_attempts att
+       JOIN exams e ON e.id = att.exam_id
+       WHERE att.exam_id IN (${placeholders})
+         AND att.submitted_at IS NOT NULL
+       ORDER BY att.exam_id, att.user_id, att.submitted_at DESC`,
+      examIds,
+    )
+    for (const a of attempts) {
+      const examId = String(a.exam_id)
+      const uid = String(a.user_id)
+      let byUser = latestByExamUser.get(examId)
+      if (!byUser) {
+        byUser = new Map()
+        latestByExamUser.set(examId, byUser)
+      }
+      const score = Math.round(Number(a.total_score ?? 0))
+      const passScore = Number(a.pass_score ?? 60)
+      byUser.set(uid, {
+        score,
+        isPass: score >= passScore,
+        at: toIso(a.submitted_at),
+        attemptId: String(a.id),
+      })
+    }
+  }
+
+  const list = exams.map((e) => {
+    const examId = String(e.id)
+    const byUser = latestByExamUser.get(examId) ?? new Map()
+    const attempted: Array<{
+      userId: string
+      name: string
+      username: string
+      score: number
+      isPass: boolean
+      submittedAt: string | null
+      attemptId: string
+    }> = []
+    const notAttempted: Array<{ userId: string; name: string; username: string }> = []
+
+    for (const m of members) {
+      const uid = String(m.id)
+      const hit = byUser.get(uid)
+      if (hit) {
+        attempted.push({
+          userId: uid,
+          name: String(m.name),
+          username: String(m.username ?? ''),
+          score: hit.score,
+          isPass: hit.isPass,
+          submittedAt: hit.at,
+          attemptId: hit.attemptId,
+        })
+      } else {
+        notAttempted.push({
+          userId: uid,
+          name: String(m.name),
+          username: String(m.username ?? ''),
+        })
+      }
+    }
+
+    attempted.sort((a, b) => b.score - a.score)
+    const avgScore =
+      attempted.length > 0
+        ? Math.round(attempted.reduce((s, x) => s + x.score, 0) / attempted.length)
+        : 0
+    const passCount = attempted.filter((x) => x.isPass).length
+
+    return {
+      examId,
+      title: String(e.title),
+      passScore: Number(e.pass_score ?? 60),
+      status: String(e.status),
+      createdAt: toIso(e.created_at),
+      memberCount: members.length,
+      attemptedCount: attempted.length,
+      notAttemptedCount: notAttempted.length,
+      avgScore,
+      passRate: attempted.length > 0 ? Math.round((passCount / attempted.length) * 100) : 0,
+      attempted,
+      notAttempted,
+    }
+  })
+
+  res.status(200).json({
+    success: true,
+    data: {
+      orgUnitId,
+      orgName,
+      exams: list,
     },
   })
 })

@@ -219,7 +219,8 @@ router.get('/', async (req: Request, res: Response) => {
 
   let data = rows.map(mapContent)
 
-  if (role === 'member' || role === 'secretary') {
+  // 书记派任务时可浏览全部内容；党员仍仅可见公共/已派发内容
+  if (role === 'member' || (role === 'secretary' && String(req.query.forTask ?? '') !== '1')) {
     const allow = await accessibleContentIdsForUser(userId)
     data = data.filter((x) => allow.has(String(x.id)))
   }

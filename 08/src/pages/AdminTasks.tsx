@@ -43,12 +43,16 @@ function fromDatetimeLocal(v: string) {
 export default function AdminTasks() {
   const nav = useNavigate()
   const { user } = useAuthStore()
+  const isSecretary = user?.role === 'secretary'
+  const isAdmin = user?.role === 'admin'
   const [orgs, setOrgs] = useState<Org[]>([])
   const [contents, setContents] = useState<Content[]>([])
   const [tasks, setTasks] = useState<Task[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [success, setSuccess] = useState<string | null>(null)
   const [editingId, setEditingId] = useState<string | null>(null)
+  const [expandedId, setExpandedId] = useState<string | null>(null)
 
   const [form, setForm] = useState({
     orgUnitId: '',
@@ -59,8 +63,14 @@ export default function AdminTasks() {
 
   useEffect(() => {
     if (!user) nav('/login')
-    if (user && user.role !== 'admin') nav('/m/home')
+    if (user && user.role !== 'admin' && user.role !== 'secretary') nav('/m/home')
   }, [nav, user])
+
+  useEffect(() => {
+    if (!success) return
+    const t = window.setTimeout(() => setSuccess(null), 3500)
+    return () => window.clearTimeout(t)
+  }, [success])
 
   const contentById = useMemo(() => new Map(contents.map((c) => [c.id, c])), [contents])
   const orgById = useMemo(() => new Map(orgs.map((o) => [o.id, o])), [orgs])
@@ -70,9 +80,10 @@ export default function AdminTasks() {
     setLoading(true)
     setError(null)
     try {
+      const contentsUrl = isSecretary ? '/api/contents?forTask=1' : '/api/contents'
       const [o, c, t] = await Promise.all([
         apiFetch<Org[]>('/api/org-units'),
-        apiFetch<any[]>('/api/contents'),
+        apiFetch<any[]>(contentsUrl),
         apiFetch<Task[]>('/api/tasks'),
       ])
       setOrgs(o)
@@ -80,10 +91,14 @@ export default function AdminTasks() {
         c.map((x) => ({ id: x.id, title: x.title, category: x.category, isPublic: x.isPublic })) as Content[],
       )
       setTasks(t)
-      if (!form.orgUnitId) {
-        const first = o.find((x) => x.parentId)
-        if (first) setForm((p) => ({ ...p, orgUnitId: first.id }))
-      }
+      const ownBranch =
+        isSecretary && user?.orgUnitId
+          ? o.find((x) => x.id === user.orgUnitId)
+          : o.find((x) => x.parentId)
+      setForm((p) => ({
+        ...p,
+        orgUnitId: p.orgUnitId || ownBranch?.id || o.find((x) => x.parentId)?.id || '',
+      }))
     } catch (e: any) {
       setError(e?.message ?? '加载失败')
     } finally {
@@ -92,13 +107,17 @@ export default function AdminTasks() {
   }
 
   useEffect(() => {
-    load()
-  }, [])
+    if (user && (user.role === 'admin' || user.role === 'secretary')) load()
+  }, [user?.id, user?.role])
 
   function resetForm() {
     setEditingId(null)
+    const defaultOrg =
+      (isSecretary && user?.orgUnitId) ||
+      branchOrgs[0]?.id ||
+      ''
     setForm({
-      orgUnitId: branchOrgs[0]?.id ?? '',
+      orgUnitId: defaultOrg,
       title: '学习任务（新建）',
       dueAt: '',
       contentIds: [],
@@ -107,8 +126,9 @@ export default function AdminTasks() {
 
   async function save() {
     setError(null)
+    setSuccess(null)
     const payload = {
-      orgUnitId: form.orgUnitId,
+      orgUnitId: isSecretary ? user?.orgUnitId || form.orgUnitId : form.orgUnitId,
       title: form.title.trim(),
       dueAt: fromDatetimeLocal(form.dueAt),
       contentIds: form.contentIds,
@@ -116,8 +136,10 @@ export default function AdminTasks() {
     try {
       if (editingId) {
         await apiFetch<void>(`/api/tasks/${editingId}`, { method: 'PUT', body: JSON.stringify(payload) })
+        setSuccess(`任务「${payload.title}」已更新`)
       } else {
         await apiFetch<{ id: string }>('/api/tasks', { method: 'POST', body: JSON.stringify(payload) })
+        setSuccess(`任务「${payload.title}」已发布`)
       }
       resetForm()
       await load()
@@ -129,10 +151,13 @@ export default function AdminTasks() {
   async function remove(id: string) {
     if (!confirm('确认删除该学习任务？')) return
     setError(null)
+    setSuccess(null)
+    const title = tasks.find((x) => x.id === id)?.title ?? '任务'
     try {
       await apiFetch<void>(`/api/tasks/${id}`, { method: 'DELETE' })
       if (editingId === id) resetForm()
       await load()
+      setSuccess(`「${title}」已删除`)
     } catch (e: any) {
       setError(e?.message ?? '删除失败')
     }
@@ -152,10 +177,12 @@ export default function AdminTasks() {
     <div className="grid gap-6">
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <div className="page-eyebrow">管理后台</div>
+          <div className="page-eyebrow">{isSecretary ? '支部管理' : '管理后台'}</div>
           <h1 className="page-title text-3xl md:text-4xl">学习任务发布</h1>
           <div className="page-subtitle mt-2 max-w-2xl">
-            按支部分发指定学习内容
+            {isSecretary
+              ? '为本支部党员选择学习内容、设置截止时间并发布任务'
+              : '按支部分发指定学习内容'}
           </div>
         </div>
         <Button variant="ghost" onClick={() => load()} disabled={loading}>
@@ -167,6 +194,14 @@ export default function AdminTasks() {
       {error && (
         <div className="rounded-2xl bg-[rgba(158,27,43,0.08)] px-4 py-3 text-[#741220] shadow-[inset_0_0_0_1px_rgba(158,27,43,0.16)]">
           {error}
+        </div>
+      )}
+      {success && (
+        <div
+          role="status"
+          className="rounded-2xl bg-[rgba(31,107,74,0.1)] px-4 py-3 text-sm font-medium text-[#1f6b4a] shadow-[inset_0_0_0_1px_rgba(31,107,74,0.18)]"
+        >
+          {success}
         </div>
       )}
 
@@ -186,6 +221,7 @@ export default function AdminTasks() {
                   value={form.orgUnitId}
                   onChange={(e) => setForm((p) => ({ ...p, orgUnitId: e.target.value }))}
                   className="input-shell"
+                  disabled={isSecretary}
                 >
                   {branchOrgs.map((o) => (
                     <option key={o.id} value={o.id}>
@@ -193,6 +229,9 @@ export default function AdminTasks() {
                     </option>
                   ))}
                 </select>
+                {isSecretary && (
+                  <div className="mt-1 text-[11px] text-[rgba(18,21,28,0.45)]">书记仅可向本支部发布任务</div>
+                )}
               </label>
               <label className="grid gap-1 text-sm">
                 <span className="field-label">任务标题</span>
@@ -243,9 +282,10 @@ export default function AdminTasks() {
                     </label>
                   )
                 })}
+                {contents.length === 0 && <div className="py-6 text-sm text-zinc-400">暂无可选内容</div>}
               </div>
               <div className="flex flex-wrap gap-2">
-                <Button onClick={() => save()} disabled={!form.title.trim() || form.contentIds.length === 0}>
+                <Button onClick={() => void save()} disabled={!form.title.trim() || form.contentIds.length === 0}>
                   <ClipboardText className="h-4 w-4" />
                   {editingId ? '保存修改' : '发布任务'}
                 </Button>
@@ -269,6 +309,7 @@ export default function AdminTasks() {
                 const branchRate = t.branchCompletionRate ?? 0
                 const branchDone = t.branchCompletedMemberCount ?? 0
                 const branchTotal = t.branchMemberCount ?? 0
+                const open = expandedId === t.id
                 return (
                 <div
                   key={t.id}
@@ -286,11 +327,20 @@ export default function AdminTasks() {
                       </div>
                     </div>
                     <div className="flex gap-2">
+                      {(isAdmin || isSecretary) && branchTotal > 0 && (
+                        <Button
+                          variant="ghost"
+                          className="px-3"
+                          onClick={() => setExpandedId(open ? null : t.id)}
+                        >
+                          {open ? '收起进度' : '完成进度'}
+                        </Button>
+                      )}
                       <Button variant="secondary" className="px-3" onClick={() => startEdit(t)}>
                         <PencilSimple className="h-4 w-4" />
                         编辑
                       </Button>
-                      <Button variant="danger" className="px-3" onClick={() => remove(t.id)}>
+                      <Button variant="danger" className="px-3" onClick={() => void remove(t.id)}>
                         <Trash className="h-4 w-4" />
                         删除
                       </Button>
@@ -308,6 +358,11 @@ export default function AdminTasks() {
                           style={{ width: `${Math.min(100, Math.max(0, branchRate))}%` }}
                         />
                       </div>
+                    </div>
+                  )}
+                  {open && (
+                    <div className="mt-3 rounded-lg bg-[rgba(18,21,28,0.03)] px-3 py-3 text-xs text-[rgba(18,21,28,0.7)]">
+                      已完成 {branchDone} 人 · 未完成 {Math.max(0, branchTotal - branchDone)} 人。可到「支部看板」查看未完成名单。
                     </div>
                   )}
                   <div className="mt-3 grid gap-2 md:grid-cols-2">

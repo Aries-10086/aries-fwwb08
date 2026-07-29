@@ -12,6 +12,7 @@ import MobileWrongBook from '@/pages/MobileWrongBook'
 import MobileReport from '@/pages/MobileReport'
 import SecretaryScores from '@/pages/SecretaryScores'
 import SecretaryDashboard from '@/pages/SecretaryDashboard'
+import SecretaryMembers from '@/pages/SecretaryMembers'
 import ChangePassword from '@/pages/ChangePassword'
 import AccountCenter from '@/pages/AccountCenter'
 import AdminDashboard from '@/pages/AdminDashboard'
@@ -47,6 +48,8 @@ export default function App() {
           <Route path="/m/report" element={<MobileReport />} />
           <Route path="/m/scores" element={<SecretaryScores />} />
           <Route path="/m/dashboard" element={<SecretaryDashboard />} />
+          <Route path="/m/members" element={<SecretaryMembers />} />
+          <Route path="/m/members/:userId" element={<SecretaryMembers />} />
           <Route path="/account" element={<AccountCenter />} />
           <Route path="/account/password" element={<ChangePassword />} />
 

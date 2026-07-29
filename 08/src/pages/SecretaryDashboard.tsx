@@ -24,6 +24,7 @@ type BranchDashboard = {
   summary: {
     memberCount: number
     durationHours: number
+    avgDurationHours?: number
     avgExamScore: number
     passRate: number
     attemptCount: number
@@ -40,6 +41,8 @@ type BranchDashboard = {
     contentCount: number
     completedMemberCount: number
     completionRate: number
+    completedMembers?: Array<{ userId: string; name: string }>
+    pendingMembers?: Array<{ userId: string; name: string }>
   }>
   members: Array<{
     userId: string
@@ -195,10 +198,22 @@ export default function SecretaryDashboard() {
             </div>
           </div>
           <div className="flex flex-wrap items-center gap-2">
+            <Link to="/m/members">
+              <Button variant="secondary">
+                <Users className="h-4 w-4" />
+                本支部人员
+              </Button>
+            </Link>
             <Link to="/m/scores">
               <Button variant="secondary">
                 <Trophy className="h-4 w-4" />
                 成绩明细
+              </Button>
+            </Link>
+            <Link to="/admin/tasks">
+              <Button variant="secondary">
+                <ListBullets className="h-4 w-4" />
+                发布任务
               </Button>
             </Link>
             <Link to="/m/report">
@@ -215,10 +230,11 @@ export default function SecretaryDashboard() {
         </div>
 
         {summary && (
-          <div className="mt-6 grid gap-3 md:grid-cols-3 lg:grid-cols-6">
+          <div className="mt-6 grid gap-3 md:grid-cols-3 lg:grid-cols-7">
             {[
               ['党员数', `${summary.memberCount}`, Users],
-              ['学习时长', `${summary.durationHours}h`, Clock],
+              ['总学习时长', `${summary.durationHours}h`, Clock],
+              ['人均时长', `${summary.avgDurationHours ?? 0}h`, Clock],
               ['任务完成率', `${summary.overallTaskCompletionRate}%`, CheckCircle],
               ['内容完成率', `${summary.contentCompletionRate}%`, CheckCircle],
               ['测验均分', `${summary.avgExamScore}`, ChartBar],
@@ -395,6 +411,12 @@ export default function SecretaryDashboard() {
                     style={{ width: `${Math.min(100, Math.max(0, t.completionRate))}%` }}
                   />
                 </div>
+                {(t.pendingMembers?.length ?? 0) > 0 && (
+                  <div className="mt-3 rounded-lg bg-[rgba(158,27,43,0.04)] px-3 py-2 text-xs text-[rgba(18,21,28,0.7)]">
+                    <span className="font-medium text-[#9e1b2b]">未完成：</span>
+                    {(t.pendingMembers ?? []).map((m) => m.name).join('、')}
+                  </div>
+                )}
               </div>
             ))}
             {(data?.tasks ?? []).length === 0 && (
@@ -406,14 +428,20 @@ export default function SecretaryDashboard() {
 
       <Card>
         <CardHeader>
-          <CardTitle>党员学习与测验明细</CardTitle>
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <CardTitle>党员学习与测验明细</CardTitle>
+            <Link to="/m/scores" className="text-xs font-medium text-[#9e1b2b]">
+              查看综合排行榜 →
+            </Link>
+          </div>
         </CardHeader>
         <CardContent>
           <div className="grid gap-2">
             {(data?.members ?? []).map((m) => (
-              <div
+              <Link
                 key={m.userId}
-                className="grid gap-3 rounded-2xl bg-white/90 px-4 py-4 shadow-[inset_0_0_0_1px_rgba(0,0,0,0.06)] md:grid-cols-5"
+                to={`/m/members/${m.userId}`}
+                className="grid gap-3 rounded-2xl bg-white/90 px-4 py-4 shadow-[inset_0_0_0_1px_rgba(0,0,0,0.06)] transition hover:bg-[rgba(158,27,43,0.03)] md:grid-cols-5"
               >
                 <div>
                   <div className="text-sm font-medium text-[#12151c]">{m.name}</div>
@@ -441,7 +469,7 @@ export default function SecretaryDashboard() {
                     <span className="ml-1 text-xs font-normal text-[rgba(18,21,28,0.45)]">/ {m.attemptCount} 次</span>
                   </div>
                 </div>
-              </div>
+              </Link>
             ))}
             {(data?.members ?? []).length === 0 && (
               <div className="py-10 text-center text-sm text-[rgba(18,21,28,0.45)]">本支部暂无党员</div>

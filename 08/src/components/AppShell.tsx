@@ -32,7 +32,9 @@ const adminNav = [
 
 const secretaryNav = [
   { to: '/m/dashboard', label: '支部看板', icon: SquaresFour },
-  { to: '/m/scores', label: '支部成绩', icon: ChartBar },
+  { to: '/m/members', label: '人员', icon: Users },
+  { to: '/admin/tasks', label: '任务', icon: ClipboardText },
+  { to: '/m/scores', label: '成绩', icon: ChartBar },
   { to: '/m/home', label: '学习', icon: BookOpen },
   { to: '/m/exams', label: '测验', icon: ClipboardText },
   { to: '/m/wrong-book', label: '错题本', icon: BookBookmark },
