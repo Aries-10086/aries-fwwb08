@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/Card'
 import { Button } from '@/components/Button'
 import { apiFetch } from '@/utils/api'
-import { useAuthStore, type AuthUser } from '@/store/auth'
+import { useAuthStore } from '@/store/auth'
 import {
   ChartBar,
   BookOpen,
@@ -11,7 +11,6 @@ import {
   Key,
   CircleNotch,
   ArrowsClockwise,
-  FloppyDisk,
   Trophy,
   User,
   Sparkle as SparkleIcon,
@@ -68,13 +67,10 @@ const roleLabel: Record<string, string> = {
 
 export default function AccountCenter() {
   const nav = useNavigate()
-  const { user, token } = useAuthStore()
+  const { user } = useAuthStore()
   const [data, setData] = useState<MyCenter | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [name, setName] = useState('')
-  const [savingProfile, setSavingProfile] = useState(false)
-  const [profileMsg, setProfileMsg] = useState<string | null>(null)
 
   const [pwd, setPwd] = useState({ oldPassword: '', newPassword: '', confirmPassword: '' })
   const [savingPwd, setSavingPwd] = useState(false)
@@ -91,7 +87,6 @@ export default function AccountCenter() {
     try {
       const res = await apiFetch<MyCenter>('/api/stats/my-center')
       setData(res)
-      setName(res.profile.name)
     } catch (e: any) {
       setError(e?.message ?? '加载失败')
     } finally {
@@ -102,30 +97,6 @@ export default function AccountCenter() {
   useEffect(() => {
     if (user) load()
   }, [user?.id])
-
-  async function saveProfile() {
-    setSavingProfile(true)
-    setProfileMsg(null)
-    try {
-      const res = await apiFetch<{ user: AuthUser }>('/api/auth/profile', {
-        method: 'PUT',
-        body: JSON.stringify({ name: name.trim() }),
-      })
-      const next = res.user
-      useAuthStore.setState({ token, user: next })
-      try {
-        localStorage.setItem('party_school_auth', JSON.stringify({ token, user: next }))
-      } catch {
-        null
-      }
-      setProfileMsg('资料已保存')
-      await load()
-    } catch (e: any) {
-      setProfileMsg(e?.message ?? '保存失败')
-    } finally {
-      setSavingProfile(false)
-    }
-  }
 
   async function changePassword(e: React.FormEvent) {
     e.preventDefault()
@@ -232,42 +203,29 @@ export default function AccountCenter() {
           </CardHeader>
           <CardContent>
             {profile ? (
-              <div className="grid gap-3">
-                <label className="grid gap-1 text-sm">
-                  <span className="field-label">显示姓名</span>
-                  <input
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    className="input-shell"
-                  />
-                </label>
-                <div className="grid gap-2 rounded-xl bg-white/90 px-4 py-3 text-sm shadow-[inset_0_0_0_1px_rgba(0,0,0,0.06)]">
-                  <div className="flex justify-between gap-3">
-                    <span className="text-[rgba(18,21,28,0.45)]">账号</span>
-                    <span className="font-medium">{profile.username || '-'}</span>
-                  </div>
-                  <div className="flex justify-between gap-3">
-                    <span className="text-[rgba(18,21,28,0.45)]">角色</span>
-                    <span className="font-medium">{roleLabel[profile.role] ?? profile.role}</span>
-                  </div>
-                  <div className="flex justify-between gap-3">
-                    <span className="text-[rgba(18,21,28,0.45)]">所属支部</span>
-                    <span className="font-medium">{profile.orgName}</span>
-                  </div>
-                  <div className="flex justify-between gap-3">
-                    <span className="text-[rgba(18,21,28,0.45)]">注册时间</span>
-                    <span className="font-medium">
-                      {profile.createdAt ? new Date(profile.createdAt).toLocaleDateString() : '-'}
-                    </span>
-                  </div>
+              <div className="grid gap-2 rounded-xl bg-white/90 px-4 py-3 text-sm shadow-[inset_0_0_0_1px_rgba(0,0,0,0.06)]">
+                <div className="flex justify-between gap-3">
+                  <span className="text-[rgba(18,21,28,0.45)]">显示姓名</span>
+                  <span className="font-medium">{profile.name || '-'}</span>
                 </div>
-                {profileMsg && (
-                  <div className="text-sm text-[#9e1b2b]">{profileMsg}</div>
-                )}
-                <Button onClick={() => saveProfile()} disabled={savingProfile || !name.trim()}>
-                  {savingProfile ? <CircleNotch className="h-4 w-4 animate-spin" /> : <FloppyDisk className="h-4 w-4" />}
-                  保存资料
-                </Button>
+                <div className="flex justify-between gap-3">
+                  <span className="text-[rgba(18,21,28,0.45)]">账号</span>
+                  <span className="font-medium">{profile.username || '-'}</span>
+                </div>
+                <div className="flex justify-between gap-3">
+                  <span className="text-[rgba(18,21,28,0.45)]">角色</span>
+                  <span className="font-medium">{roleLabel[profile.role] ?? profile.role}</span>
+                </div>
+                <div className="flex justify-between gap-3">
+                  <span className="text-[rgba(18,21,28,0.45)]">所属支部</span>
+                  <span className="font-medium">{profile.orgName}</span>
+                </div>
+                <div className="flex justify-between gap-3">
+                  <span className="text-[rgba(18,21,28,0.45)]">注册时间</span>
+                  <span className="font-medium">
+                    {profile.createdAt ? new Date(profile.createdAt).toLocaleDateString() : '-'}
+                  </span>
+                </div>
               </div>
             ) : (
               <div className="py-8 text-sm text-zinc-400">加载中…</div>
@@ -313,11 +271,6 @@ export default function AccountCenter() {
                   {savingPwd ? <CircleNotch className="h-4 w-4 animate-spin" /> : <Key className="h-4 w-4" />}
                   确认改密
                 </Button>
-                <Link to="/account/password">
-                  <Button type="button" variant="secondary">
-                    独立改密页
-                  </Button>
-                </Link>
               </div>
             </form>
           </CardContent>
