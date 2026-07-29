@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { useNavigate } from 'react-router-dom'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/Card'
 import { Button } from '@/components/Button'
@@ -9,6 +10,7 @@ import {
   Plus,
   ArrowsClockwise,
   Trash,
+  CheckCircle,
 } from '@phosphor-icons/react'
 
 type Org = { id: string; name: string; parentId: string | null }
@@ -25,6 +27,12 @@ type Exam = {
   createdAt: string
 }
 
+const statusLabel: Record<Exam['status'], string> = {
+  draft: '草稿',
+  published: '已发布',
+  closed: '已关闭',
+}
+
 export default function AdminExams() {
   const nav = useNavigate()
   const { user } = useAuthStore()
@@ -32,7 +40,9 @@ export default function AdminExams() {
   const [papers, setPapers] = useState<Paper[]>([])
   const [items, setItems] = useState<Exam[]>([])
   const [loading, setLoading] = useState(false)
+  const [savingId, setSavingId] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [success, setSuccess] = useState<string | null>(null)
 
   const [form, setForm] = useState({
     orgUnitId: 'org_branch_3',
@@ -48,6 +58,12 @@ export default function AdminExams() {
     if (!user) nav('/login')
     if (user && user.role !== 'admin') nav('/m/home')
   }, [nav, user])
+
+  useEffect(() => {
+    if (!success) return
+    const t = window.setTimeout(() => setSuccess(null), 3500)
+    return () => window.clearTimeout(t)
+  }, [success])
 
   const orgById = useMemo(() => new Map(orgs.map((o) => [o.id, o.name])), [orgs])
   const paperById = useMemo(() => new Map(papers.map((p) => [p.id, p.title])), [papers])
@@ -88,35 +104,62 @@ export default function AdminExams() {
 
   async function create() {
     setError(null)
+    setSuccess(null)
+    setSavingId('create')
     try {
       await apiFetch<{ id: string }>('/api/exams', { method: 'POST', body: JSON.stringify(form) })
       await load()
+      const branch = orgById.get(form.orgUnitId) ?? '目标支部'
+      setSuccess(
+        form.status === 'published'
+          ? `测验「${form.title}」已创建并发布至「${branch}」`
+          : `测验「${form.title}」已创建（状态：${statusLabel[form.status]}）`,
+      )
     } catch (e: any) {
       setError(e?.message ?? '创建失败')
+    } finally {
+      setSavingId(null)
     }
   }
 
   async function updateStatus(exam: Exam, status: Exam['status']) {
     setError(null)
+    setSuccess(null)
+    setSavingId(exam.id)
     try {
       await apiFetch<void>(`/api/exams/${exam.id}`, {
         method: 'PUT',
         body: JSON.stringify({ ...exam, status }),
       })
       await load()
+      if (status === 'published') {
+        setSuccess(`「${exam.title}」发布成功，支部党员现可作答`)
+      } else if (status === 'closed') {
+        setSuccess(`「${exam.title}」已关闭，党员端将不可再进入`)
+      } else {
+        setSuccess(`「${exam.title}」状态已更新为${statusLabel[status]}`)
+      }
     } catch (e: any) {
       setError(e?.message ?? '更新失败')
+    } finally {
+      setSavingId(null)
     }
   }
 
   async function remove(id: string) {
     if (!confirm('确认删除该测验及其作答记录？')) return
     setError(null)
+    setSuccess(null)
+    const title = items.find((x) => x.id === id)?.title ?? '测验'
+    setSavingId(id)
     try {
       await apiFetch<void>(`/api/exams/${id}`, { method: 'DELETE' })
       await load()
+      setSuccess(`「${title}」已删除`)
     } catch (e: any) {
       setError(e?.message ?? '删除失败')
+    } finally {
+      setSavingId(null)
     }
   }
 
@@ -135,10 +178,23 @@ export default function AdminExams() {
       </div>
 
       {error && (
-        <div className="rounded-2xl bg-[rgba(158,27,43,0.08)] px-4 py-3 text-[#741220] shadow-[inset_0_0_0_1px_rgba(158,27,43,0.16)]">
+        <div role="alert" className="rounded-2xl bg-[rgba(158,27,43,0.08)] px-4 py-3 text-[#741220] shadow-[inset_0_0_0_1px_rgba(158,27,43,0.16)]">
           {error}
         </div>
       )}
+      {success &&
+        createPortal(
+          <div
+            role="status"
+            className="pointer-events-none fixed inset-x-0 top-0 z-[200] flex justify-center px-4 pt-4"
+          >
+            <div className="rise-in flex max-w-xl items-start gap-2 rounded-2xl border border-[rgba(31,107,74,0.22)] bg-white px-4 py-3 text-[#1f6b4a] shadow-[0_8px_28px_rgba(18,21,28,0.16),0_2px_8px_rgba(31,107,74,0.1)]">
+              <CheckCircle className="mt-0.5 h-5 w-5 shrink-0" weight="fill" />
+              <div className="text-sm font-medium">{success}</div>
+            </div>
+          </div>,
+          document.body,
+        )}
 
       <div className="grid gap-4 md:grid-cols-12">
         <Card className="md:col-span-5">
@@ -230,9 +286,12 @@ export default function AdminExams() {
                   </select>
                 </label>
               </div>
-              <Button onClick={() => create()} disabled={!form.title.trim() || !form.paperId || !form.orgUnitId}>
+              <Button
+                onClick={() => void create()}
+                disabled={!form.title.trim() || !form.paperId || !form.orgUnitId || savingId === 'create'}
+              >
                 <ClipboardText className="h-4 w-4" />
-                创建并发布
+                {savingId === 'create' ? '发布中…' : '创建并发布'}
               </Button>
             </div>
           </CardContent>
@@ -258,15 +317,30 @@ export default function AdminExams() {
                     </div>
                     <div className="flex flex-wrap items-center gap-2">
                       <span className="rounded-full bg-white/90 px-3 py-1 text-xs text-[rgba(18,21,28,0.7)] shadow-[inset_0_0_0_1px_rgba(0,0,0,0.06)]">
-                        {e.status}
+                        {statusLabel[e.status]}
                       </span>
-                      <Button variant="secondary" className="px-3" onClick={() => updateStatus(e, 'published')}>
-                        发布
+                      <Button
+                        variant="secondary"
+                        className="px-3"
+                        disabled={savingId === e.id || e.status === 'published'}
+                        onClick={() => void updateStatus(e, 'published')}
+                      >
+                        {savingId === e.id ? '…' : e.status === 'published' ? '已发布' : '发布'}
                       </Button>
-                      <Button variant="secondary" className="px-3" onClick={() => updateStatus(e, 'closed')}>
+                      <Button
+                        variant="secondary"
+                        className="px-3"
+                        disabled={savingId === e.id || e.status === 'closed'}
+                        onClick={() => void updateStatus(e, 'closed')}
+                      >
                         关闭
                       </Button>
-                      <Button variant="danger" className="px-3" onClick={() => remove(e.id)}>
+                      <Button
+                        variant="danger"
+                        className="px-3"
+                        disabled={savingId === e.id}
+                        onClick={() => void remove(e.id)}
+                      >
                         <Trash className="h-4 w-4" />
                         删除
                       </Button>
