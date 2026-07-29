@@ -79,9 +79,6 @@ export default function MobileExams() {
         <div>
           <div className="page-eyebrow">党员端</div>
           <h1 className="page-title text-3xl md:text-4xl">测验列表</h1>
-          <div className="page-subtitle mt-2 max-w-2xl">
-            参与本支部测验；可查看历史成绩与错题回顾
-          </div>
         </div>
         <div className="flex flex-wrap gap-2">
           <Link to="/m/wrong-book">

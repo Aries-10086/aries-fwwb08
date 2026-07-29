@@ -161,9 +161,6 @@ export default function AdminDashboard() {
           <div>
             <div className="page-eyebrow">管理中枢</div>
             <h1 className="page-title text-3xl md:text-4xl">统计看板</h1>
-            <div className="page-subtitle mt-2 max-w-2xl">
-              按支部与时间筛选学习、任务与测验数据；点击支部可下钻党员明细。
-            </div>
           </div>
           <div className="flex flex-wrap items-center gap-2">
             <select

@@ -184,7 +184,6 @@ export default function AdminUsers() {
         <div>
           <div className="page-eyebrow">人员管理</div>
           <h1 className="page-title text-3xl md:text-4xl">人员管理</h1>
-          <div className="page-subtitle mt-2 max-w-2xl">支持单人创建与批量导入，把组织成员和角色分配统一收入口径一致的管理流程。</div>
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <div className="input-shell flex items-center gap-2 px-3 py-2">

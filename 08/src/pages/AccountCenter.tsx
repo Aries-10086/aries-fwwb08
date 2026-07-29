@@ -171,11 +171,6 @@ export default function AccountCenter() {
           <div>
             <div className="page-eyebrow">个人中心</div>
             <h1 className="page-title text-3xl md:text-5xl">个人中心</h1>
-            <div className="page-subtitle mt-2 max-w-2xl">
-              {isAdmin
-                ? '查看与管理个人资料，并可修改登录密码。'
-                : '查看与管理个人资料、学习时长、测验成绩，并可修改登录密码。'}
-            </div>
           </div>
           <Button variant="ghost" onClick={() => load()} disabled={loading}>
             <ArrowsClockwise className={loading ? 'h-4 w-4 animate-spin' : 'h-4 w-4'} />

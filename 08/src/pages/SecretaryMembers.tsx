@@ -116,9 +116,6 @@ export default function SecretaryMembers() {
           <div>
             <div className="page-eyebrow">本支部人员</div>
             <h1 className="page-title text-3xl md:text-4xl">{detail?.name ?? '党员详情'}</h1>
-            <div className="page-subtitle mt-2 max-w-2xl">
-              只读查看学习进度与测验成绩，用于督促；党员增删改由系统管理员统一管理。
-            </div>
           </div>
           <div className="flex gap-2">
             <Link to="/m/members">
@@ -248,10 +245,9 @@ export default function SecretaryMembers() {
         <div>
           <div className="page-eyebrow">本支部人员</div>
           <h1 className="page-title text-3xl md:text-4xl">本支部党员</h1>
-          <div className="page-subtitle mt-2 max-w-2xl">
-            查看本支部党员学习与测验概况（只读）
-            {data?.orgName ? ` · ${data.orgName}` : ''}
-          </div>
+          {data?.orgName ? (
+            <div className="page-subtitle mt-2 max-w-2xl">{data.orgName}</div>
+          ) : null}
         </div>
         <Button variant="ghost" onClick={() => void load()} disabled={loading}>
           <ArrowsClockwise className={loading ? 'h-4 w-4 animate-spin' : 'h-4 w-4'} />

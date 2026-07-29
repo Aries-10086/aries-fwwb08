@@ -26,21 +26,18 @@ type Question = {
 
 const TYPE_META: Record<
   QuestionType,
-  { label: string; desc: string; icon: typeof Circle }
+  { label: string; icon: typeof Circle }
 > = {
   single: {
     label: '单选题',
-    desc: '点击题目添加到当前组卷草稿',
     icon: Circle,
   },
   tf: {
     label: '判断题',
-    desc: '点击题目添加到当前组卷草稿',
     icon: CheckSquare,
   },
   multiple: {
     label: '多选题',
-    desc: '点击题目添加到当前组卷草稿',
     icon: ListChecks,
   },
 }
@@ -124,7 +121,6 @@ export default function AdminPaperPick() {
           </Link>
           <div className="page-eyebrow">管理后台 · 组卷</div>
           <h1 className="page-title text-3xl md:text-4xl">选择{meta.label}</h1>
-          <div className="page-subtitle mt-2 max-w-2xl">{meta.desc}</div>
         </div>
         <div className="flex items-center gap-2">
           <Button variant="ghost" onClick={() => void load()} disabled={loading}>

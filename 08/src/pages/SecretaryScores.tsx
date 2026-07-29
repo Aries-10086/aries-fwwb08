@@ -127,10 +127,9 @@ export default function SecretaryScores() {
         <div>
           <div className="page-eyebrow">支部成绩</div>
           <h1 className="page-title text-3xl md:text-4xl">支部成绩</h1>
-          <div className="page-subtitle mt-2 max-w-2xl">
-            综合排行 + 各次测验成绩与未参与名单
-            {data?.orgName ? `（${data.orgName}）` : ''}。
-          </div>
+          {data?.orgName ? (
+            <div className="page-subtitle mt-2 max-w-2xl">{data.orgName}</div>
+          ) : null}
         </div>
         <Button variant="ghost" onClick={() => void load()} disabled={loading}>
           <ArrowsClockwise className={loading ? 'h-4 w-4 animate-spin' : 'h-4 w-4'} />

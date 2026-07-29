@@ -105,7 +105,6 @@ export default function MobileReport() {
         <div>
           <div className="page-eyebrow">党员端</div>
           <h1 className="page-title text-3xl md:text-4xl">AI 综合评价报告</h1>
-          <div className="page-subtitle mt-2">评分 + 评语 + 改进建议</div>
         </div>
         <div className="flex items-center gap-2">
           <Link to="/m/home">

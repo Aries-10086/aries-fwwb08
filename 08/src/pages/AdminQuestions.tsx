@@ -29,28 +29,24 @@ type Question = {
 const TYPE_ENTRIES: Array<{
   type: QuestionType
   label: string
-  desc: string
   icon: typeof Circle
   to: string
 }> = [
   {
     type: 'single',
     label: '单选题',
-    desc: '四选一，考察概念辨析与最优做法',
     icon: Circle,
     to: '/admin/questions/single',
   },
   {
     type: 'tf',
     label: '判断题',
-    desc: '正误判断，考察纪律边界与原则表述',
     icon: CheckSquare,
     to: '/admin/questions/tf',
   },
   {
     type: 'multiple',
     label: '多选题',
-    desc: '多项组合，考察流程环节与综合判断',
     icon: ListChecks,
     to: '/admin/questions/multiple',
   },
@@ -130,9 +126,6 @@ export default function AdminQuestions() {
         <div>
           <div className="page-eyebrow">管理后台</div>
           <h1 className="page-title text-3xl md:text-4xl">题库管理</h1>
-          <div className="page-subtitle mt-2 max-w-2xl">
-            按题型分别维护单选、判断与多选，避免所有题目挤在同一列表
-          </div>
         </div>
         <Button variant="ghost" onClick={() => void load()} disabled={loading}>
           <ArrowsClockwise className={loading ? 'h-4 w-4 animate-spin' : 'h-4 w-4'} />
@@ -164,14 +157,13 @@ export default function AdminQuestions() {
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <p className="text-sm text-[rgba(18,21,28,0.62)]">{entry.desc}</p>
                   {preview ? (
-                    <div className="mt-4 rounded-xl bg-white/90 px-4 py-3 shadow-[inset_0_0_0_1px_rgba(0,0,0,0.06)]">
+                    <div className="rounded-xl bg-white/90 px-4 py-3 shadow-[inset_0_0_0_1px_rgba(0,0,0,0.06)]">
                       <div className="text-xs text-zinc-500">{preview.category}</div>
                       <div className="mt-1 line-clamp-2 text-sm text-[#12151c]">{preview.stem}</div>
                     </div>
                   ) : (
-                    <div className="mt-4 rounded-xl bg-white/90 px-4 py-6 text-center text-sm text-zinc-400 shadow-[inset_0_0_0_1px_rgba(0,0,0,0.06)]">
+                    <div className="rounded-xl bg-white/90 px-4 py-6 text-center text-sm text-zinc-400 shadow-[inset_0_0_0_1px_rgba(0,0,0,0.06)]">
                       暂无题目
                     </div>
                   )}

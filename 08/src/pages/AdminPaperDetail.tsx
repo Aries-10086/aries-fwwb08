@@ -119,11 +119,12 @@ export default function AdminPaperDetail() {
           </Link>
           <div className="page-eyebrow">管理后台 · 试卷</div>
           <h1 className="page-title text-3xl md:text-4xl">{paper?.title ?? '试卷详情'}</h1>
-          <div className="page-subtitle mt-2 max-w-2xl">
-            {paper
-              ? `${paper.durationMin} 分钟 · 及格 ${paper.passScore} · 共 ${paper.questions.length} 题 · 总分 ${totalScore}`
-              : '查看试卷题目、分值与答案'}
-          </div>
+          {paper ? (
+            <div className="page-subtitle mt-2 max-w-2xl">
+              {paper.durationMin} 分钟 · 及格 {paper.passScore} · 共 {paper.questions.length} 题 · 总分{' '}
+              {totalScore}
+            </div>
+          ) : null}
         </div>
         <div className="flex items-center gap-2">
           <Button variant="ghost" onClick={() => void load()} disabled={loading}>

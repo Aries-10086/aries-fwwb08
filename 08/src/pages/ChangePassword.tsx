@@ -58,7 +58,6 @@ export default function ChangePassword() {
         <div>
           <div className="page-eyebrow">账户安全</div>
           <h1 className="page-title text-3xl md:text-4xl">修改密码</h1>
-          <div className="page-subtitle mt-2 max-w-2xl">验证原密码后设置新密码，至少 6 位</div>
         </div>
         <Link to="/account">
           <Button variant="secondary">

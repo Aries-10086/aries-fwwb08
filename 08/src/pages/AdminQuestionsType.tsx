@@ -26,21 +26,18 @@ type Question = {
 
 const TYPE_META: Record<
   QuestionType,
-  { label: string; desc: string; path: string }
+  { label: string; path: string }
 > = {
   single: {
     label: '单选题',
-    desc: '四选一，适用于知识点辨析与概念理解',
     path: 'single',
   },
   tf: {
     label: '判断题',
-    desc: '正误判断，适用于纪律边界与原则性表述',
     path: 'tf',
   },
   multiple: {
     label: '多选题',
-    desc: '多选组合，适用于流程环节与综合判断',
     path: 'multiple',
   },
 }
@@ -201,7 +198,6 @@ export default function AdminQuestionsType() {
           </Link>
           <div className="page-eyebrow">管理后台 · 题库</div>
           <h1 className="page-title text-3xl md:text-4xl">{meta.label}</h1>
-          <div className="page-subtitle mt-2 max-w-2xl">{meta.desc}</div>
         </div>
         <div className="flex items-center gap-2">
           <Button variant="ghost" onClick={() => void load()} disabled={loading}>

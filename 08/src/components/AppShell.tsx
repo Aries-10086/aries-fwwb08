@@ -72,7 +72,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               <span className="text-lg font-bold leading-none">校</span>
             </div>
             <div className="leading-tight">
-              <div className="brand-mark text-lg text-[#12151c] md:text-xl">数智党校</div>
+              <div className="brand-mark text-2xl text-[#12151c] md:text-3xl">数智党校</div>
               <div className="hidden text-xs text-[rgba(18,21,28,0.42)] sm:block">学习 · 治理 · 洞察</div>
             </div>
           </Link>
@@ -92,11 +92,19 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 退出
               </Button>
             ) : (
-              !isHome && (
-                <Link to="/login">
-                  <Button className="px-4 py-2 text-xs">登录</Button>
+              <>
+                <Link
+                  to="/register"
+                  className="inline-flex items-center rounded-[10px] bg-[#9e1b2b] px-4 py-2 text-sm font-medium text-white shadow-[0_1px_2px_rgba(158,27,43,0.2),0_6px_16px_rgba(158,27,43,0.18)] transition hover:bg-[#861625]"
+                >
+                  注册
                 </Link>
-              )
+                {!isHome && (
+                  <Link to="/login">
+                    <Button className="px-4 py-2 text-xs">登录</Button>
+                  </Link>
+                )}
+              </>
             )}
           </div>
         </div>

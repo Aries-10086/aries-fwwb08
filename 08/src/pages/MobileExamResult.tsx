@@ -174,7 +174,6 @@ export default function MobileExamResult() {
         <div>
           <div className="page-eyebrow">考试结果</div>
           <h1 className="page-title text-3xl md:text-4xl">{review?.examTitle ?? '成绩回顾'}</h1>
-          <div className="page-subtitle mt-2 max-w-2xl">查看得分明细与错题回顾</div>
         </div>
         <div className="flex flex-wrap gap-2">
           <Link to="/m/exams">

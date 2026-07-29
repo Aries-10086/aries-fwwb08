@@ -189,9 +189,6 @@ export default function AdminContents() {
         <div>
           <div className="page-eyebrow">内容管理</div>
           <h1 className="page-title text-3xl md:text-4xl">学习内容</h1>
-          <div className="page-subtitle mt-2 max-w-2xl">
-            统一维护文章和视频内容，支持上传附件文件，并控制公共内容可见性。
-          </div>
         </div>
         <div className="flex items-center gap-2">
           <Button variant="ghost" onClick={() => load()} disabled={loading}>

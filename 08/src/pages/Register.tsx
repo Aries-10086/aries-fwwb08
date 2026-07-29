@@ -89,10 +89,7 @@ export default function Register() {
             <h1 className="brand-mark rise-in rise-in-delay-1 mt-3 text-3xl text-white md:text-4xl">
               加入学习
             </h1>
-            <p className="rise-in rise-in-delay-2 mt-3 max-w-md text-sm leading-7 text-white/80">
-              自助注册默认为党员角色。账号唯一，密码以哈希形式保存，注册成功后自动登录。
-            </p>
-            <ul className="rise-in rise-in-delay-3 mt-6 space-y-2 text-sm text-white/75">
+            <ul className="rise-in rise-in-delay-2 mt-6 space-y-2 text-sm text-white/75">
               <li className="flex gap-2">
                 <span className="text-white/45">-</span>
                 账号：3-32 位小写字母、数字或下划线

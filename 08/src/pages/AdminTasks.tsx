@@ -179,11 +179,6 @@ export default function AdminTasks() {
         <div>
           <div className="page-eyebrow">{isSecretary ? '支部管理' : '管理后台'}</div>
           <h1 className="page-title text-3xl md:text-4xl">学习任务发布</h1>
-          <div className="page-subtitle mt-2 max-w-2xl">
-            {isSecretary
-              ? '为本支部党员选择学习内容、设置截止时间并发布任务'
-              : '按支部分发指定学习内容'}
-          </div>
         </div>
         <Button variant="ghost" onClick={() => load()} disabled={loading}>
           <ArrowsClockwise className={loading ? 'h-4 w-4 animate-spin' : 'h-4 w-4'} />

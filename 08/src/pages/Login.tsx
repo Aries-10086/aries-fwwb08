@@ -40,9 +40,6 @@ export default function Login() {
           <div className="md:col-span-5">
             <p className="rise-in text-sm font-medium text-white/70">安全进入</p>
             <h1 className="brand-mark rise-in rise-in-delay-1 mt-3 text-3xl text-white md:text-4xl">数智党校</h1>
-            <p className="rise-in rise-in-delay-2 mt-3 max-w-md text-sm leading-7 text-white/80">
-              使用账号与密码进入系统。管理员进入后台治理，党员与支部书记进入学习端。
-            </p>
           </div>
 
           <div className="md:col-span-7">
