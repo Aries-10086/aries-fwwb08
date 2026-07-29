@@ -241,18 +241,24 @@ export default function MobileWrongBook() {
 
   if (view === 'practice') {
     return (
-      <div className="mx-auto max-w-3xl space-y-4 px-4 py-6">
-        <div className="flex items-center gap-3">
-          <button type="button" onClick={backToList} className="rounded-lg p-2 hover:bg-black/5">
-            <ArrowLeft className="h-5 w-5" />
-          </button>
+      <div className="grid gap-6">
+        <div className="flex flex-wrap items-end justify-between gap-4">
           <div>
-            <h1 className="text-xl font-bold text-[#12151c]">错题重练</h1>
-            <p className="text-sm text-zinc-500">共 {practiceQs.length} 题 · 不计入正式成绩</p>
+            <div className="page-eyebrow">错题本</div>
+            <h1 className="page-title text-3xl md:text-4xl">错题重练</h1>
+            <div className="page-subtitle mt-2">共 {practiceQs.length} 题 · 不计入正式成绩</div>
           </div>
+          <Button variant="secondary" onClick={backToList}>
+            <ArrowLeft className="h-4 w-4" />
+            返回错题本
+          </Button>
         </div>
 
-        {error && <div className="rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700">{error}</div>}
+        {error && (
+          <div className="rounded-2xl bg-[rgba(158,27,43,0.08)] px-4 py-3 text-[#741220] shadow-[inset_0_0_0_1px_rgba(158,27,43,0.16)]">
+            {error}
+          </div>
+        )}
 
         <Card>
           <CardContent className="pt-6">
@@ -260,7 +266,7 @@ export default function MobileWrongBook() {
             <Button
               onClick={() => void submitPractice()}
               disabled={submitting || practiceQs.length === 0}
-              className="mt-6 w-full"
+              className="mt-6 w-full md:w-auto"
             >
               {submitting ? (
                 <>
@@ -280,17 +286,19 @@ export default function MobileWrongBook() {
   if (view === 'result' && result) {
     const wrongIds = result.details.filter((d) => !d.isCorrect).map((d) => d.questionId)
     return (
-      <div className="mx-auto max-w-3xl space-y-4 px-4 py-6">
-        <div className="flex items-center gap-3">
-          <button type="button" onClick={backToList} className="rounded-lg p-2 hover:bg-black/5">
-            <ArrowLeft className="h-5 w-5" />
-          </button>
+      <div className="grid gap-6">
+        <div className="flex flex-wrap items-end justify-between gap-4">
           <div>
-            <h1 className="text-xl font-bold text-[#12151c]">重练结果</h1>
-            <p className="text-sm text-zinc-500">
+            <div className="page-eyebrow">错题本</div>
+            <h1 className="page-title text-3xl md:text-4xl">重练结果</h1>
+            <div className="page-subtitle mt-2">
               正确 {result.correctCount} / 共 {result.totalCount} 题
-            </p>
+            </div>
           </div>
+          <Button variant="secondary" onClick={backToList}>
+            <ArrowLeft className="h-4 w-4" />
+            返回错题本
+          </Button>
         </div>
 
         <div className="grid gap-3 md:grid-cols-3">
@@ -361,19 +369,12 @@ export default function MobileWrongBook() {
   }
 
   return (
-    <div className="mx-auto max-w-3xl space-y-4 px-4 py-6">
-      <div className="flex items-center justify-between gap-3">
-        <div className="flex items-center gap-3">
-          <Link to="/m/exams" className="rounded-lg p-2 hover:bg-black/5">
-            <ArrowLeft className="h-5 w-5" />
-          </Link>
-          <div>
-            <h1 className="flex items-center gap-2 text-xl font-bold text-[#12151c]">
-              <BookBookmark className="h-6 w-6 text-[#9e1b2b]" weight="duotone" />
-              错题本
-            </h1>
-            <p className="text-sm text-zinc-500">汇总历次测验错题，支持独立重练</p>
-          </div>
+    <div className="grid gap-6">
+      <div className="flex flex-wrap items-end justify-between gap-4">
+        <div>
+          <div className="page-eyebrow">党员端</div>
+          <h1 className="page-title text-3xl md:text-4xl">错题本</h1>
+          <div className="page-subtitle mt-2 max-w-2xl">汇总历次测验错题，支持独立重练</div>
         </div>
         {book && book.totalCount > 0 && (
           <Button onClick={() => void startPractice()} disabled={submitting || loading}>
@@ -383,7 +384,11 @@ export default function MobileWrongBook() {
         )}
       </div>
 
-      {error && <div className="rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700">{error}</div>}
+      {error && (
+        <div className="rounded-2xl bg-[rgba(158,27,43,0.08)] px-4 py-3 text-[#741220] shadow-[inset_0_0_0_1px_rgba(158,27,43,0.16)]">
+          {error}
+        </div>
+      )}
 
       {loading ? (
         <div className="flex items-center justify-center gap-2 py-16 text-sm text-zinc-500">
