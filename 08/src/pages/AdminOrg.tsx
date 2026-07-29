@@ -164,15 +164,6 @@ export default function AdminOrg() {
         ? `${current?.name ?? ''} · 党支部`
         : `${current?.name ?? ''} · 组织成员`
 
-  const subtitle =
-    level === 'committee'
-      ? '可进入党支部，也可直接查看党委挂靠人员'
-      : level === 'branch'
-        ? '点击党支部查看该支部人员与指标；也可查看本党委人员'
-        : isCommitteeMembers
-          ? '党委直接挂靠人员一览（如管理员等）'
-          : '本支部人员一览；可跳转人员管理进行编辑'
-
   return (
     <div className="grid gap-6">
       <div className="flex flex-wrap items-end justify-between gap-4">
@@ -188,7 +179,6 @@ export default function AdminOrg() {
           )}
           <div className="page-eyebrow">组织架构</div>
           <h1 className="page-title text-3xl md:text-4xl">{title}</h1>
-          <div className="page-subtitle mt-2 max-w-2xl">{subtitle}</div>
           {level !== 'committee' && current && (
             <div className="mt-3 flex flex-wrap items-center gap-2 text-xs text-[rgba(18,21,28,0.5)]">
               <Link to="/admin/org" className="hover:text-[#9e1b2b]">

@@ -118,9 +118,6 @@ export default function MobileHome() {
           <div>
             <div className="page-eyebrow">党员端</div>
             <h1 className="page-title text-3xl md:text-5xl">学习首页</h1>
-            <div className="page-subtitle mt-2 max-w-2xl">
-              把组织要求、公共内容与 AI 个性化建议汇聚到一个入口，帮助学员更顺畅地完成当期学习任务。
-            </div>
           </div>
           <div className="flex items-center gap-2">
             <Link to="/m/exams">

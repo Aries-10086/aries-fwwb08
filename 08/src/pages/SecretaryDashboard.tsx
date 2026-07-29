@@ -192,10 +192,9 @@ export default function SecretaryDashboard() {
           <div>
             <div className="page-eyebrow">支部看板</div>
             <h1 className="page-title text-3xl md:text-5xl">支部数据看板</h1>
-            <div className="page-subtitle mt-2 max-w-2xl">
-              汇总本支部学习时长、任务完成率、测验表现与薄弱知识点
-              {data?.orgName ? `（${data.orgName}）` : ''}，便于支部讲评。
-            </div>
+            {data?.orgName ? (
+              <div className="page-subtitle mt-2 max-w-2xl">{data.orgName}</div>
+            ) : null}
           </div>
           <div className="flex flex-wrap items-center gap-2">
             <Link to="/m/members">

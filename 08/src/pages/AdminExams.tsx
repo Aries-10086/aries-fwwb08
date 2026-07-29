@@ -169,7 +169,6 @@ export default function AdminExams() {
         <div>
           <div className="page-eyebrow">管理后台</div>
           <h1 className="page-title text-3xl md:text-4xl">测验发布</h1>
-          <div className="page-subtitle mt-2 max-w-2xl">基于试卷发布测验并指定支部对象</div>
         </div>
         <Button variant="ghost" onClick={() => load()} disabled={loading}>
           <ArrowsClockwise className={loading ? 'h-4 w-4 animate-spin' : 'h-4 w-4'} />

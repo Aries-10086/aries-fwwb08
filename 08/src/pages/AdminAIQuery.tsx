@@ -90,7 +90,6 @@ export default function AdminAIQuery() {
       <div className="hero-frame px-6 py-7 md:px-8">
         <div className="page-eyebrow">AI 查询</div>
         <h1 className="page-title text-3xl md:text-5xl">自然语言数据查询</h1>
-        <div className="page-subtitle mt-2 max-w-2xl">用一句自然语言直接提问组织运营数据，由系统自动生成解释文本和图表，减少后台统计的切换成本。</div>
       </div>
 
       {error && (

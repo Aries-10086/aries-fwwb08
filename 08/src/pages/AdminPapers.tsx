@@ -136,7 +136,6 @@ export default function AdminPapers() {
         <div>
           <div className="page-eyebrow">管理后台</div>
           <h1 className="page-title text-3xl md:text-4xl">试卷管理</h1>
-          <div className="page-subtitle mt-2 max-w-2xl">组卷（题目 + 分值 + 顺序）</div>
         </div>
         <Button variant="ghost" onClick={() => void load()} disabled={loading}>
           <ArrowsClockwise className={loading ? 'h-4 w-4 animate-spin' : 'h-4 w-4'} />
