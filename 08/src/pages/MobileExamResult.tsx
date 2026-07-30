@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/Card'
 import { Button } from '@/components/Button'
+import { QuestionExplainPanel } from '@/components/QuestionExplainPanel'
 import { apiFetch } from '@/utils/api'
 import { useAuthStore } from '@/store/auth'
 import {
@@ -9,7 +10,10 @@ import {
   CheckCircle,
   XCircle,
   ListChecks,
+  CircleNotch,
+  Sparkle,
 } from '@phosphor-icons/react'
+import type { AIExamFeedback } from '../../shared/types'
 
 type ReviewDetail = {
   orderNo: number
@@ -133,6 +137,9 @@ export function ExamReviewPanel({
                 <div className="mt-1 text-[#12151c]">{d.correctAnswerLabel}</div>
               </div>
             </div>
+            {!d.isCorrect && (
+              <QuestionExplainPanel questionId={d.questionId} attemptId={review.attemptId} compact />
+            )}
           </div>
         ))}
         {list.length === 0 && (
@@ -151,6 +158,9 @@ export default function MobileExamResult() {
   const [search] = useSearchParams()
   const { user } = useAuthStore()
   const [review, setReview] = useState<AttemptReview | null>(null)
+  const [feedback, setFeedback] = useState<AIExamFeedback | null>(null)
+  const [feedbackLoading, setFeedbackLoading] = useState(false)
+  const [feedbackError, setFeedbackError] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const wrongOnlyDefault = search.get('wrong') === '1'
 
@@ -163,10 +173,33 @@ export default function MobileExamResult() {
     setError(null)
     apiFetch<AttemptReview>(`/api/exams/attempts/${attemptId}`)
       .then(setReview)
-      .catch((e: any) => setError(e?.message ?? '加载失败'))
+      .catch((e: unknown) => setError(e instanceof Error ? e.message : '加载失败'))
   }, [attemptId])
 
   const backTo = useMemo(() => (review?.examId ? `/m/exam/${review.examId}` : '/m/exams'), [review?.examId])
+
+  async function loadFeedback() {
+    if (!attemptId) return
+    setFeedbackLoading(true)
+    setFeedbackError(null)
+    try {
+      const data = await apiFetch<AIExamFeedback>('/api/ai/exam-feedback', {
+        method: 'POST',
+        body: JSON.stringify({ attemptId }),
+      })
+      const list = (value: unknown) => Array.isArray(value) ? value.map(String) : value ? [String(value)] : []
+      setFeedback({
+        summary: String(data.summary ?? ''),
+        weakKnowledgePoints: list(data.weakKnowledgePoints),
+        weakQuestionTypes: list(data.weakQuestionTypes),
+        suggestions: list(data.suggestions),
+      })
+    } catch (e) {
+      setFeedbackError(e instanceof Error ? e.message : '考后反馈生成失败')
+    } finally {
+      setFeedbackLoading(false)
+    }
+  }
 
   return (
     <div className="grid gap-6">
@@ -194,6 +227,51 @@ export default function MobileExamResult() {
       {error && (
         <div className="rounded-2xl bg-[rgba(158,27,43,0.08)] px-4 py-3 text-[#741220]">{error}</div>
       )}
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex flex-wrap items-center justify-between gap-3">
+            <span className="flex items-center gap-2">
+              <Sparkle className="h-5 w-5 text-[#9e1b2b]" />
+              AI 考后反馈
+            </span>
+            <Button
+              variant="secondary"
+              className="px-3 py-2 text-xs"
+              disabled={!review || feedbackLoading}
+              onClick={() => void loadFeedback()}
+            >
+              {feedbackLoading && <CircleNotch className="h-4 w-4 animate-spin" />}
+              {feedbackLoading ? '分析中…' : feedback ? '重新生成' : '生成反馈'}
+            </Button>
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          {feedbackError && <div className="text-sm text-[#741220]">{feedbackError}</div>}
+          {!feedback && !feedbackError && (
+            <p className="text-sm text-zinc-500">AI 将根据本次答题情况分析薄弱知识点，并给出具体复习建议。</p>
+          )}
+          {feedback && (
+            <div className="grid gap-4 text-sm leading-7 text-[rgba(18,21,28,0.72)]">
+              <p className="whitespace-pre-wrap">{feedback.summary}</p>
+              <div className="grid gap-3 md:grid-cols-3">
+                {[
+                  ['薄弱知识点', feedback.weakKnowledgePoints],
+                  ['易错题型', feedback.weakQuestionTypes],
+                  ['复习建议', feedback.suggestions],
+                ].map(([title, values]) => (
+                  <div key={title as string} className="rounded-xl bg-[rgba(158,27,43,0.04)] p-4">
+                    <div className="font-semibold text-[#12151c]">{title as string}</div>
+                    <ul className="mt-1 list-disc space-y-1 pl-5">
+                      {(values as string[]).map((item) => <li key={item}>{item}</li>)}
+                    </ul>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </CardContent>
+      </Card>
 
       <Card>
         <CardHeader>

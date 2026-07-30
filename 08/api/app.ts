@@ -21,8 +21,13 @@ import examRoutes from './routes/exams.js'
 import statsRoutes from './routes/stats.js'
 import aiRoutes from './routes/ai.js'
 import fileRoutes from './routes/files.js'
+import chatRoutes from './routes/chat.js'
+import kbRoutes from './routes/kb.js'
+import aiSettingsRoutes from './routes/ai-settings.js'
 import { checkDatabaseHealth, initializeDatabase } from './db.js'
 import { attachAuth } from './utils/http.js'
+import { LlmError } from './services/llm.js'
+import { AIServiceError } from './services/ai-service.js'
 
 // load env
 dotenv.config()
@@ -71,7 +76,10 @@ app.use('/api/questions', questionRoutes)
 app.use('/api/papers', paperRoutes)
 app.use('/api/exams', examRoutes)
 app.use('/api/stats', statsRoutes)
+app.use('/api/ai/settings', aiSettingsRoutes)
 app.use('/api/ai', aiRoutes)
+app.use('/api/chat', chatRoutes)
+app.use('/api/kb', kbRoutes)
 
 /**
  * health
@@ -91,6 +99,14 @@ app.use((error: Error, _req: Request, res: Response, _next: NextFunction) => {
   void _next
   if (String(error?.message || '').includes('CORS')) {
     res.status(403).json({ success: false, error: '跨域请求被拒绝' })
+    return
+  }
+  if (error instanceof LlmError || error instanceof AIServiceError) {
+    res.status(error.status === 499 ? 503 : error.status).json({
+      success: false,
+      error: error.message,
+      code: error.code,
+    })
     return
   }
   console.error(error)

@@ -251,6 +251,117 @@ const migrations: Migration[] = [
         ALTER COLUMN updated_at SET NOT NULL;
     `,
   },
+  {
+    version: 3,
+    name: 'ai_knowledge_and_chat_schema',
+    sql: `
+      CREATE TABLE llm_calls (
+        id TEXT PRIMARY KEY,
+        user_id TEXT REFERENCES users(id) ON DELETE SET NULL,
+        purpose TEXT NOT NULL,
+        provider TEXT NOT NULL,
+        model TEXT,
+        status TEXT NOT NULL CHECK (status IN ('success', 'error', 'aborted')),
+        prompt_hash TEXT NOT NULL,
+        usage_json JSONB,
+        latency_ms INTEGER NOT NULL CHECK (latency_ms >= 0),
+        error_code TEXT,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      );
+
+      CREATE TABLE ai_cache (
+        cache_key TEXT NOT NULL,
+        version TEXT NOT NULL,
+        user_id TEXT REFERENCES users(id) ON DELETE CASCADE,
+        result_json JSONB NOT NULL,
+        model TEXT,
+        source_updated_at TIMESTAMPTZ,
+        expires_at TIMESTAMPTZ NOT NULL,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        PRIMARY KEY (cache_key, version)
+      );
+
+      CREATE TABLE kb_documents (
+        id TEXT PRIMARY KEY,
+        content_id TEXT NOT NULL REFERENCES contents(id) ON DELETE CASCADE,
+        source_type TEXT NOT NULL CHECK (source_type IN ('body', 'attachment')),
+        attachment_id TEXT,
+        filename TEXT NOT NULL,
+        content_version TEXT NOT NULL,
+        status TEXT NOT NULL DEFAULT 'pending'
+          CHECK (status IN ('pending', 'indexing', 'ready', 'failed', 'deleted')),
+        error_message TEXT,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      );
+      CREATE UNIQUE INDEX idx_kb_documents_source
+        ON kb_documents(content_id, source_type, COALESCE(attachment_id, ''));
+
+      CREATE TABLE kb_index_jobs (
+        id TEXT PRIMARY KEY,
+        content_id TEXT NOT NULL,
+        document_id TEXT REFERENCES kb_documents(id) ON DELETE SET NULL,
+        operation TEXT NOT NULL CHECK (operation IN ('upsert', 'delete')),
+        status TEXT NOT NULL DEFAULT 'pending'
+          CHECK (status IN ('pending', 'processing', 'succeeded', 'failed')),
+        retry_count INTEGER NOT NULL DEFAULT 0 CHECK (retry_count >= 0),
+        error_message TEXT,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        started_at TIMESTAMPTZ,
+        finished_at TIMESTAMPTZ
+      );
+
+      CREATE TABLE chat_sessions (
+        id TEXT PRIMARY KEY,
+        user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        content_id TEXT REFERENCES contents(id) ON DELETE SET NULL,
+        title TEXT NOT NULL DEFAULT '新会话',
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      );
+
+      CREATE TABLE chat_messages (
+        id TEXT PRIMARY KEY,
+        session_id TEXT NOT NULL REFERENCES chat_sessions(id) ON DELETE CASCADE,
+        role TEXT NOT NULL CHECK (role IN ('user', 'assistant')),
+        content TEXT NOT NULL,
+        citations_json JSONB NOT NULL DEFAULT '[]'::jsonb,
+        tools_json JSONB NOT NULL DEFAULT '[]'::jsonb,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      );
+
+      CREATE INDEX idx_llm_calls_user_created ON llm_calls(user_id, created_at DESC);
+      CREATE INDEX idx_llm_calls_purpose_created ON llm_calls(purpose, created_at DESC);
+      CREATE INDEX idx_ai_cache_expires ON ai_cache(expires_at);
+      CREATE INDEX idx_kb_documents_content ON kb_documents(content_id, status);
+      CREATE INDEX idx_kb_jobs_status_created ON kb_index_jobs(status, created_at);
+      CREATE INDEX idx_kb_jobs_content ON kb_index_jobs(content_id, created_at DESC);
+      CREATE INDEX idx_chat_sessions_user_updated ON chat_sessions(user_id, updated_at DESC);
+      CREATE INDEX idx_chat_messages_session_created ON chat_messages(session_id, created_at);
+    `,
+  },
+  {
+    version: 4,
+    name: 'ai_provider_settings',
+    sql: `
+      CREATE TABLE ai_provider_settings (
+        id TEXT PRIMARY KEY CHECK (id = 'default'),
+        chat_base_url TEXT NOT NULL DEFAULT '',
+        chat_model TEXT NOT NULL DEFAULT '',
+        chat_api_key_enc TEXT,
+        embedding_base_url TEXT NOT NULL DEFAULT '',
+        embedding_model TEXT NOT NULL DEFAULT '',
+        embedding_api_key_enc TEXT,
+        embedding_dimension INTEGER CHECK (
+          embedding_dimension IS NULL
+          OR (embedding_dimension >= 64 AND embedding_dimension <= 65536)
+        ),
+        updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        updated_by TEXT REFERENCES users(id) ON DELETE SET NULL
+      );
+    `,
+  },
 ]
 
 async function runMigrations(): Promise<void> {

@@ -8,6 +8,7 @@ import { parseJson } from '../utils/json.js'
 import { uploadsDir, type ContentAttachment } from './contents.js'
 import type { AuthContext } from '../utils/http.js'
 import { wrapAsyncRouter } from '../utils/async-router.js'
+import { getAccessibleContentIds } from '../utils/content-access.js'
 
 const router = Router()
 
@@ -31,25 +32,12 @@ async function loadAuthFromRequest(req: Request): Promise<AuthContext | null> {
   }
 }
 
-async function accessibleContentIdsForUser(userId: string) {
-  const { rows } = await query(
-    `SELECT DISTINCT c.id
-     FROM contents c
-     LEFT JOIN task_contents tc ON tc.content_id = c.id
-     LEFT JOIN learning_tasks lt ON lt.id = tc.task_id
-     LEFT JOIN users u ON u.org_unit_id = lt.org_unit_id AND u.id = $1
-     WHERE c.is_public = true OR u.id IS NOT NULL`,
-    [userId],
-  )
-  return new Set(rows.map((row) => String(row.id)))
-}
-
 async function canAccessFile(auth: AuthContext, filename: string) {
   if (auth.role === 'admin') return true
   const userId = auth.userId
   if (!userId) return false
 
-  const allow = await accessibleContentIdsForUser(userId)
+  const allow = await getAccessibleContentIds(auth)
   const { rows } = await query(
     `SELECT id, attachments_json FROM contents
      WHERE attachments_json::text ILIKE $1`,

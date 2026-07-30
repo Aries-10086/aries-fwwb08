@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/Card'
 import { Button } from '@/components/Button'
+import { QuestionExplainPanel } from '@/components/QuestionExplainPanel'
 import { apiFetch } from '@/utils/api'
 import { useAuthStore } from '@/store/auth'
 import {
@@ -345,6 +346,9 @@ export default function MobileWrongBook() {
                       </div>
                     )}
                   </div>
+                  {!d.isCorrect && (
+                    <QuestionExplainPanel questionId={d.questionId} compact />
+                  )}
                 </div>
               </div>
             </div>
@@ -497,6 +501,11 @@ export default function MobileWrongBook() {
                         >
                           单题重练
                         </Button>
+                        <QuestionExplainPanel
+                          questionId={item.questionId}
+                          attemptId={item.lastAttemptId}
+                          compact
+                        />
                       </div>
                     )}
                   </div>
