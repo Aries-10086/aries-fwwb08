@@ -10,10 +10,11 @@ import {
   CheckCircle,
   Clock,
   Paperclip,
+  ChatCircleDots,
+  CircleNotch,
+  Sparkle,
 } from '@phosphor-icons/react'
-import type { Content, ContentAttachment } from '../../shared/types'
-
-type Attachment = ContentAttachment
+import type { AIContentSummary, Content } from '../../shared/types'
 
 function toEmbedUrl(url: string): { kind: 'iframe' | 'video'; src: string } | null {
   try {
@@ -48,6 +49,9 @@ export default function ContentDetail() {
   const [content, setContent] = useState<Content | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [completed, setCompleted] = useState(false)
+  const [aiSummary, setAiSummary] = useState<AIContentSummary | null>(null)
+  const [aiLoading, setAiLoading] = useState(false)
+  const [aiError, setAiError] = useState<string | null>(null)
   const startAt = useRef<number>(Date.now())
   const completedRef = useRef(false)
   const recordedOnLeave = useRef(false)
@@ -72,8 +76,8 @@ export default function ContentDetail() {
       setCompleted(done)
       completedRef.current = done
       startAt.current = Date.now()
-    } catch (e: any) {
-      setError(e?.message ?? '加载失败')
+    } catch (e) {
+      setError(e instanceof Error ? e.message : '加载失败')
     }
   }
 
@@ -89,7 +93,7 @@ export default function ContentDetail() {
         body: JSON.stringify({ contentId: id, durationMs, isCompleted }),
       })
     } catch {
-      null
+      // 离开页面时记录失败不阻塞导航。
     }
   }
 
@@ -120,6 +124,29 @@ export default function ContentDetail() {
     }
     return content.body
   }, [content, videoUrl])
+
+  async function generateSummary() {
+    if (!id) return
+    setAiLoading(true)
+    setAiError(null)
+    try {
+      const data = await apiFetch<AIContentSummary>('/api/ai/content-summary', {
+        method: 'POST',
+        body: JSON.stringify({ contentId: id }),
+      })
+      const list = (value: unknown) => Array.isArray(value) ? value.map(String) : value ? [String(value)] : []
+      setAiSummary({
+        summary: String(data.summary ?? ''),
+        highlights: list(data.highlights),
+        tips: list(data.tips),
+        quizQuestions: list(data.quizQuestions),
+      })
+    } catch (e) {
+      setAiError(e instanceof Error ? e.message : 'AI 导读生成失败')
+    } finally {
+      setAiLoading(false)
+    }
+  }
 
   return (
     <div className="grid gap-6">
@@ -158,6 +185,60 @@ export default function ContentDetail() {
           {error}
         </div>
       )}
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex flex-wrap items-center justify-between gap-3">
+            <span className="flex items-center gap-2">
+              <Sparkle className="h-5 w-5 text-[#9e1b2b]" />
+              AI 导读
+            </span>
+            <div className="flex flex-wrap gap-2">
+              {id && (
+                <Link to={`/m/chat?contentId=${encodeURIComponent(id)}`}>
+                  <Button variant="secondary" className="px-3 py-2 text-xs">
+                    <ChatCircleDots className="h-4 w-4" />
+                    问这篇
+                  </Button>
+                </Link>
+              )}
+              <Button
+                className="px-3 py-2 text-xs"
+                disabled={!content || aiLoading}
+                onClick={() => void generateSummary()}
+              >
+                {aiLoading && <CircleNotch className="h-4 w-4 animate-spin" />}
+                {aiLoading ? '生成中…' : aiSummary ? '重新生成' : '生成导读'}
+              </Button>
+            </div>
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          {aiError && <div className="text-sm text-[#741220]">{aiError}</div>}
+          {!aiSummary && !aiError && (
+            <p className="text-sm text-zinc-500">快速了解内容摘要、重点知识和自测问题。</p>
+          )}
+          {aiSummary && (
+            <div className="grid gap-4 text-sm leading-7 text-[rgba(18,21,28,0.72)]">
+              <p className="whitespace-pre-wrap">{aiSummary.summary}</p>
+              <div className="grid gap-3 md:grid-cols-3">
+                {[
+                  ['重点知识', aiSummary.highlights],
+                  ['学习提示', aiSummary.tips],
+                  ['自测问题', aiSummary.quizQuestions],
+                ].map(([title, values]) => (
+                  <section key={title as string} className="rounded-xl bg-[rgba(158,27,43,0.04)] p-4">
+                    <h3 className="font-semibold text-[#12151c]">{title as string}</h3>
+                    <ul className="mt-1 list-disc space-y-1 pl-5">
+                      {(values as string[]).map((item) => <li key={item}>{item}</li>)}
+                    </ul>
+                  </section>
+                ))}
+              </div>
+            </div>
+          )}
+        </CardContent>
+      </Card>
 
       <Card>
         <CardHeader>

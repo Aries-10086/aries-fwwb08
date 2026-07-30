@@ -221,3 +221,95 @@ export interface ApiFailure {
 }
 
 export type ApiResponse<T> = ApiSuccess<T> | ApiFailure
+
+export interface AIQuestionExplanation {
+  explanation: string
+  errorReason?: string
+  approach?: string
+  knowledgePoints: string[]
+  reviewTips: string[]
+}
+
+export interface AIExamFeedback {
+  summary: string
+  weakKnowledgePoints: string[]
+  weakQuestionTypes: string[]
+  suggestions: string[]
+}
+
+export interface AIContentSummary {
+  summary: string
+  highlights: string[]
+  tips: string[]
+  quizQuestions: string[]
+}
+
+export interface ChatCitation {
+  id?: string
+  contentId?: string
+  title: string
+  url?: string
+  excerpt?: string
+}
+
+export interface ChatToolStatus {
+  id?: string
+  name: string
+  label?: string
+  status: 'running' | 'success' | 'error'
+  message?: string
+}
+
+export interface ChatSession {
+  id: string
+  title: string
+  contentId?: string | null
+  createdAt?: string
+  updatedAt?: string
+}
+
+export interface ChatMessage {
+  id: string
+  role: 'user' | 'assistant'
+  content: string
+  createdAt?: string
+  citations?: ChatCitation[]
+  tools?: ChatToolStatus[]
+}
+
+export type AiSettingSource = 'db' | 'env' | 'none'
+
+export interface AiProviderSettingsPublic {
+  chatBaseUrl: string
+  chatModel: string
+  chatApiKeyConfigured: boolean
+  chatApiKeyMasked: string
+  embeddingBaseUrl: string
+  embeddingModel: string
+  embeddingApiKeyConfigured: boolean
+  embeddingApiKeyMasked: string
+  embeddingDimension: number
+  sources: {
+    chatBaseUrl: AiSettingSource
+    chatModel: AiSettingSource
+    chatApiKey: AiSettingSource
+    embeddingBaseUrl: AiSettingSource
+    embeddingModel: AiSettingSource
+    embeddingApiKey: AiSettingSource
+    embeddingDimension: AiSettingSource
+  }
+  aiServiceUrlConfigured: boolean
+  updatedAt: string | null
+}
+
+export interface AiProviderSettingsUpdate {
+  chatBaseUrl?: string
+  chatModel?: string
+  chatApiKey?: string
+  clearChatApiKey?: boolean
+  embeddingBaseUrl?: string
+  embeddingModel?: string
+  embeddingApiKey?: string
+  clearEmbeddingApiKey?: boolean
+  embeddingDimension?: number | null
+}

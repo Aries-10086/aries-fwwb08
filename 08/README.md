@@ -59,9 +59,36 @@ npm run db:restart   # 重启 PostgreSQL
 - `DB_POOL_MAX`：连接池上限
 - `AUTH_SECRET`：登录令牌密钥，生产环境必须替换
 - `CORS_ORIGIN`：允许的前端来源，多个值用逗号分隔
-- `LLM_BASE_URL`、`LLM_API_KEY`：可选的大模型服务配置
+- `AI_SERVICE_URL`、`AI_INTERNAL_API_KEY`：Node 调用 Python AI 服务的地址和内部密钥
+- `LLM_MODEL`、`LLM_TIMEOUT_MS`：模型标识和 Node 调用超时
+- `AI_RATE_LIMIT_*`、`CHAT_RATE_LIMIT_*`：按登录用户的 AI 请求限流
+- `LLM_BASE_URL`、`LLM_API_KEY`：未配置 Python 服务时，`/text` 能力使用的 OpenAI-compatible 后备配置
+- 聊天 / 向量模型的地址、名称与 API Key 也可在管理端「AI 设置」页面维护（数据库加密存储，优先于环境变量）
 
-`docker-compose.yml` 只启动 PostgreSQL 16；应用仍通过 npm 在宿主机运行。历史 SQLite 文件不会被读取、迁移或删除。
+默认 `docker compose up` 只启动 PostgreSQL 16，不会拉起模型或向量服务。需要本地知识库和
+AI 服务时，先在 `.env` 配好模型密钥，再运行：
+
+```bash
+docker compose --profile ai up -d
+```
+
+该 profile 会额外启动 Python AI 服务、Milvus、etcd 和 MinIO。宿主机 Node 使用
+`AI_SERVICE_URL=http://localhost:8000`；容器间内部请求使用 `X-Internal-API-Key`。
+
+## AI 与知识库接口
+
+- `GET /api/ai/settings`、`PUT /api/ai/settings`、`POST /api/ai/settings/test`：
+  管理员配置与测试聊天 / 向量模型
+- `POST /api/ai/wrong-explain`：仅讲解当前用户实际答错的题
+- `POST /api/ai/exam-feedback`：基于服务端聚合成绩生成反馈
+- `POST /api/ai/content-summary`：为当前用户可见内容生成结构化导读
+- `/api/chat/sessions`：用户隔离、历史持久化的 SSE 对话
+- `GET /api/kb/documents`、`POST /api/kb/reindex/:contentId`、`GET /api/kb/jobs/:id`：
+  管理员知识库状态与重建接口
+
+模型调用只在 `llm_calls` 记录 prompt 哈希、模型、usage、耗时和错误码，不保存完整 prompt；
+结构化结果使用带版本和过期时间的 `ai_cache`。内容新增、修改和删除会创建 best-effort
+索引任务，失败状态可通过管理员接口查看并重试。
 
 ## 数据库迁移
 

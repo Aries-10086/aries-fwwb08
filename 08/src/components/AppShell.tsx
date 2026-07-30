@@ -15,6 +15,8 @@ import {
   ChartBar,
   Sparkle,
   User,
+  ChatCircleDots,
+  GearSix,
 } from '@phosphor-icons/react'
 
 const adminNav = [
@@ -27,6 +29,8 @@ const adminNav = [
   { to: '/admin/papers', label: '试卷', icon: FileText },
   { to: '/admin/exams', label: '测验', icon: ClipboardText },
   { to: '/admin/ai-query', label: 'AI 查询', icon: Brain },
+  { to: '/admin/ai-settings', label: 'AI 设置', icon: GearSix },
+  { to: '/admin/chat', label: 'AI 助手', icon: ChatCircleDots },
   { to: '/account', label: '我的', icon: User },
 ] as const
 
@@ -39,6 +43,7 @@ const secretaryNav = [
   { to: '/m/exams', label: '测验', icon: ClipboardText },
   { to: '/m/wrong-book', label: '错题本', icon: BookBookmark },
   { to: '/m/report', label: 'AI 报告', icon: Sparkle },
+  { to: '/m/chat', label: 'AI 助手', icon: ChatCircleDots },
   { to: '/account', label: '我的', icon: User },
 ] as const
 
@@ -47,6 +52,7 @@ const memberNav = [
   { to: '/m/exams', label: '测验', icon: ClipboardText },
   { to: '/m/wrong-book', label: '错题本', icon: BookBookmark },
   { to: '/m/report', label: 'AI 报告', icon: Sparkle },
+  { to: '/m/chat', label: 'AI 助手', icon: ChatCircleDots },
   { to: '/account', label: '我的', icon: User },
 ] as const
 

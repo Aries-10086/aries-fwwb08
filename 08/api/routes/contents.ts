@@ -9,6 +9,12 @@ import { getUserContext, requireAuth, requireRole, rejectUnauthorized } from '..
 import { json, parseJson } from '../utils/json.js'
 import type { ContentAttachment } from '../../shared/types.js'
 import { wrapAsyncRouter } from '../utils/async-router.js'
+import { canAccessContent, getAccessibleContentIds } from '../utils/content-access.js'
+import {
+  enqueueContentDelete,
+  enqueueContentIndex,
+  processKBJobBestEffort,
+} from '../services/kb-index.js'
 
 export type { ContentAttachment }
 
@@ -86,19 +92,6 @@ const upload = multer({
     cb(null, true)
   },
 })
-
-async function accessibleContentIdsForUser(userId: string) {
-  const { rows } = await query(
-    `SELECT DISTINCT c.id
-     FROM contents c
-     LEFT JOIN task_contents tc ON tc.content_id = c.id
-     LEFT JOIN learning_tasks lt ON lt.id = tc.task_id
-     LEFT JOIN users u ON u.org_unit_id = lt.org_unit_id AND u.id = $1
-     WHERE c.is_public = true OR u.id IS NOT NULL`,
-    [userId],
-  )
-  return new Set(rows.map((row) => String(row.id)))
-}
 
 function mapContent(r: Record<string, unknown>) {
   return {
@@ -219,9 +212,9 @@ router.get('/', async (req: Request, res: Response) => {
 
   let data = rows.map(mapContent)
 
-  // 书记派任务时可浏览全部内容；党员仍仅可见公共/已派发内容
-  if (role === 'member' || (role === 'secretary' && String(req.query.forTask ?? '') !== '1')) {
-    const allow = await accessibleContentIdsForUser(userId)
+  // 非管理员始终按公共内容/本支部已派发内容过滤，避免列表与详情权限口径不一致。
+  if (role !== 'admin') {
+    const allow = await getAccessibleContentIds({ userId, role })
     data = data.filter((x) => allow.has(String(x.id)))
   }
 
@@ -251,9 +244,8 @@ router.get('/:id', async (req: Request, res: Response) => {
     return
   }
 
-  if (role === 'member' || role === 'secretary') {
-    const allow = await accessibleContentIdsForUser(userId)
-    if (!allow.has(id)) {
+  if (role !== 'admin') {
+    if (!(await canAccessContent({ userId, role }, id))) {
       res.status(403).json({ success: false, error: '无权限访问该内容' })
       return
     }
@@ -276,24 +268,28 @@ router.post('/', async (req: Request, res: Response) => {
   const ts = nowIso()
   const attachments = normalizeAttachments(req.body?.attachments)
 
-  await query(
-    `INSERT INTO contents (id, type, title, body, category, tags_json, attachments_json, is_public, created_at, updated_at)
-     VALUES ($1, $2, $3, $4, $5, $6::jsonb, $7::jsonb, $8, $9, $10)`,
-    [
-      id,
-      String(req.body?.type ?? 'article'),
-      String(req.body?.title ?? ''),
-      String(req.body?.body ?? ''),
-      String(req.body?.category ?? ''),
-      json(req.body?.tags ?? []),
-      json(attachments),
-      Boolean(req.body?.isPublic),
-      ts,
-      ts,
-    ],
-  )
+  const jobId = await withTransaction(async (client) => {
+    await client.query(
+      `INSERT INTO contents (id, type, title, body, category, tags_json, attachments_json, is_public, created_at, updated_at)
+       VALUES ($1, $2, $3, $4, $5, $6::jsonb, $7::jsonb, $8, $9, $10)`,
+      [
+        id,
+        String(req.body?.type ?? 'article'),
+        String(req.body?.title ?? ''),
+        String(req.body?.body ?? ''),
+        String(req.body?.category ?? ''),
+        json(req.body?.tags ?? []),
+        json(attachments),
+        Boolean(req.body?.isPublic),
+        ts,
+        ts,
+      ],
+    )
+    return enqueueContentIndex(id, client)
+  })
 
   await audit(userId || 'u_admin_demo', 'contents.create', { id })
+  processKBJobBestEffort(jobId)
   res.status(200).json({ success: true, data: { id } })
 })
 
@@ -308,24 +304,33 @@ router.put('/:id', async (req: Request, res: Response) => {
   const ts = nowIso()
   const attachments = normalizeAttachments(req.body?.attachments)
 
-  await query(
-    `UPDATE contents SET type = $1, title = $2, body = $3, category = $4,
-       tags_json = $5::jsonb, attachments_json = $6::jsonb, is_public = $7, updated_at = $8
-     WHERE id = $9`,
-    [
-      String(req.body?.type ?? 'article'),
-      String(req.body?.title ?? ''),
-      String(req.body?.body ?? ''),
-      String(req.body?.category ?? ''),
-      json(req.body?.tags ?? []),
-      json(attachments),
-      Boolean(req.body?.isPublic),
-      ts,
-      id,
-    ],
-  )
+  const jobId = await withTransaction(async (client) => {
+    const result = await client.query(
+      `UPDATE contents SET type = $1, title = $2, body = $3, category = $4,
+         tags_json = $5::jsonb, attachments_json = $6::jsonb, is_public = $7, updated_at = $8
+       WHERE id = $9`,
+      [
+        String(req.body?.type ?? 'article'),
+        String(req.body?.title ?? ''),
+        String(req.body?.body ?? ''),
+        String(req.body?.category ?? ''),
+        json(req.body?.tags ?? []),
+        json(attachments),
+        Boolean(req.body?.isPublic),
+        ts,
+        id,
+      ],
+    )
+    if (!result.rowCount) return null
+    return enqueueContentIndex(id, client)
+  })
+  if (!jobId) {
+    res.status(404).json({ success: false, error: '内容不存在' })
+    return
+  }
 
   await audit(userId || 'u_admin_demo', 'contents.update', { id })
+  processKBJobBestEffort(jobId)
   res.status(200).json({ success: true })
 })
 
@@ -339,6 +344,10 @@ router.delete('/:id', async (req: Request, res: Response) => {
   const id = String(req.params.id)
 
   const row = (await query('SELECT attachments_json FROM contents WHERE id = $1', [id])).rows[0]
+  if (!row) {
+    res.status(404).json({ success: false, error: '内容不存在' })
+    return
+  }
   const attachments = parseJson<ContentAttachment[]>(row?.attachments_json) ?? []
   for (const att of attachments) {
     const filename = path.basename(String(att.url || ''))
@@ -353,13 +362,16 @@ router.delete('/:id', async (req: Request, res: Response) => {
     }
   }
 
-  await withTransaction(async (client) => {
+  const jobId = await withTransaction(async (client) => {
+    const deleteJobId = await enqueueContentDelete(id, client)
     await client.query('DELETE FROM task_contents WHERE content_id = $1', [id])
     await client.query('DELETE FROM learning_records WHERE content_id = $1', [id])
     await client.query('DELETE FROM contents WHERE id = $1', [id])
+    return deleteJobId
   })
 
   await audit(userId || 'u_admin_demo', 'contents.delete', { id })
+  processKBJobBestEffort(jobId)
   res.status(200).json({ success: true })
 })
 
