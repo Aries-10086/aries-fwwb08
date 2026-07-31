@@ -19,9 +19,12 @@ npm run dev
 
 启动后访问：
 
-- 前端：http://localhost:5173
+- 前端（PC）：http://localhost:5173
+- 移动端（独立）：http://localhost:5174 （需另开 `npm run mobile:dev` 或进入 `../08-mobile`）
 - API：http://localhost:3001/api
 - 健康检查：http://localhost:3001/api/health
+
+移动端为独立前端工程（`../08-mobile`），与 PC 网页分离，共用同一 API。管理员请使用 PC 端。
 
 应用启动时会等待数据库迁移完成；空数据库会在同一初始化流程中自动写入演示数据。
 

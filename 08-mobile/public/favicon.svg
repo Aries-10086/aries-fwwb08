@@ -1,0 +1,5 @@
+<svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="32" height="32" fill="#a31828"/>
+  <rect x="3" y="3" width="26" height="26" stroke="rgba(255,255,255,0.35)" stroke-width="1.5" fill="none"/>
+  <text x="16" y="22" text-anchor="middle" fill="white" font-family="serif" font-size="16" font-weight="700">校</text>
+</svg>
