@@ -48,37 +48,111 @@ export default function AdminAIQuery() {
 
   const option = useMemo((): EChartsOption => {
     if (!result) return {}
+    const { xAxis, values, unit, metric } = result.chart
+    const axisColor = 'rgba(18,21,28,0.55)'
+    const mutedAxis = 'rgba(18,21,28,0.45)'
+    const lineColor = 'rgba(18,21,28,0.12)'
+    const splitColor = 'rgba(18,21,28,0.06)'
+    const brand = '#9e1b2b'
+
+    // 单点数据用仪表盘，避免「一根柱子」的柱状图
+    if (values.length <= 1) {
+      const value = values[0] ?? 0
+      const label = xAxis[0] ?? '当前'
+      const isRateOrScore =
+        unit === '%' || metric === 'avg_score' || metric === 'pass_rate' || metric === 'completion_rate'
+      const max = isRateOrScore ? 100 : Math.max(Math.ceil(value * 1.4), 10)
+      return {
+        backgroundColor: 'transparent',
+        series: [
+          {
+            type: 'gauge',
+            startAngle: 210,
+            endAngle: -30,
+            min: 0,
+            max,
+            splitNumber: 5,
+            radius: '90%',
+            center: ['50%', '58%'],
+            axisLine: {
+              lineStyle: {
+                width: 14,
+                color: [
+                  [0.3, 'rgba(158,27,43,0.25)'],
+                  [0.7, 'rgba(158,27,43,0.55)'],
+                  [1, brand],
+                ],
+              },
+            },
+            pointer: {
+              length: '62%',
+              width: 5,
+              itemStyle: { color: brand },
+            },
+            axisTick: { distance: -14, length: 6, lineStyle: { color: lineColor, width: 1 } },
+            splitLine: { distance: -18, length: 12, lineStyle: { color: lineColor, width: 2 } },
+            axisLabel: { color: mutedAxis, fontSize: 11, distance: 18 },
+            anchor: {
+              show: true,
+              size: 12,
+              itemStyle: { borderWidth: 3, borderColor: brand, color: '#fff' },
+            },
+            title: {
+              offsetCenter: [0, '72%'],
+              color: axisColor,
+              fontSize: 13,
+            },
+            detail: {
+              valueAnimation: true,
+              offsetCenter: [0, '42%'],
+              formatter: (v: number) => `${v}${unit}`,
+              color: '#12151c',
+              fontSize: 28,
+              fontWeight: 600,
+            },
+            data: [{ value, name: label }],
+          },
+        ],
+      }
+    }
+
     return {
       backgroundColor: 'transparent',
-      grid: { left: 40, right: 18, top: 20, bottom: 30 },
+      grid: { left: 40, right: 18, top: 28, bottom: 36 },
       xAxis: {
         type: 'category',
-        data: result.chart.xAxis,
-        axisLabel: { color: 'rgba(228,228,231,0.75)', fontSize: 11 },
-        axisLine: { lineStyle: { color: 'rgba(255,255,255,0.10)' } },
+        data: xAxis,
+        axisLabel: { color: axisColor, fontSize: 11, interval: 0, rotate: xAxis.length > 4 ? 18 : 0 },
+        axisLine: { lineStyle: { color: lineColor } },
       },
       yAxis: {
         type: 'value',
-        axisLabel: { color: 'rgba(228,228,231,0.55)', fontSize: 11 },
-        splitLine: { lineStyle: { color: 'rgba(255,255,255,0.06)' } },
+        axisLabel: {
+          color: mutedAxis,
+          fontSize: 11,
+          formatter: (v: number) => `${v}${unit === '%' ? '%' : ''}`,
+        },
+        splitLine: { lineStyle: { color: splitColor } },
       },
       tooltip: {
         trigger: 'axis',
+        backgroundColor: 'rgba(255,255,255,0.96)',
+        borderColor: 'rgba(18,21,28,0.08)',
+        textStyle: { color: '#12151c', fontSize: 12 },
         formatter: (params: any) => {
           const p = params?.[0]
           if (!p) return ''
-          return `${p.axisValue}<br/>${p.data}${result.chart.unit}`
+          return `${p.axisValue}<br/>${p.data}${unit}`
         },
       },
       series: [
         {
           type: 'bar',
-          data: result.chart.values,
+          data: values,
+          barMaxWidth: 48,
           itemStyle: {
-            color: 'rgba(140,36,36,0.82)',
-            borderRadius: [8, 8, 0, 0],
-            shadowColor: 'rgba(140,36,36,0.18)',
-            shadowBlur: 16,
+            color: brand,
+            borderRadius: [6, 6, 0, 0],
           },
         },
       ],
