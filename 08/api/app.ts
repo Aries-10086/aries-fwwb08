@@ -41,11 +41,31 @@ const corsOrigins = (process.env.CORS_ORIGIN || 'http://localhost:5173,http://12
   .map((s) => s.trim())
   .filter(Boolean)
 
+const isProd = process.env.NODE_ENV === 'production'
+
+/** 开发态允许本机 / 局域网前端（含手机通过 Vite --host 访问） */
+function isLocalDevOrigin(origin: string): boolean {
+  try {
+    const { hostname } = new URL(origin)
+    if (hostname === 'localhost' || hostname === '127.0.0.1' || hostname === '::1') return true
+    if (/^10\.\d{1,3}\.\d{1,3}\.\d{1,3}$/.test(hostname)) return true
+    if (/^192\.168\.\d{1,3}\.\d{1,3}$/.test(hostname)) return true
+    if (/^172\.(1[6-9]|2\d|3[0-1])\.\d{1,3}\.\d{1,3}$/.test(hostname)) return true
+    return false
+  } catch {
+    return false
+  }
+}
+
 app.use(
   cors({
     origin: (origin, cb) => {
       // 允许同机开发无 Origin（如 curl）以及白名单前端
       if (!origin || corsOrigins.includes(origin) || corsOrigins.includes('*')) {
+        cb(null, true)
+        return
+      }
+      if (!isProd && isLocalDevOrigin(origin)) {
         cb(null, true)
         return
       }
