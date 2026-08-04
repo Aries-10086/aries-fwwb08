@@ -130,30 +130,57 @@ async function callDirectOpenAI(input: LlmTextInput, signal: AbortSignal) {
   }
 }
 
+function isAiServiceConnectionError(error: unknown): boolean {
+  if (!(error instanceof AIServiceError)) return false
+  return (
+    error.code === 'AI_SERVICE_UNAVAILABLE' ||
+    error.code === 'AI_SERVICE_TIMEOUT' ||
+    error.message.includes('无法连接 AI 服务')
+  )
+}
+
+async function callViaAiService(input: LlmTextInput, signal: AbortSignal) {
+  return callAIService<{ data: unknown; meta?: { model?: string; usage?: unknown } }>(
+    '/text',
+    {
+      purpose: PYTHON_PURPOSE[input.purpose],
+      messages: [
+        { role: 'system', content: input.prompt },
+        { role: 'user', content: JSON.stringify(input.data ?? {}, null, 2) },
+      ],
+      response_format: input.responseFormat ?? 'text',
+      ...(input.responseFormat === 'json' ? { json_schema: input.jsonSchema } : {}),
+    },
+    signal,
+  )
+}
+
 export async function llmText<T = string>(input: LlmTextInput): Promise<LlmTextOutput<T>> {
   const started = Date.now()
-  const provider = process.env.AI_SERVICE_URL ? 'ai-service' : 'openai-compatible'
+  let provider = process.env.AI_SERVICE_URL ? 'ai-service' : 'openai-compatible'
   const controller = new AbortController()
   const timeoutMs = Math.max(1_000, Number(process.env.LLM_TIMEOUT_MS ?? 30_000))
   const timer = setTimeout(() => controller.abort(new Error('模型请求超时')), timeoutMs)
   const abort = () => controller.abort(input.signal?.reason)
   input.signal?.addEventListener('abort', abort, { once: true })
   try {
-    const raw = process.env.AI_SERVICE_URL
-      ? await callAIService<{ data: unknown; meta?: { model?: string; usage?: unknown } }>(
-          '/text',
-          {
-            purpose: PYTHON_PURPOSE[input.purpose],
-            messages: [
-              { role: 'system', content: input.prompt },
-              { role: 'user', content: JSON.stringify(input.data ?? {}, null, 2) },
-            ],
-            response_format: input.responseFormat ?? 'text',
-            ...(input.responseFormat === 'json' ? { json_schema: input.jsonSchema } : {}),
-          },
-          controller.signal,
+    let raw: { data: unknown; meta?: { model?: string; usage?: unknown } }
+    if (process.env.AI_SERVICE_URL) {
+      try {
+        raw = await callViaAiService(input, controller.signal)
+      } catch (error) {
+        // Python AI 服务未启动时，回退到 Node 直连 CHAT_*/LLM_*（报告/推荐等文案能力）
+        if (!isAiServiceConnectionError(error) || controller.signal.aborted) throw error
+        console.warn(
+          '[llm] AI 服务不可用，回退直连模型:',
+          error instanceof Error ? error.message : error,
         )
-      : await callDirectOpenAI(input, controller.signal)
+        raw = await callDirectOpenAI(input, controller.signal)
+        provider = 'openai-compatible-fallback'
+      }
+    } else {
+      raw = await callDirectOpenAI(input, controller.signal)
+    }
     let data = raw.data as T
     if (input.responseFormat === 'json' && typeof data === 'string') {
       try {
