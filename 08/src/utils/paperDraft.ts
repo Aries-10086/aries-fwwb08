@@ -10,7 +10,7 @@ export type PaperDraft = {
 const STORAGE_KEY = 'admin-paper-draft'
 
 const DEFAULT_DRAFT: PaperDraft = {
-  title: '新试卷（演示）',
+  title: '新试卷',
   durationMin: 10,
   passScore: 60,
   picks: [],

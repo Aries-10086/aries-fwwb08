@@ -411,7 +411,7 @@ async function runMigrations(): Promise<void> {
 
 async function seedIfEmpty(): Promise<void> {
   await withTransaction(async (client) => {
-    // 锁住根表，确保多个冷启动不会同时写入演示数据。
+    // 锁住根表，确保多个冷启动不会同时写入初始数据。
     await client.query('LOCK TABLE org_units IN SHARE ROW EXCLUSIVE MODE')
     const existing = await client.query('SELECT 1 FROM org_units LIMIT 1')
     if (existing.rowCount) return
@@ -438,9 +438,9 @@ async function seedIfEmpty(): Promise<void> {
       role: UserRole
       orgUnitId: string
     }> = [
-      { id: 'u_admin_demo', name: '系统管理员（演示）', username: 'admin', password: 'admin123', role: 'admin', orgUnitId: 'org_committee' },
-      { id: 'u_secretary_demo', name: '支部书记（演示）', username: 'secretary', password: 'secretary123', role: 'secretary', orgUnitId: 'org_branch_3' },
-      { id: 'u_member_demo', name: '党员（演示）', username: 'member', password: 'member123', role: 'member', orgUnitId: 'org_branch_3' },
+      { id: 'u_admin_demo', name: '系统管理员', username: 'admin', password: 'admin123', role: 'admin', orgUnitId: 'org_committee' },
+      { id: 'u_secretary_demo', name: '支部书记', username: 'secretary', password: 'secretary123', role: 'secretary', orgUnitId: 'org_branch_3' },
+      { id: 'u_member_demo', name: '党员', username: 'member', password: 'member123', role: 'member', orgUnitId: 'org_branch_3' },
       { id: 'u_member_2', name: '党员乙', username: 'member2', password: 'member123', role: 'member', orgUnitId: 'org_branch_3' },
       { id: 'u_member_3', name: '党员丙', username: 'member3', password: 'member123', role: 'member', orgUnitId: 'org_branch_1' },
     ]
@@ -492,7 +492,7 @@ async function seedIfEmpty(): Promise<void> {
         id: 'c_video_1',
         type: 'video',
         title: '微党课：基层党务工作常见流程（示例视频）',
-        body: 'https://example.com/video\n\n说明：演示用视频链接占位，可替换为真实地址。',
+        body: 'https://example.com/video\n\n说明：视频链接占位，可替换为真实地址。',
         category: '党务',
         tags: ['党务', '流程', '微党课'],
         isPublic: true,
@@ -605,7 +605,7 @@ async function seedIfEmpty(): Promise<void> {
     await client.query(
       `INSERT INTO papers (id, title, duration_min, pass_score, created_at)
        VALUES ($1, $2, $3, $4, $5)`,
-      ['paper_1', '党校基础测验（演示卷）', 10, 60, ts],
+      ['paper_1', '党校基础测验', 10, 60, ts],
     )
     const paperQuestions = [
       ['q_1', 40, 1],
@@ -628,7 +628,7 @@ async function seedIfEmpty(): Promise<void> {
         'exam_1',
         'org_branch_3',
         'paper_1',
-        '第三党支部：党校基础测验（演示）',
+        '第三党支部：党校基础测验',
         10,
         60,
         'published' as ExamStatus,

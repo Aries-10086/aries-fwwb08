@@ -202,7 +202,7 @@ router.delete('/:id', async (req: Request, res: Response) => {
   const id = String(req.params.id)
 
   if (id === 'u_admin_demo') {
-    res.status(400).json({ success: false, error: '演示管理员不可删除' })
+    res.status(400).json({ success: false, error: '系统内置管理员不可删除' })
     return
   }
 
