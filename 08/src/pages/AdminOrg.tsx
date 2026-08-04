@@ -299,7 +299,7 @@ export default function AdminOrg() {
                         <div className="min-w-0 flex-1">
                           <div className="text-sm font-medium text-[#12151c]">{r.name}</div>
                           <div className="mt-1 text-xs text-zinc-500">
-                            {branchCount} 个党支部 · 挂靠人员 {r.stats.memberCount} · {r.id}
+                            {branchCount} 个党支部 · 挂靠人员 {r.stats.memberCount}
                           </div>
                         </div>
                         <div className="flex flex-wrap items-center gap-2">
