@@ -17,7 +17,9 @@
     "db:logs": "docker compose logs -f postgres",
     "db:restart": "docker compose restart postgres",
     "mobile:dev": "npm --prefix ../08-mobile run dev",
-    "mobile:install": "npm --prefix ../08-mobile install"
+    "mobile:install": "npm --prefix ../08-mobile install",
+    "miniprogram:dev": "npm --prefix ../08-miniprogram run dev:weapp",
+    "miniprogram:install": "npm --prefix ../08-miniprogram install"
   },
   "dependencies": {
     "@phosphor-icons/react": "^2.1.10",

@@ -1,0 +1,39 @@
+.result-card {
+  margin-top: 16px;
+  padding: 20px;
+  text-align: center;
+}
+
+.result-card__exam {
+  display: block;
+  font-size: 13px;
+  color: rgba(18, 21, 28, 0.5);
+}
+
+.result-card__score {
+  display: block;
+  margin-top: 12px;
+  font-size: 40px;
+  font-weight: 900;
+}
+
+.result-card__meta {
+  display: block;
+  margin-top: 4px;
+  font-size: 13px;
+  color: rgba(18, 21, 28, 0.55);
+}
+
+.result-card__time {
+  display: block;
+  margin-top: 8px;
+  font-size: 11px;
+  color: rgba(18, 21, 28, 0.4);
+}
+
+.result-actions {
+  margin-top: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}

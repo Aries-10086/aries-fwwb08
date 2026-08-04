@@ -1,0 +1,44 @@
+.back {
+  display: inline-block;
+  font-size: 13px;
+  color: rgba(18, 21, 28, 0.55);
+}
+
+.detail-title {
+  display: block;
+  margin-top: 12px;
+  font-size: 20px;
+  font-weight: 700;
+  line-height: 1.35;
+  color: #12151c;
+}
+
+.detail-body {
+  margin-top: 16px;
+  padding: 16px;
+}
+
+.detail-body__text {
+  font-size: 14px;
+  line-height: 1.75;
+  color: rgba(18, 21, 28, 0.8);
+  white-space: pre-wrap;
+}
+
+.detail-actions {
+  margin-top: 16px;
+}
+
+.detail-link {
+  display: block;
+  margin-top: 12px;
+  text-align: center;
+  font-size: 13px;
+}
+
+.home-card__meta {
+  display: block;
+  margin-top: 4px;
+  font-size: 12px;
+  color: rgba(18, 21, 28, 0.45);
+}

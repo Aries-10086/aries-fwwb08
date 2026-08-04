@@ -1,0 +1,81 @@
+page {
+  background: #f4f6f8;
+  color: #12151c;
+  font-family: 'PingFang SC', 'Noto Sans SC', sans-serif;
+  box-sizing: border-box;
+}
+
+.m-page {
+  min-height: 100vh;
+  background: #f4f6f8;
+  padding: 16px 16px 24px;
+  box-sizing: border-box;
+}
+
+.m-page--tab {
+  padding-bottom: calc(72px + env(safe-area-inset-bottom));
+}
+
+.m-card {
+  border-radius: 14px;
+  background: #fff;
+  box-shadow: inset 0 0 0 1px rgba(18, 21, 28, 0.06);
+}
+
+.m-input {
+  display: block;
+  width: 100%;
+  height: 48px;
+  min-height: 48px;
+  line-height: 48px;
+  border-radius: 12px;
+  border: none;
+  background: #fff;
+  box-shadow: inset 0 0 0 1px rgba(18, 21, 28, 0.1);
+  padding: 0 14px;
+  font-size: 16px;
+  box-sizing: border-box;
+}
+
+.m-title {
+  font-size: 22px;
+  font-weight: 700;
+  color: #12151c;
+}
+
+.m-sub {
+  margin-top: 4px;
+  font-size: 13px;
+  color: rgba(18, 21, 28, 0.5);
+}
+
+.m-error {
+  margin-top: 12px;
+  border-radius: 12px;
+  background: rgba(158, 27, 43, 0.1);
+  padding: 8px 12px;
+  font-size: 13px;
+  color: #741220;
+}
+
+.m-empty {
+  padding: 40px 0;
+  text-align: center;
+  font-size: 13px;
+  color: rgba(18, 21, 28, 0.4);
+}
+
+.m-section-title {
+  margin-top: 20px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #12151c;
+}
+
+.seal {
+  color: #9e1b2b;
+}
+
+.ok {
+  color: #1f6b4a;
+}

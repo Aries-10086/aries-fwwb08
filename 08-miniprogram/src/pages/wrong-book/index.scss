@@ -1,0 +1,44 @@
+.wb-list {
+  margin-top: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.wb-card {
+  padding: 16px;
+}
+
+.wb-card__stem {
+  display: block;
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 1.45;
+}
+
+.wb-card__meta {
+  display: block;
+  margin-top: 4px;
+  font-size: 12px;
+  color: rgba(18, 21, 28, 0.45);
+}
+
+.wb-card__btn {
+  margin-top: 12px;
+}
+
+.wb-card__btn .mp-btn {
+  min-height: 36px;
+  font-size: 12px;
+}
+
+.wb-explain {
+  margin-top: 12px;
+  border-radius: 12px;
+  background: #f4f6f8;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 12px;
+}

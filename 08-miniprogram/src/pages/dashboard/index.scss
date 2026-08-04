@@ -1,0 +1,87 @@
+.dash-head {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.dash-refresh {
+  min-height: 36px !important;
+  padding: 6px 12px !important;
+}
+
+.dash-grid {
+  margin-top: 16px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.dash-metric {
+  padding: 12px;
+}
+
+.dash-metric__k {
+  display: block;
+  font-size: 11px;
+  color: rgba(18, 21, 28, 0.4);
+}
+
+.dash-metric__v {
+  display: block;
+  margin-top: 4px;
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.dash-actions {
+  margin-top: 16px;
+  display: flex;
+  gap: 8px;
+}
+
+.dash-actions__btn {
+  flex: 1;
+}
+
+.dash-tasks {
+  margin-top: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.dash-task {
+  padding: 16px;
+}
+
+.dash-task__row {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.dash-task__title {
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.dash-bar {
+  margin-top: 8px;
+  height: 6px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.05);
+}
+
+.dash-bar__fill {
+  height: 100%;
+  background: #9e1b2b;
+}
+
+.dash-task__pending {
+  display: block;
+  margin-top: 8px;
+  font-size: 12px;
+  color: rgba(18, 21, 28, 0.55);
+}
