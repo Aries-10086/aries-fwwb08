@@ -1,0 +1,73 @@
+.report-head {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.report-refresh {
+  min-height: 36px !important;
+  padding: 6px 12px !important;
+}
+
+.report-score {
+  margin-top: 16px;
+  padding: 20px;
+  text-align: center;
+}
+
+.report-score__label {
+  display: block;
+  font-size: 11px;
+  color: rgba(18, 21, 28, 0.45);
+}
+
+.report-score__num {
+  display: block;
+  margin-top: 4px;
+  font-size: 40px;
+  font-weight: 900;
+}
+
+.report-score__level {
+  display: block;
+  margin-top: 4px;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.report-metrics {
+  margin-top: 12px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.report-metric {
+  padding: 12px;
+}
+
+.report-metric__k {
+  display: block;
+  font-size: 11px;
+  color: rgba(18, 21, 28, 0.4);
+}
+
+.report-metric__v {
+  display: block;
+  margin-top: 4px;
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.report-comment {
+  margin-top: 12px;
+  padding: 16px;
+}
+
+.report-comment__text {
+  font-size: 14px;
+  line-height: 1.75;
+  color: rgba(18, 21, 28, 0.75);
+  white-space: pre-wrap;
+}

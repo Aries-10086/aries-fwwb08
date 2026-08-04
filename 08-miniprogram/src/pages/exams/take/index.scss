@@ -1,0 +1,83 @@
+.take-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.back {
+  font-size: 13px;
+  color: rgba(18, 21, 28, 0.55);
+}
+
+.take-timer {
+  border-radius: 999px;
+  background: rgba(158, 27, 43, 0.1);
+  padding: 4px 12px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #9e1b2b;
+}
+
+.take-list {
+  margin-top: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.take-q {
+  padding: 16px;
+}
+
+.take-q__stem {
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 1.5;
+}
+
+.take-tf {
+  margin-top: 12px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.take-opts {
+  margin-top: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.take-opt {
+  border-radius: 12px;
+  background: #f4f6f8;
+  padding: 12px;
+  text-align: center;
+  font-size: 14px;
+  color: #12151c;
+}
+
+.take-opt--block {
+  text-align: left;
+}
+
+.take-opt.is-on {
+  background: #9e1b2b;
+  color: #fff;
+}
+
+.take-opt.is-soft {
+  background: rgba(158, 27, 43, 0.1);
+  color: #9e1b2b;
+}
+
+.take-opt__key {
+  font-size: 12px;
+  color: rgba(18, 21, 28, 0.4);
+}
+
+.take-submit {
+  margin-top: 20px;
+  padding-bottom: 24px;
+}

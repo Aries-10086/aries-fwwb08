@@ -21,20 +21,21 @@ npm run dev
 
 - 前端（PC）：http://localhost:5173
 - 移动端（独立）：http://localhost:5174 （需另开 `npm run mobile:dev` 或进入 `../08-mobile`）
+- 微信小程序（独立）：`../08-miniprogram`（`npm run miniprogram:dev`，用微信开发者工具打开）
 - API：http://localhost:3001/api
 - 健康检查：http://localhost:3001/api/health
 
-移动端为独立前端工程（`../08-mobile`），与 PC 网页分离，共用同一 API。管理员请使用 PC 端。
+移动端 H5（`../08-mobile`）与微信小程序（`../08-miniprogram`）均为独立前端工程，与 PC 网页分离，共用同一 API。管理员请使用 PC 端。
 
-应用启动时会等待数据库迁移完成；空数据库会在同一初始化流程中自动写入演示数据。
+应用启动时会等待数据库迁移完成；空数据库会在同一初始化流程中自动写入初始账号与样例数据。
 
-## 演示账号
+## 初始账号
 
 - 管理员：`admin` / `admin123`
 - 支部书记：`secretary` / `secretary123`
 - 党员：`member` / `member123`
 
-演示密码仅用于本地开发，请勿用于生产环境。
+以上密码仅用于本地开发，上线前请修改并更换 `AUTH_SECRET`。
 
 ## 常用命令
 
