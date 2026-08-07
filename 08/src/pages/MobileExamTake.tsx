@@ -34,6 +34,8 @@ type ExamDetail = {
   remainingAttempts: number
   canAttempt: boolean
   status: string
+  type?: 'quiz' | 'formal'
+  openNotice?: string
   paper: { id: string; questions: Question[] } | null
 }
 
@@ -55,6 +57,9 @@ export default function MobileExamTake() {
   const [answers, setAnswers] = useState<Record<string, any>>({})
   const [sessionId, setSessionId] = useState<string | null>(null)
   const [remainMs, setRemainMs] = useState<number | null>(null)
+  const [phase, setPhase] = useState<'loading' | 'notice' | 'taking'>('loading')
+  const [noticeOk, setNoticeOk] = useState(false)
+  const [starting, setStarting] = useState(false)
   const autoSubmitted = useRef(false)
 
   useEffect(() => {
@@ -68,6 +73,8 @@ export default function MobileExamTake() {
     setAnswers({})
     setSessionId(null)
     setRemainMs(null)
+    setNoticeOk(false)
+    setPhase('loading')
     autoSubmitted.current = false
     try {
       const data = await apiFetch<ExamDetail>(`/api/exams/${examId}`)
@@ -76,6 +83,22 @@ export default function MobileExamTake() {
         setError(`已达最大作答次数（${data.maxAttempts} 次）`)
         return
       }
+      const needNotice = data.type === 'formal' || Boolean(data.openNotice?.trim())
+      if (needNotice) {
+        setPhase('notice')
+        return
+      }
+      await beginSession()
+    } catch (e: any) {
+      setError(e?.message ?? '加载失败')
+    }
+  }
+
+  async function beginSession() {
+    if (!examId || starting) return
+    setStarting(true)
+    setError(null)
+    try {
       const session = await apiFetch<{
         sessionId: string
         startedAt: string
@@ -84,13 +107,16 @@ export default function MobileExamTake() {
       }>(`/api/exams/${examId}/start`, { method: 'POST', body: '{}' })
       setSessionId(session.sessionId)
       setRemainMs(Math.max(0, new Date(session.expiresAt).getTime() - Date.now()))
+      setPhase('taking')
     } catch (e: any) {
-      setError(e?.message ?? '加载失败')
+      setError(e?.message ?? '开考失败')
+    } finally {
+      setStarting(false)
     }
   }
 
   useEffect(() => {
-    load()
+    void load()
   }, [examId])
 
   useEffect(() => {
@@ -169,6 +195,47 @@ export default function MobileExamTake() {
         <div className="rounded-2xl bg-[rgba(158,27,43,0.08)] px-4 py-3 text-[#741220] shadow-[inset_0_0_0_1px_rgba(158,27,43,0.16)]">
           {error}
         </div>
+      )}
+
+      {phase === 'notice' && exam && !result && (
+        <Card>
+          <CardHeader>
+            <CardTitle>
+              {exam.type === 'formal' ? '正式考试开考说明' : '开考说明'}
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid gap-4">
+              <div className="rounded-xl bg-white/90 px-4 py-4 text-sm leading-7 text-[rgba(18,21,28,0.78)] shadow-[inset_0_0_0_1px_rgba(0,0,0,0.06)] whitespace-pre-wrap">
+                {exam.openNotice?.trim() ||
+                  '正式考试须独立完成，开考后不可中途离开；到时将强制交卷。请确认已阅读说明。'}
+              </div>
+              <label className="flex items-start gap-3 text-sm text-[#12151c]">
+                <input
+                  type="checkbox"
+                  className="mt-1 h-4 w-4 accent-[#9e1b2b]"
+                  checked={noticeOk}
+                  onChange={(e) => setNoticeOk(e.target.checked)}
+                />
+                <span>我已阅读并同意上述说明，确认开始作答</span>
+              </label>
+              <Button disabled={!noticeOk || starting} onClick={() => void beginSession()}>
+                {starting ? (
+                  <>
+                    <CircleNotch className="h-4 w-4 animate-spin" />
+                    开考中…
+                  </>
+                ) : (
+                  '确认开考'
+                )}
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {phase === 'loading' && !error && !result && (
+        <div className="py-12 text-center text-sm text-zinc-400">加载中…</div>
       )}
 
       {result ? (

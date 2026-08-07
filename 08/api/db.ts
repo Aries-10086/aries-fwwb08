@@ -362,6 +362,16 @@ const migrations: Migration[] = [
       );
     `,
   },
+  {
+    version: 5,
+    name: 'exams_type_and_notice',
+    sql: `
+      ALTER TABLE exams
+        ADD COLUMN IF NOT EXISTS exam_type TEXT NOT NULL DEFAULT 'quiz'
+          CHECK (exam_type IN ('quiz', 'formal')),
+        ADD COLUMN IF NOT EXISTS open_notice TEXT NOT NULL DEFAULT '';
+    `,
+  },
 ]
 
 async function runMigrations(): Promise<void> {

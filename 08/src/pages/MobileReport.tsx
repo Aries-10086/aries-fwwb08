@@ -24,12 +24,20 @@ type Report = {
     branchRank: number | null
     branchMemberCount: number | null
   }
+  comparison?: {
+    myAvgExamScore: number | null
+    branchAvgExamScore: number | null
+    branchMaxExamScore: number | null
+  }
+  suggestions?: Array<{ contentId: string; title: string; reason: string }>
   parts?: {
     duration: number
     completed: number
     exam: number
   }
   comment: string
+  degraded?: boolean
+  degradedReason?: string | null
   generatedAt: string
 }
 
@@ -122,6 +130,11 @@ export default function MobileReport() {
           {error}
         </div>
       )}
+      {report?.degraded && (
+        <div className="rounded-2xl bg-[rgba(138,106,47,0.12)] px-4 py-3 text-sm text-[#6b521f] shadow-[inset_0_0_0_1px_rgba(138,106,47,0.2)]">
+          {report.degradedReason || '已使用离线评语 / 降级结果'}
+        </div>
+      )}
 
       <div className="grid gap-4 md:grid-cols-12">
         <Card className="md:col-span-5">
@@ -151,6 +164,40 @@ export default function MobileReport() {
                     <span className="font-semibold text-[#9e1b2b]">
                       第 {report.ranking.branchRank} / {report.ranking.branchMemberCount}
                     </span>
+                  </div>
+                )}
+                {report.comparison && (
+                  <div className="grid grid-cols-3 gap-2 text-center text-xs">
+                    <div className="list-surface py-2">
+                      <div className="text-[rgba(18,21,28,0.45)]">我的均分</div>
+                      <div className="mt-1 font-semibold">{report.comparison.myAvgExamScore ?? '-'}</div>
+                    </div>
+                    <div className="list-surface py-2">
+                      <div className="text-[rgba(18,21,28,0.45)]">支部均分</div>
+                      <div className="mt-1 font-semibold">{report.comparison.branchAvgExamScore ?? '-'}</div>
+                    </div>
+                    <div className="list-surface py-2">
+                      <div className="text-[rgba(18,21,28,0.45)]">支部最高</div>
+                      <div className="mt-1 font-semibold">{report.comparison.branchMaxExamScore ?? '-'}</div>
+                    </div>
+                  </div>
+                )}
+                {(report.suggestions?.length ?? 0) > 0 && (
+                  <div className="grid gap-2">
+                    <div className="text-xs font-medium text-[rgba(18,21,28,0.55)]">可执行建议</div>
+                    {report.suggestions!.map((s) => (
+                      <Link
+                        key={s.contentId}
+                        to={`/m/content/${s.contentId}`}
+                        className="list-surface flex items-center justify-between text-sm hover:bg-[rgba(158,27,43,0.05)]"
+                      >
+                        <div>
+                          <div className="font-medium text-[#12151c]">{s.title}</div>
+                          <div className="mt-0.5 text-xs text-[rgba(18,21,28,0.45)]">{s.reason}</div>
+                        </div>
+                        <span className="text-[#9e1b2b]">去学习</span>
+                      </Link>
+                    ))}
                   </div>
                 )}
                 {report.parts && (

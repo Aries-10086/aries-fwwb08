@@ -5,6 +5,7 @@ import { Button } from '@/components/Button'
 import { apiFetch } from '@/utils/api'
 import { useAuthStore } from '@/store/auth'
 import {
+  ArrowsClockwise,
   CircleNotch,
   FloppyDisk,
   GearSix,
@@ -46,6 +47,18 @@ export default function AdminAISettings() {
   const [error, setError] = useState<string | null>(null)
   const [message, setMessage] = useState<string | null>(null)
   const [testResult, setTestResult] = useState<TestResult | null>(null)
+  const [kbDocs, setKbDocs] = useState<
+    Array<{
+      id: string
+      contentId: string
+      contentTitle: string
+      status: string
+      error?: string | null
+      updatedAt: string
+    }>
+  >([])
+  const [syncing, setSyncing] = useState(false)
+  const [syncSummary, setSyncSummary] = useState<string | null>(null)
 
   useEffect(() => {
     if (!user) nav('/login')
@@ -69,8 +82,12 @@ export default function AdminAISettings() {
     setLoading(true)
     setError(null)
     try {
-      const data = await apiFetch<AiProviderSettingsPublic>('/api/ai/settings')
+      const [data, docs] = await Promise.all([
+        apiFetch<AiProviderSettingsPublic>('/api/ai/settings'),
+        apiFetch<typeof kbDocs>('/api/kb/documents').catch(() => [] as typeof kbDocs),
+      ])
       applySettings(data)
+      setKbDocs(docs)
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : '加载失败')
     } finally {
@@ -134,6 +151,33 @@ export default function AdminAISettings() {
     }
   }
 
+  async function syncAllKnowledge() {
+    setSyncing(true)
+    setError(null)
+    setSyncSummary(null)
+    try {
+      const data = await apiFetch<{
+        total: number
+        succeeded: number
+        failed: number
+      }>('/api/kb/reindex-all', { method: 'POST', body: '{}' })
+      setSyncSummary(
+        `同步完成：成功 ${data.succeeded} / 共 ${data.total}` +
+          (data.failed ? `，失败 ${data.failed}` : ''),
+      )
+      const docs = await apiFetch<typeof kbDocs>('/api/kb/documents').catch(() => [] as typeof kbDocs)
+      setKbDocs(docs)
+    } catch (e: unknown) {
+      setError(
+        e instanceof Error
+          ? e.message
+          : '知识库同步失败。未安装/未配置 AI 时，学习测验主流程仍可用。',
+      )
+    } finally {
+      setSyncing(false)
+    }
+  }
+
   return (
     <div className="grid gap-6">
       <div className="hero-frame px-6 py-7 md:px-8">
@@ -152,6 +196,12 @@ export default function AdminAISettings() {
       {message && (
         <div className="rounded-2xl bg-[rgba(31,107,74,0.08)] px-4 py-3 text-[#17553a] shadow-[inset_0_0_0_1px_rgba(31,107,74,0.16)]">
           {message}
+        </div>
+      )}
+
+      {settings && !settings.chatApiKeyConfigured && (
+        <div className="rounded-2xl bg-[rgba(158,27,43,0.08)] px-4 py-3 text-sm text-[#741220] shadow-[inset_0_0_0_1px_rgba(158,27,43,0.16)]">
+          未配置聊天模型密钥：AI 助手 / 讲解 / 导读将降级不可用；学习、测验与成绩主流程不受影响（无需安装 AI 服务）。
         </div>
       )}
 
@@ -386,6 +436,86 @@ export default function AdminAISettings() {
               </CardContent>
             </Card>
           )}
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <ArrowsClockwise className="h-5 w-5 text-[#9e1b2b]" />
+                知识库索引
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-sm text-[rgba(18,21,28,0.62)]">
+                将学习内容同步到知识库，供问答检索。未配置向量密钥或 AI 服务时，同步可能失败，但不影响主流程。
+              </p>
+              <div className="mt-3 flex flex-wrap gap-2">
+                <Button
+                  variant="secondary"
+                  disabled={syncing || saving}
+                  onClick={() => void syncAllKnowledge()}
+                >
+                  {syncing ? (
+                    <CircleNotch className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <ArrowsClockwise className="h-4 w-4" />
+                  )}
+                  {syncing ? '同步中…' : '一键同步全部内容'}
+                </Button>
+              </div>
+              {syncSummary && (
+                <div className="mt-3 rounded-xl bg-[rgba(31,107,74,0.08)] px-3 py-2 text-sm text-[#17553a]">
+                  {syncSummary}
+                </div>
+              )}
+              <div className="mt-4 grid max-h-64 gap-2 overflow-y-auto">
+                {kbDocs.slice(0, 30).map((d) => (
+                  <div
+                    key={d.id}
+                    className="flex items-start justify-between gap-3 rounded-lg bg-white/90 px-3 py-2 text-xs shadow-[inset_0_0_0_1px_rgba(0,0,0,0.06)]"
+                  >
+                    <div className="min-w-0">
+                      <div className="truncate font-medium text-[#12151c]">{d.contentTitle}</div>
+                      <div className="mt-0.5 text-[rgba(18,21,28,0.45)]">
+                        {d.status}
+                        {d.error ? ` · ${d.error}` : ''}
+                      </div>
+                    </div>
+                    <Button
+                      variant="ghost"
+                      className="shrink-0 px-2 py-1 text-[11px]"
+                      disabled={syncing}
+                      onClick={() =>
+                        void (async () => {
+                          setSyncing(true)
+                          setError(null)
+                          try {
+                            await apiFetch(`/api/kb/reindex/${d.contentId}`, {
+                              method: 'POST',
+                              body: '{}',
+                            })
+                            setSyncSummary(`已重建：${d.contentTitle}`)
+                            const docs = await apiFetch<typeof kbDocs>('/api/kb/documents')
+                            setKbDocs(docs)
+                          } catch (e: unknown) {
+                            setError(e instanceof Error ? e.message : '重建失败')
+                          } finally {
+                            setSyncing(false)
+                          }
+                        })()
+                      }
+                    >
+                      重建
+                    </Button>
+                  </div>
+                ))}
+                {kbDocs.length === 0 && (
+                  <div className="py-6 text-center text-sm text-zinc-400">
+                    暂无索引记录，点击上方「一键同步」开始
+                  </div>
+                )}
+              </div>
+            </CardContent>
+          </Card>
 
           <div className="flex flex-wrap items-center gap-3">
             <Button onClick={() => void save()} disabled={saving || testing !== null}>

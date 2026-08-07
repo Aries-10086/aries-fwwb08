@@ -10,6 +10,7 @@ import {
   Sparkle,
   SquaresFour,
   User,
+  Users,
 } from '@phosphor-icons/react'
 
 const memberTabs = [
@@ -22,13 +23,13 @@ const memberTabs = [
 
 const secretaryTabs = [
   { to: '/dashboard', label: '看板', icon: SquaresFour },
-  { to: '/home', label: '学习', icon: BookOpen },
-  { to: '/exams', label: '测验', icon: ClipboardText },
+  { to: '/tasks', label: '任务', icon: ClipboardText },
+  { to: '/members', label: '人员', icon: Users },
   { to: '/scores', label: '成绩', icon: ChartBar },
   { to: '/account', label: '我的', icon: User },
 ] as const
 
-const immersive = [/^\/exam\//, /^\/content\//]
+const immersive = [/^\/exam\//, /^\/content\//, /^\/chat/]
 
 export function MobileShell() {
   const { user } = useAuthStore()

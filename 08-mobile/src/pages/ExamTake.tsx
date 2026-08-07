@@ -18,6 +18,8 @@ type ExamDetail = {
   durationMin: number
   passScore: number
   canAttempt: boolean
+  type?: 'quiz' | 'formal'
+  openNotice?: string
   paper: { questions: Question[] } | null
 }
 
@@ -35,6 +37,9 @@ export default function ExamTake() {
   const [remainMs, setRemainMs] = useState<number | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
+  const [phase, setPhase] = useState<'loading' | 'notice' | 'taking'>('loading')
+  const [noticeOk, setNoticeOk] = useState(false)
+  const [starting, setStarting] = useState(false)
   const autoSubmitted = useRef(false)
 
   async function submit(force = false) {
@@ -53,9 +58,30 @@ export default function ExamTake() {
     }
   }
 
+  async function beginSession() {
+    if (!examId || starting) return
+    setStarting(true)
+    setError(null)
+    try {
+      const session = await apiFetch<{ sessionId: string; expiresAt: string }>(`/api/exams/${examId}/start`, {
+        method: 'POST',
+        body: '{}',
+      })
+      setSessionId(session.sessionId)
+      setRemainMs(Math.max(0, new Date(session.expiresAt).getTime() - Date.now()))
+      setPhase('taking')
+    } catch (e: any) {
+      setError(e?.message ?? '开考失败')
+    } finally {
+      setStarting(false)
+    }
+  }
+
   useEffect(() => {
     if (!examId) return
     void (async () => {
+      setPhase('loading')
+      setNoticeOk(false)
       try {
         const data = await apiFetch<ExamDetail>(`/api/exams/${examId}`)
         setExam(data)
@@ -63,12 +89,11 @@ export default function ExamTake() {
           setError('已达最大作答次数')
           return
         }
-        const session = await apiFetch<{ sessionId: string; expiresAt: string }>(`/api/exams/${examId}/start`, {
-          method: 'POST',
-          body: '{}',
-        })
-        setSessionId(session.sessionId)
-        setRemainMs(Math.max(0, new Date(session.expiresAt).getTime() - Date.now()))
+        if (data.type === 'formal' || Boolean(data.openNotice?.trim())) {
+          setPhase('notice')
+          return
+        }
+        await beginSession()
       } catch (e: any) {
         setError(e?.message ?? '加载失败')
       }
@@ -99,82 +124,111 @@ export default function ExamTake() {
         <button type="button" className="inline-flex items-center gap-1 text-sm text-ink/55" onClick={() => nav('/exams')}>
           <ArrowLeft size={16} /> 退出
         </button>
-        {remainMs != null && (
+        {remainMs != null && phase === 'taking' && (
           <div className="rounded-full bg-seal/10 px-3 py-1 text-xs font-semibold text-seal">
             {formatRemain(remainMs)}
           </div>
         )}
       </div>
       <h1 className="mt-3 text-xl font-bold">{exam?.title ?? '测验'}</h1>
+      {exam?.type === 'formal' && <div className="mt-1 text-xs font-medium text-seal">正式考试</div>}
       {error && <div className="mt-3 rounded-xl bg-seal/10 px-3 py-2 text-sm text-seal-deep">{error}</div>}
 
-      <div className="mt-4 grid gap-4">
-        {questions.map((q, idx) => (
-          <div key={q.id} className="m-card p-4">
-            <div className="text-sm font-medium">
-              {idx + 1}. {q.stem}
-            </div>
-            {q.type === 'tf' && (
-              <div className="mt-3 grid grid-cols-2 gap-2">
-                {[
-                  { label: '正确', value: true },
-                  { label: '错误', value: false },
-                ].map((it) => (
-                  <button
-                    key={it.label}
-                    type="button"
-                    className={`rounded-xl px-3 py-3 text-sm ${
-                      answers[q.id] === it.value ? 'bg-seal text-white' : 'bg-paper text-ink'
-                    }`}
-                    onClick={() => setAnswers((p) => ({ ...p, [q.id]: it.value }))}
-                  >
-                    {it.label}
-                  </button>
-                ))}
-              </div>
-            )}
-            {(q.type === 'single' || q.type === 'multiple') && (
-              <div className="mt-3 grid gap-2">
-                {(q.options ?? []).map((op) => {
-                  const selected = answers[q.id]
-                  const checked =
-                    q.type === 'single'
-                      ? selected === op.key
-                      : Array.isArray(selected) && selected.includes(op.key)
-                  return (
-                    <button
-                      key={op.key}
-                      type="button"
-                      className={`rounded-xl px-3 py-3 text-left text-sm ${
-                        checked ? 'bg-seal/10 text-seal' : 'bg-paper text-ink'
-                      }`}
-                      onClick={() => {
-                        if (q.type === 'single') {
-                          setAnswers((p) => ({ ...p, [q.id]: op.key }))
-                          return
-                        }
-                        const prev = Array.isArray(selected) ? (selected as string[]) : []
-                        const next = prev.includes(op.key)
-                          ? prev.filter((x) => x !== op.key)
-                          : [...prev, op.key]
-                        setAnswers((p) => ({ ...p, [q.id]: next }))
-                      }}
-                    >
-                      <span className="text-xs text-ink/40">{op.key}. </span>
-                      {op.text}
-                    </button>
-                  )
-                })}
-              </div>
-            )}
+      {phase === 'notice' && exam && (
+        <div className="m-card mt-4 p-4">
+          <div className="text-sm font-semibold">开考说明</div>
+          <div className="mt-3 whitespace-pre-wrap text-sm leading-7 text-ink/75">
+            {exam.openNotice?.trim() ||
+              '正式考试须独立完成，开考后不可中途离开；到时将强制交卷。请确认已阅读说明。'}
           </div>
-        ))}
-      </div>
+          <label className="mt-4 flex items-start gap-2 text-sm">
+            <input
+              type="checkbox"
+              className="mt-1 accent-[var(--seal)]"
+              checked={noticeOk}
+              onChange={(e) => setNoticeOk(e.target.checked)}
+            />
+            <span>我已阅读并同意，确认开考</span>
+          </label>
+          <Button className="mt-4 w-full" disabled={!noticeOk || starting} onClick={() => void beginSession()}>
+            {starting ? '开考中…' : '确认开考'}
+          </Button>
+        </div>
+      )}
 
-      {sessionId && (
-        <Button className="mt-5 w-full" disabled={submitting} onClick={() => void submit(false)}>
-          {submitting ? '交卷中…' : '提交答卷'}
-        </Button>
+      {phase === 'taking' && (
+        <>
+          <div className="mt-4 grid gap-4">
+            {questions.map((q, idx) => (
+              <div key={q.id} className="m-card p-4">
+                <div className="text-sm font-medium">
+                  {idx + 1}. {q.stem}
+                </div>
+                {q.type === 'tf' && (
+                  <div className="mt-3 grid grid-cols-2 gap-2">
+                    {[
+                      { label: '正确', value: true },
+                      { label: '错误', value: false },
+                    ].map((it) => (
+                      <button
+                        key={it.label}
+                        type="button"
+                        onClick={() => setAnswers((p) => ({ ...p, [q.id]: it.value }))}
+                        className={`rounded-xl px-3 py-3 text-sm ${
+                          answers[q.id] === it.value ? 'bg-seal text-white' : 'bg-paper text-ink'
+                        }`}
+                      >
+                        {it.label}
+                      </button>
+                    ))}
+                  </div>
+                )}
+                {(q.type === 'single' || q.type === 'multiple') && (
+                  <div className="mt-3 grid gap-2">
+                    {(q.options ?? []).map((op) => {
+                      const selected = answers[q.id]
+                      const checked =
+                        q.type === 'single'
+                          ? selected === op.key
+                          : Array.isArray(selected) && selected.includes(op.key)
+                      return (
+                        <label
+                          key={op.key}
+                          className={`flex items-start gap-2 rounded-xl px-3 py-3 text-sm ${
+                            checked ? 'bg-seal/10' : 'bg-paper'
+                          }`}
+                        >
+                          <input
+                            type={q.type === 'single' ? 'radio' : 'checkbox'}
+                            className="mt-0.5 accent-[var(--seal)]"
+                            checked={!!checked}
+                            onChange={() => {
+                              if (q.type === 'single') {
+                                setAnswers((p) => ({ ...p, [q.id]: op.key }))
+                                return
+                              }
+                              const prev = Array.isArray(selected) ? (selected as string[]) : []
+                              const next = prev.includes(op.key)
+                                ? prev.filter((x) => x !== op.key)
+                                : [...prev, op.key]
+                              setAnswers((p) => ({ ...p, [q.id]: next }))
+                            }}
+                          />
+                          <span>
+                            {op.key}. {op.text}
+                          </span>
+                        </label>
+                      )
+                    })}
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+          <Button className="mt-6 w-full" disabled={submitting || !sessionId} onClick={() => void submit(false)}>
+            {submitting ? '交卷中…' : '交卷'}
+          </Button>
+        </>
       )}
     </div>
   )

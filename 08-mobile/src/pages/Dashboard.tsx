@@ -85,13 +85,25 @@ export default function Dashboard() {
       )}
 
       <div className="mt-4 flex gap-2">
+        <Link to="/tasks" className="flex-1">
+          <Button className="w-full">发布任务</Button>
+        </Link>
+        <Link to="/members" className="flex-1">
+          <Button variant="secondary" className="w-full">
+            人员详情
+          </Button>
+        </Link>
+      </div>
+      <div className="mt-2 flex gap-2">
         <Link to="/scores" className="flex-1">
           <Button variant="secondary" className="w-full">
             成绩明细
           </Button>
         </Link>
         <Link to="/home" className="flex-1">
-          <Button className="w-full">去学习</Button>
+          <Button variant="ghost" className="w-full">
+            去学习
+          </Button>
         </Link>
       </div>
 

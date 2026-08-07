@@ -20,14 +20,14 @@ type QueryResult = {
 export default function AdminAIQuery() {
   const nav = useNavigate()
   const { user } = useAuthStore()
-  const [question, setQuestion] = useState('今年三支部学习完成率')
+  const [question, setQuestion] = useState('今年第三党支部学习完成率')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [result, setResult] = useState<QueryResult | null>(null)
 
   useEffect(() => {
     if (!user) nav('/login')
-    if (user && user.role !== 'admin') nav('/m/home')
+    if (user && user.role !== 'admin' && user.role !== 'secretary') nav('/m/home')
   }, [nav, user])
 
   async function query() {
@@ -188,7 +188,7 @@ export default function AdminAIQuery() {
               placeholder="例如：今年三支部学习完成率 / 各支部测验平均分 / 学习时长统计"
             />
             <div className="flex flex-wrap gap-2">
-              {['今年三支部学习完成率', '各支部测验平均分', '各支部考试通过率', '学习时长统计'].map((t) => (
+              {['今年第三党支部学习完成率', '本月测验均分最高的支部', '本季第三党支部学习时长', '党员学习时长', '第三党支部任务完成率', '各支部考试通过率', '今年一支部完成情况'].map((t) => (
                 <button
                   key={t}
                   onClick={() => setQuestion(t)}

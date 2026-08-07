@@ -13,6 +13,7 @@ import {
 import { Button } from '@/components/Button'
 import { apiFetch } from '@/utils/api'
 import { postSSE } from '@/utils/sse'
+import { friendlyAiError } from '@/utils/aiError'
 import { useAuthStore } from '@/store/auth'
 import type { ChatCitation, ChatMessage, ChatSession, ChatToolStatus } from '../../shared/types'
 
@@ -230,7 +231,7 @@ export default function AIChat() {
           content: item.content || '已停止生成。',
         }))
       } else {
-        const message = e instanceof Error ? e.message : '生成回答失败'
+        const message = friendlyAiError(e instanceof Error ? e.message : '生成回答失败')
         setError(message)
         updateAssistant(assistantId, (item) => ({ ...item, content: item.content || `回答失败：${message}` }))
       }

@@ -14,6 +14,19 @@ export default defineConfig({
     }),
     tsconfigPaths(),
   ],
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks(id) {
+          if (id.includes('node_modules/echarts')) return 'echarts'
+          if (id.includes('node_modules/@phosphor-icons')) return 'icons'
+          if (id.includes('node_modules/react-dom') || id.includes('node_modules/react-router')) {
+            return 'vendor-react'
+          }
+        },
+      },
+    },
+  },
   preview: {
     proxy: {
       '/api': {

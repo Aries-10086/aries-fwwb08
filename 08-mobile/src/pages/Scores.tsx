@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { RankBadge } from '@/components/RankBadge'
 import { apiFetch } from '@/utils/api'
 import { useAuthStore } from '@/store/auth'
 
@@ -99,9 +100,7 @@ export default function Scores() {
         <div className="mt-3 grid gap-2">
           {(data?.members ?? []).map((m) => (
             <div key={m.userId} className="m-card flex items-center gap-3 p-3">
-              <div className="grid h-8 w-8 place-items-center rounded-full bg-seal/10 text-xs font-bold text-seal">
-                {m.evalRank ?? '-'}
-              </div>
+              <RankBadge rank={m.evalRank} />
               <div className="min-w-0 flex-1">
                 <div className="text-sm font-medium">{m.name}</div>
                 <div className="text-xs text-ink/45">

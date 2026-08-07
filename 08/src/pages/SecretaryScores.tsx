@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/Card'
 import { Button } from '@/components/Button'
+import { RankBadge } from '@/components/RankBadge'
 import { apiFetch } from '@/utils/api'
 import { useAuthStore } from '@/store/auth'
 import {
@@ -190,9 +191,7 @@ export default function SecretaryScores() {
                   to={`/m/members/${m.userId}`}
                   className="grid gap-3 rounded-2xl bg-white/90 px-4 py-4 shadow-[inset_0_0_0_1px_rgba(0,0,0,0.06)] transition hover:bg-[rgba(158,27,43,0.03)] md:grid-cols-[auto_1.1fr_0.7fr_0.7fr_0.7fr_1.3fr]"
                 >
-                  <div className="grid h-9 w-9 place-items-center rounded-full bg-[#9e1b2b]/10 text-sm font-bold text-[#9e1b2b]">
-                    {m.evalRank ?? '-'}
-                  </div>
+                  <RankBadge rank={m.evalRank} />
                   <div>
                     <div className="text-sm font-medium text-[#12151c]">{m.name}</div>
                     <div className="mt-1 text-xs text-black/45">

@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useState } from 'react'
-import { createPortal } from 'react-dom'
 import { useNavigate } from 'react-router-dom'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/Card'
 import { Button } from '@/components/Button'
+import { SuccessToast, useSuccessToast } from '@/components/SuccessToast'
 import { apiFetch } from '@/utils/api'
 import { useAuthStore } from '@/store/auth'
 import {
@@ -10,7 +10,6 @@ import {
   Plus,
   ArrowsClockwise,
   Trash,
-  CheckCircle,
 } from '@phosphor-icons/react'
 
 type Org = { id: string; name: string; parentId: string | null }
@@ -23,6 +22,8 @@ type Exam = {
   durationMin: number
   passScore: number
   maxAttempts?: number
+  type?: 'quiz' | 'formal'
+  openNotice?: string
   status: 'draft' | 'published' | 'closed'
   createdAt: string
 }
@@ -33,6 +34,8 @@ const statusLabel: Record<Exam['status'], string> = {
   closed: '已关闭',
 }
 
+const typeLabel = { quiz: '测验', formal: '正式考试' } as const
+
 export default function AdminExams() {
   const nav = useNavigate()
   const { user } = useAuthStore()
@@ -42,7 +45,7 @@ export default function AdminExams() {
   const [loading, setLoading] = useState(false)
   const [savingId, setSavingId] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
-  const [success, setSuccess] = useState<string | null>(null)
+  const { message: success, showSuccess } = useSuccessToast()
 
   const [form, setForm] = useState({
     orgUnitId: 'org_branch_3',
@@ -51,6 +54,8 @@ export default function AdminExams() {
     durationMin: 10,
     passScore: 60,
     maxAttempts: 3,
+    type: 'quiz' as 'quiz' | 'formal',
+    openNotice: '',
     status: 'published' as Exam['status'],
   })
 
@@ -58,12 +63,6 @@ export default function AdminExams() {
     if (!user) nav('/login')
     if (user && user.role !== 'admin') nav('/m/home')
   }, [nav, user])
-
-  useEffect(() => {
-    if (!success) return
-    const t = window.setTimeout(() => setSuccess(null), 3500)
-    return () => window.clearTimeout(t)
-  }, [success])
 
   const orgById = useMemo(() => new Map(orgs.map((o) => [o.id, o.name])), [orgs])
   const paperById = useMemo(() => new Map(papers.map((p) => [p.id, p.title])), [papers])
@@ -104,13 +103,13 @@ export default function AdminExams() {
 
   async function create() {
     setError(null)
-    setSuccess(null)
+    showSuccess(null)
     setSavingId('create')
     try {
       await apiFetch<{ id: string }>('/api/exams', { method: 'POST', body: JSON.stringify(form) })
       await load()
       const branch = orgById.get(form.orgUnitId) ?? '目标支部'
-      setSuccess(
+      showSuccess(
         form.status === 'published'
           ? `测验「${form.title}」已创建并发布至「${branch}」`
           : `测验「${form.title}」已创建（状态：${statusLabel[form.status]}）`,
@@ -124,7 +123,7 @@ export default function AdminExams() {
 
   async function updateStatus(exam: Exam, status: Exam['status']) {
     setError(null)
-    setSuccess(null)
+    showSuccess(null)
     setSavingId(exam.id)
     try {
       await apiFetch<void>(`/api/exams/${exam.id}`, {
@@ -133,11 +132,11 @@ export default function AdminExams() {
       })
       await load()
       if (status === 'published') {
-        setSuccess(`「${exam.title}」发布成功，支部党员现可作答`)
+        showSuccess(`「${exam.title}」发布成功，支部党员现可作答`)
       } else if (status === 'closed') {
-        setSuccess(`「${exam.title}」已关闭，党员端将不可再进入`)
+        showSuccess(`「${exam.title}」已关闭，党员端将不可再进入`)
       } else {
-        setSuccess(`「${exam.title}」状态已更新为${statusLabel[status]}`)
+        showSuccess(`「${exam.title}」状态已更新为${statusLabel[status]}`)
       }
     } catch (e: any) {
       setError(e?.message ?? '更新失败')
@@ -149,13 +148,13 @@ export default function AdminExams() {
   async function remove(id: string) {
     if (!confirm('确认删除该测验及其作答记录？')) return
     setError(null)
-    setSuccess(null)
+    showSuccess(null)
     const title = items.find((x) => x.id === id)?.title ?? '测验'
     setSavingId(id)
     try {
       await apiFetch<void>(`/api/exams/${id}`, { method: 'DELETE' })
       await load()
-      setSuccess(`「${title}」已删除`)
+      showSuccess(`「${title}」已删除`)
     } catch (e: any) {
       setError(e?.message ?? '删除失败')
     } finally {
@@ -181,19 +180,7 @@ export default function AdminExams() {
           {error}
         </div>
       )}
-      {success &&
-        createPortal(
-          <div
-            role="status"
-            className="pointer-events-none fixed inset-x-0 top-0 z-[200] flex justify-center px-4 pt-4"
-          >
-            <div className="rise-in flex max-w-xl items-start gap-2 rounded-2xl border border-[rgba(31,107,74,0.22)] bg-white px-4 py-3 text-[#1f6b4a] shadow-[0_8px_28px_rgba(18,21,28,0.16),0_2px_8px_rgba(31,107,74,0.1)]">
-              <CheckCircle className="mt-0.5 h-5 w-5 shrink-0" weight="fill" />
-              <div className="text-sm font-medium">{success}</div>
-            </div>
-          </div>,
-          document.body,
-        )}
+      <SuccessToast message={success} />
 
       <div className="grid gap-4 md:grid-cols-12">
         <Card className="md:col-span-5">
@@ -263,6 +250,28 @@ export default function AdminExams() {
                   />
                 </label>
                 <label className="grid gap-1 text-sm">
+                  <span className="field-label">类型</span>
+                  <select
+                    value={form.type}
+                    onChange={(e) => {
+                      const type = e.target.value as 'quiz' | 'formal'
+                      setForm((p) => ({
+                        ...p,
+                        type,
+                        maxAttempts: type === 'formal' ? 1 : p.maxAttempts < 2 ? 3 : p.maxAttempts,
+                        openNotice:
+                          type === 'formal' && !p.openNotice
+                            ? '正式考试须独立完成，开考后不可中途离开；到时将强制交卷。请确认已阅读说明。'
+                            : p.openNotice,
+                      }))
+                    }}
+                    className="input-shell"
+                  >
+                    <option value="quiz">日常测验</option>
+                    <option value="formal">正式考试</option>
+                  </select>
+                </label>
+                <label className="grid gap-1 text-sm">
                   <span className="field-label">最大作答次数</span>
                   <input
                     type="number"
@@ -285,6 +294,15 @@ export default function AdminExams() {
                   </select>
                 </label>
               </div>
+              <label className="grid gap-1 text-sm">
+                <span className="field-label">开考说明（正式考试建议填写）</span>
+                <textarea
+                  value={form.openNotice}
+                  onChange={(e) => setForm((p) => ({ ...p, openNotice: e.target.value }))}
+                  className="input-shell min-h-[72px]"
+                  placeholder="开考前党员须勾选确认的说明文案"
+                />
+              </label>
               <Button
                 onClick={() => void create()}
                 disabled={!form.title.trim() || !form.paperId || !form.orgUnitId || savingId === 'create'}
@@ -315,6 +333,9 @@ export default function AdminExams() {
                       </div>
                     </div>
                     <div className="flex flex-wrap items-center gap-2">
+                      <span className="rounded-full bg-white/90 px-3 py-1 text-xs text-[rgba(18,21,28,0.7)] shadow-[inset_0_0_0_1px_rgba(0,0,0,0.06)]">
+                        {typeLabel[e.type ?? 'quiz']}
+                      </span>
                       <span className="rounded-full bg-white/90 px-3 py-1 text-xs text-[rgba(18,21,28,0.7)] shadow-[inset_0_0_0_1px_rgba(0,0,0,0.06)]">
                         {statusLabel[e.status]}
                       </span>

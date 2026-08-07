@@ -3,16 +3,47 @@ import { nanoid } from 'nanoid'
 import { query, nowIso, audit } from '../db.js'
 import { getUserContext, requireRole } from '../utils/http.js'
 import { parseJson, json } from '../utils/json.js'
-import { getAICache, llmText, setAICache } from '../services/llm.js'
+import { getAICache, llmText, llmTextOrDegrade, setAICache } from '../services/llm.js'
 import { wrapAsyncRouter } from '../utils/async-router.js'
 import { computeEvaluation } from '../utils/evaluation.js'
 import { loadExamAggByUserIds } from '../utils/aggregates.js'
 import { loadLearningAggByUserIds } from '../utils/learning-records.js'
 import { getAccessibleContentIds, canAccessContent } from '../utils/content-access.js'
 import { hitRateLimit } from '../utils/rateLimit.js'
+import { appendTimeFilter } from '../utils/time-range.js'
+import { matchQueryTemplate, parseTimeFromQuestion } from '../utils/nl-query.js'
+import { formatAnswerLabel } from '../utils/wrong-book.js'
+import { resolveAiProviderSettings } from '../services/ai-settings.js'
+import type { QuestionType } from '../../shared/types.js'
 
 const router = Router()
 const AI_CACHE_VERSION = 'v1'
+const AI_DEGRADED_HINT =
+  '未配置模型密钥，AI 助手/讲解/导读暂不可用；学习、测验与成绩主流程不受影响'
+
+router.get('/status', async (req: Request, res: Response) => {
+  if (!requireRole(req, ['member', 'secretary', 'admin'])) {
+    res.status(401).json({ success: false, error: '请先登录' })
+    return
+  }
+  const resolved = await resolveAiProviderSettings()
+  const chatConfigured = Boolean(resolved.chatApiKey && resolved.chatBaseUrl && resolved.chatModel)
+  const embeddingConfigured = Boolean(
+    (resolved.embeddingApiKey || resolved.chatApiKey) &&
+      (resolved.embeddingBaseUrl || resolved.chatBaseUrl) &&
+      (resolved.embeddingModel || resolved.chatModel),
+  )
+  res.status(200).json({
+    success: true,
+    data: {
+      chatConfigured,
+      embeddingConfigured,
+      aiServiceUrlConfigured: Boolean(String(process.env.AI_SERVICE_URL ?? '').trim()),
+      degraded: !chatConfigured,
+      message: chatConfigured ? null : AI_DEGRADED_HINT,
+    },
+  })
+})
 
 router.use((req, res, next) => {
   const userId = req.auth?.userId
@@ -84,6 +115,21 @@ router.post('/recommend', async (req: Request, res: Response) => {
   const targetUserId = userId
   const weak = await topWeakCategories(targetUserId)
   const done = await completedContentIds(targetUserId)
+  const coldStart = weak.length === 0 && done.size === 0
+
+  // 任务必学未完成内容
+  const orgId = await userOrgId(targetUserId)
+  const taskContentIds = new Set<string>()
+  if (orgId) {
+    const { rows: taskRows } = await query(
+      `SELECT tc.content_id
+       FROM learning_tasks lt
+       JOIN task_contents tc ON tc.task_id = lt.id
+       WHERE lt.org_unit_id = $1`,
+      [orgId],
+    )
+    for (const r of taskRows) taskContentIds.add(String(r.content_id))
+  }
 
   const accessibleIds = await getAccessibleContentIds({ userId, role: req.auth!.role })
   const { rows } = accessibleIds.size
@@ -94,37 +140,94 @@ router.post('/recommend', async (req: Request, res: Response) => {
       )
     : { rows: [] }
 
-  const picks = rows
-    .map((r) => ({
-      id: String(r.id),
-      type: String(r.type),
-      title: String(r.title),
-      category: String(r.category),
-      tags: parseJson<string[]>(r.tags_json) ?? [],
-      isPublic: Boolean(r.is_public),
-    }))
+  type PickItem = {
+    id: string
+    type: string
+    title: string
+    category: string
+    tags: string[]
+    isPublic: boolean
+    reason: string
+    reasonKind: 'weak' | 'task' | 'coldstart'
+  }
+
+  const scored: PickItem[] = rows
+    .map((r) => {
+      const id = String(r.id)
+      const category = String(r.category)
+      const isPublic = Boolean(r.is_public)
+      let reasonKind: PickItem['reasonKind'] = 'coldstart'
+      let reason = '新用户默认推荐：公共热门内容'
+      if (weak.includes(category)) {
+        reasonKind = 'weak'
+        reason = `针对薄弱知识点「${category}」推荐`
+      } else if (taskContentIds.has(id) && !done.has(id)) {
+        reasonKind = 'task'
+        reason = '本支部当期任务必学内容'
+      } else if (coldStart || isPublic) {
+        reasonKind = 'coldstart'
+        reason = coldStart ? '新用户默认推荐：公共/必学内容' : '公共内容补充推荐'
+      }
+      return {
+        id,
+        type: String(r.type),
+        title: String(r.title),
+        category,
+        tags: parseJson<string[]>(r.tags_json) ?? [],
+        isPublic,
+        reason,
+        reasonKind,
+      }
+    })
     .filter((c) => !done.has(c.id))
     .sort((a, b) => {
-      const aw = weak.includes(a.category) ? 1 : 0
-      const bw = weak.includes(b.category) ? 1 : 0
-      return bw - aw
+      const rank = { weak: 3, task: 2, coldstart: 1 } as const
+      return rank[b.reasonKind] - rank[a.reasonKind]
     })
     .slice(0, 6)
 
-  const explanation = await llmText({
+  // 冷启动兜底：仍不足时不强制过滤
+  const picks = scored
+
+  const offlineRecommend =
+    coldStart
+      ? '新用户冷启动：以下为默认推荐的公共/必学内容，建议先完成支部任务再拓展阅读。'
+      : `已根据薄弱点（${weak.join('、') || '暂无'}）生成推荐；模型不可用时使用离线说明。`
+  const explanation = await llmTextOrDegrade({
     purpose: 'recommend',
     userId,
-    prompt: `你是党校学习助手，请基于薄弱知识点（${weak.join('、') || '暂无'}）解释推荐理由，并给出 3 条学习建议。`,
-    data: { weak, picks: picks.map((p) => ({ title: p.title, category: p.category, tags: p.tags })) },
-  })
+    prompt: `你是党校学习助手，请基于薄弱知识点（${weak.join('、') || '暂无'}）解释推荐理由，并给出 3 条学习建议。若为新用户请强调「默认推荐」策略。`,
+    data: {
+      weak,
+      coldStart,
+      picks: picks.map((p) => ({ title: p.title, category: p.category, reason: p.reason })),
+    },
+  }, { text: offlineRecommend, data: offlineRecommend })
 
-  await audit(targetUserId, 'ai.recommend', { weak, count: picks.length })
-  res.status(200).json({ success: true, data: { weakCategories: weak, items: picks, text: explanation.text } })
+  await audit(targetUserId, 'ai.recommend', {
+    weak,
+    count: picks.length,
+    coldStart,
+    degraded: !!explanation.degraded,
+  })
+  res.status(200).json({
+    success: true,
+    data: {
+      weakCategories: weak,
+      coldStart,
+      items: picks,
+      text: explanation.text,
+      degraded: !!explanation.degraded,
+      degradedReason: explanation.degradedReason ?? null,
+    },
+  })
 })
 
 function metricFromQuestion(q: string) {
+  const tpl = matchQueryTemplate(q)
+  if (tpl) return tpl.metric
   if (q.includes('学习时长')) return 'duration'
-  if (q.includes('平均分')) return 'avg_score'
+  if (q.includes('平均分') || q.includes('均分')) return 'avg_score'
   if (q.includes('通过率')) return 'pass_rate'
   if (q.includes('完成率')) return 'completion_rate'
   return 'completion_rate'
@@ -155,8 +258,52 @@ router.post('/query', async (req: Request, res: Response) => {
   }
 
   const metric = metricFromQuestion(question)
+  const tpl = matchQueryTemplate(question)
+  const timeRange = parseTimeFromQuestion(question)
   const orgUnitIdFromQ = await orgFromQuestion(question)
   const orgUnitId = role === 'secretary' ? await userOrgId(userId) : orgUnitIdFromQ
+
+  // ④ 某党员学习时长：模板直出
+  if (tpl?.metric === 'duration' && tpl.memberNameHint) {
+    const hint = tpl.memberNameHint
+    const { rows: userRows } = await query(
+      `SELECT id, name, org_unit_id FROM users
+       WHERE role = 'member' AND (name ILIKE $1 OR username ILIKE $1)
+       ORDER BY CASE WHEN name = $2 THEN 0 ELSE 1 END
+       LIMIT 5`,
+      [`%${hint}%`, hint],
+    )
+    if (userRows.length > 0) {
+      const u = userRows[0]
+      const uid = String(u.id)
+      const durationParams: unknown[] = [uid]
+      const durationTime = appendTimeFilter('lr.updated_at', timeRange, durationParams)
+      const durationRow = (
+        await query(
+          `SELECT SUM(lr.duration_ms) as s FROM learning_records lr WHERE lr.user_id = $1${durationTime.sql}`,
+          durationParams,
+        )
+      ).rows[0]
+      const hours = Math.round((Number(durationRow?.s ?? 0) / 3600000) * 10) / 10
+      const chart = {
+        xAxis: [String(u.name)],
+        values: [hours],
+        unit: '小时',
+        metric: 'duration' as const,
+        range: timeRange.label,
+      }
+      const text = `【${timeRange.label}】党员「${u.name}」的学习时长为 ${hours} 小时。`
+      await audit(userId, 'ai.query', {
+        question,
+        metric: 'duration',
+        memberId: uid,
+        range: timeRange.key,
+        template: true,
+      })
+      res.status(200).json({ success: true, data: { text, chart } })
+      return
+    }
+  }
 
   const { rows: orgRows } = await query(
     'SELECT id, name FROM org_units WHERE parent_id IS NOT NULL',
@@ -175,23 +322,27 @@ router.post('/query', async (req: Request, res: Response) => {
 
     const memberCount = members.length
 
+    const durationParams: unknown[] = [orgId]
+    const durationTime = appendTimeFilter('lr.updated_at', timeRange, durationParams)
     const durationRow = (
       await query(
         `SELECT SUM(lr.duration_ms) as s
          FROM learning_records lr
          JOIN users u ON u.id = lr.user_id
-         WHERE u.org_unit_id = $1`,
-        [orgId],
+         WHERE u.org_unit_id = $1${durationTime.sql}`,
+        durationParams,
       )
     ).rows[0]
     const durationHours = Number(durationRow?.s ?? 0) / 3600000
 
+    const examParams: unknown[] = [orgId]
+    const examTime = appendTimeFilter('ea.created_at', timeRange, examParams)
     const { rows: examRows } = await query(
-        `SELECT ea.total_score as total_score, ea.is_pass as is_pass
+      `SELECT ea.total_score as total_score, ea.is_pass as is_pass
          FROM exam_attempts ea
          JOIN users u ON u.id = ea.user_id
-         WHERE u.org_unit_id = $1`,
-      [orgId],
+         WHERE u.org_unit_id = $1${examTime.sql}`,
+      examParams,
     )
 
     const avgScore =
@@ -232,23 +383,42 @@ router.post('/query', async (req: Request, res: Response) => {
     series.push({ name: String(o.name), value })
   }
 
+  if (tpl?.wantMaxBranch && series.length > 0) {
+    series.sort((a, b) => b.value - a.value)
+  }
+
   const chart = {
     xAxis: series.map((s) => s.name),
     values: series.map((s) => s.value),
     unit:
       metric === 'duration' ? '小时' : metric === 'avg_score' ? '分' : metric === 'pass_rate' ? '%' : '%',
     metric,
+    range: timeRange.label,
   }
 
-  const summary = await llmText({
-    purpose: 'query',
-    userId,
-    prompt: `你是党校管理助手，请根据指标与数据给出 3 句话内结论，并给出 2 条建议。问题：${question}`,
-    data: chart,
-  })
+  let text: string
+  if (tpl) {
+    const top = series[0]
+    const unit = chart.unit
+    if (tpl.wantMaxBranch && top) {
+      text = `【${timeRange.label}】${tpl.label}：${top.name}（${top.value}${unit}）。数据来自演示模板直出，未走模型抽参。`
+    } else if (series.length === 1) {
+      text = `【${timeRange.label}】${series[0].name}的${tpl.label}为 ${series[0].value}${unit}。`
+    } else {
+      text = `【${timeRange.label}】已汇总各支部${tpl.label}。最高 ${series[0]?.name ?? '-'}（${series[0]?.value ?? 0}${unit}）。`
+    }
+  } else {
+    const summary = await llmText({
+      purpose: 'query',
+      userId,
+      prompt: `你是党校管理助手，请根据指标与数据给出 3 句话内结论，并给出 2 条建议。问题：${question}；时间范围：${timeRange.label}`,
+      data: chart,
+    })
+    text = summary.text
+  }
 
-  await audit(userId, 'ai.query', { question, metric, orgUnitId })
-  res.status(200).json({ success: true, data: { text: summary.text, chart } })
+  await audit(userId, 'ai.query', { question, metric, orgUnitId, range: timeRange.key, template: !!tpl })
+  res.status(200).json({ success: true, data: { text, chart } })
 })
 
 router.post('/report', async (req: Request, res: Response) => {
@@ -276,11 +446,13 @@ router.post('/report', async (req: Request, res: Response) => {
     avgExamScore: exam.avgScore,
   })
 
-  // 支部内个人排名
+  // 支部内个人排名 + 支部均分/最高分
   let branchRank: number | null = null
   let branchMemberCount: number | null = null
+  let branchAvgExamScore: number | null = null
+  let branchMaxExamScore: number | null = null
   const orgId = await userOrgId(targetUserId)
-  if (orgId && role === 'member') {
+  if (orgId) {
     const { rows: peers } = await query(
       `SELECT id FROM users WHERE role = 'member' AND org_unit_id = $1`,
       [orgId],
@@ -290,29 +462,69 @@ router.post('/report', async (req: Request, res: Response) => {
       loadLearningAggByUserIds(peerIds),
       loadExamAggByUserIds(peerIds),
     ])
-    const peerScores = peerIds
-      .map((id) => {
-        const l = peerLearn.get(id) ?? { durationMs: 0, completedContentCount: 0, recordCount: 0 }
-        const e = peerExam.get(id)!
-        return {
-          userId: id,
-          score: computeEvaluation({
-            durationMs: l.durationMs,
-            completedContentCount: l.completedContentCount,
-            avgExamScore: e.avgScore,
-          }).score,
-        }
-      })
-      .sort((a, b) => b.score - a.score)
-    branchMemberCount = peerScores.length
-    const idx = peerScores.findIndex((p) => p.userId === targetUserId)
-    branchRank = idx >= 0 ? idx + 1 : null
+    const peerAvgs = peerIds
+      .map((id) => peerExam.get(id)?.avgScore)
+      .filter((x): x is number => x != null && Number.isFinite(x))
+    if (peerAvgs.length > 0) {
+      branchAvgExamScore = Math.round(peerAvgs.reduce((a, b) => a + b, 0) / peerAvgs.length)
+      branchMaxExamScore = Math.round(Math.max(...peerAvgs))
+    }
+    if (role === 'member') {
+      const peerScores = peerIds
+        .map((id) => {
+          const l = peerLearn.get(id) ?? { durationMs: 0, completedContentCount: 0, recordCount: 0 }
+          const e = peerExam.get(id)!
+          return {
+            userId: id,
+            score: computeEvaluation({
+              durationMs: l.durationMs,
+              completedContentCount: l.completedContentCount,
+              avgExamScore: e.avgScore,
+            }).score,
+          }
+        })
+        .sort((a, b) => b.score - a.score)
+      branchMemberCount = peerScores.length
+      const idx = peerScores.findIndex((p) => p.userId === targetUserId)
+      branchRank = idx >= 0 ? idx + 1 : null
+    }
   }
 
-  const text = await llmText({
+  // 可执行建议：未完成任务内容 / 薄弱类别公共内容
+  const done = await completedContentIds(targetUserId)
+  const weak = await topWeakCategories(targetUserId)
+  const accessibleIds = await getAccessibleContentIds({ userId, role: req.auth!.role })
+  const { rows: contentRows } = accessibleIds.size
+    ? await query(
+        `SELECT id, title, category FROM contents WHERE id = ANY($1::text[]) ORDER BY updated_at DESC LIMIT 40`,
+        [[...accessibleIds]],
+      )
+    : { rows: [] }
+  const suggestions = contentRows
+    .map((r) => ({
+      contentId: String(r.id),
+      title: String(r.title),
+      reason: weak.includes(String(r.category))
+        ? `巩固薄弱点「${r.category}」`
+        : '继续学习推荐内容',
+    }))
+    .filter((s) => !done.has(s.contentId))
+    .slice(0, 3)
+
+  const fallbackComment = [
+    `综合表现：综合分 ${evaluation.score}（${evaluation.level}）。`,
+    `短板关注：测验均分 ${evaluation.metrics.avgExamScore ?? 0}` +
+      (branchAvgExamScore != null ? `，支部均分 ${branchAvgExamScore}` : '') +
+      '。',
+    suggestions.length
+      ? `行动建议：优先学习「${suggestions.map((s) => s.title).join('」「')}」。`
+      : '行动建议：完成支部当期任务并复习错题本。',
+  ].join('\n')
+
+  const text = await llmTextOrDegrade({
     purpose: 'report',
     userId,
-    prompt: `你是党校学习助手，请基于数据生成“评语 + 3 条改进建议（可执行）”。要求语气庄重、简洁。可提及综合排名位置（若有）。`,
+    prompt: `你是党校学习助手，请基于数据生成“评语 + 3 条改进建议（可执行）”。要求语气庄重、简洁。可提及综合排名与支部对比。`,
     data: {
       durationHours: evaluation.metrics.durationHours,
       completedCount: evaluation.metrics.completedCount,
@@ -322,8 +534,11 @@ router.post('/report', async (req: Request, res: Response) => {
       level: evaluation.level,
       branchRank,
       branchMemberCount,
+      branchAvgExamScore,
+      branchMaxExamScore,
+      suggestions,
     },
-  })
+  }, { text: fallbackComment, data: fallbackComment })
 
   const report = {
     score: evaluation.score,
@@ -338,8 +553,16 @@ router.post('/report', async (req: Request, res: Response) => {
       branchRank,
       branchMemberCount,
     },
+    comparison: {
+      myAvgExamScore: evaluation.metrics.avgExamScore,
+      branchAvgExamScore,
+      branchMaxExamScore,
+    },
+    suggestions,
     parts: evaluation.parts,
-    comment: text.text,
+    comment: text.text?.trim() ? text.text : fallbackComment,
+    degraded: !!text.degraded,
+    degradedReason: text.degradedReason ?? null,
     generatedAt: nowIso(),
   }
 
@@ -393,50 +616,96 @@ router.post('/wrong-explain', async (req: Request, res: Response) => {
     return
   }
 
+  const options =
+    (parseJson<Array<{ key: string; text: string }>>(row.options_json) as Array<{
+      key: string
+      text: string
+    }> | null) ?? null
+  const qType = String(row.type) as QuestionType
+  // 标准答案仅来自题库，禁止被模型改写
+  const bankCorrectAnswer = row.answer_key_json
+  const bankCorrectLabel = formatAnswerLabel(qType, bankCorrectAnswer, options)
+  const bankUserLabel = formatAnswerLabel(qType, row.answer_json, options)
+
+  const attachBankAnswer = (payload: Record<string, unknown>) => ({
+    explanation: String(payload.explanation ?? ''),
+    errorReason: payload.errorReason == null ? undefined : String(payload.errorReason),
+    approach: payload.approach == null ? undefined : String(payload.approach),
+    knowledgePoints: Array.isArray(payload.knowledgePoints)
+      ? payload.knowledgePoints.map(String)
+      : [],
+    reviewTips: Array.isArray(payload.reviewTips) ? payload.reviewTips.map(String) : [],
+    correctAnswer: bankCorrectAnswer,
+    correctAnswerLabel: bankCorrectLabel,
+    userAnswerLabel: bankUserLabel,
+    answerSource: 'question_bank' as const,
+    answerMutable: false as const,
+  })
+
   const cacheKey = `wrong:${userId}:${String(row.attempt_id)}:${questionId}`
   const cached = await getAICache<Record<string, unknown>>(cacheKey, AI_CACHE_VERSION)
   if (cached) {
     await audit(userId, 'ai.wrong_explain', { questionId, attemptId: row.attempt_id, cacheHit: true })
-    res.status(200).json({ success: true, data: cached })
+    res.status(200).json({ success: true, data: attachBankAnswer(cached) })
     return
   }
-  const generated = await llmText<Record<string, unknown>>({
-    purpose: 'wrong-explain',
-    userId,
-    responseFormat: 'json',
-    jsonSchema: {
-      type: 'object',
-      additionalProperties: false,
-      required: ['explanation', 'errorReason', 'approach', 'knowledgePoints', 'reviewTips'],
-      properties: {
-        explanation: { type: 'string' },
-        errorReason: { type: 'string' },
-        approach: { type: 'string' },
-        knowledgePoints: { type: 'array', items: { type: 'string' } },
-        reviewTips: { type: 'array', items: { type: 'string' } },
+  let generatedData: Record<string, unknown>
+  try {
+    const generated = await llmText<Record<string, unknown>>({
+      purpose: 'wrong-explain',
+      userId,
+      responseFormat: 'json',
+      jsonSchema: {
+        type: 'object',
+        additionalProperties: false,
+        required: ['explanation', 'errorReason', 'approach', 'knowledgePoints', 'reviewTips'],
+        properties: {
+          explanation: { type: 'string' },
+          errorReason: { type: 'string' },
+          approach: { type: 'string' },
+          knowledgePoints: { type: 'array', items: { type: 'string' } },
+          reviewTips: { type: 'array', items: { type: 'string' } },
+        },
       },
-    },
-    prompt: '根据题目、标准答案和用户答案解释错误。不得改动标准答案，不得臆测题目外事实。',
-    data: {
-      question: {
-        id: questionId,
-        type: row.type,
-        category: row.category,
-        stem: row.stem,
-        options: parseJson(row.options_json),
+      prompt:
+        '根据题目、标准答案和用户答案解释错误。严禁改写、替换或质疑标准答案；输出中不要给出与题库不同的“正确答案”。',
+      data: {
+        question: {
+          id: questionId,
+          type: row.type,
+          category: row.category,
+          stem: row.stem,
+          options,
+        },
+        correctAnswer: bankCorrectAnswer,
+        correctAnswerLabel: bankCorrectLabel,
+        userAnswer: row.answer_json,
+        userAnswerLabel: bankUserLabel,
       },
-      // pg 已将 JSONB 解码为 JS 值；字符串答案（如 "B"）不能再次 JSON.parse。
-      correctAnswer: row.answer_key_json,
-      userAnswer: row.answer_json,
-    },
-  })
-  await setAICache(cacheKey, AI_CACHE_VERSION, generated.data, {
-    userId,
-    model: generated.model,
-    sourceUpdatedAt: new Date(row.updated_at as string | Date).toISOString(),
-  })
+    })
+    generatedData = generated.data
+    await setAICache(cacheKey, AI_CACHE_VERSION, generatedData, {
+      userId,
+      model: generated.model,
+      sourceUpdatedAt: new Date(row.updated_at as string | Date).toISOString(),
+    })
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : 'AI 讲解生成失败'
+    res.status(503).json({
+      success: false,
+      error: /未配置|密钥|MODEL_UNAVAILABLE|不可用/.test(msg) ? AI_DEGRADED_HINT : msg,
+      data: {
+        correctAnswer: bankCorrectAnswer,
+        correctAnswerLabel: bankCorrectLabel,
+        userAnswerLabel: bankUserLabel,
+        answerSource: 'question_bank',
+        answerMutable: false,
+      },
+    })
+    return
+  }
   await audit(userId, 'ai.wrong_explain', { questionId, attemptId: row.attempt_id, cacheHit: false })
-  res.status(200).json({ success: true, data: generated.data })
+  res.status(200).json({ success: true, data: attachBankAnswer(generatedData) })
 })
 
 router.post('/exam-feedback', async (req: Request, res: Response) => {
@@ -584,6 +853,75 @@ router.post('/content-summary', async (req: Request, res: Response) => {
   })
   await audit(userId, 'ai.content_summary', { contentId, cacheHit: false })
   res.status(200).json({ success: true, data: generated.data })
+})
+
+/** 管理端：AI 调用日志 / 操作审计只读列表 */
+router.get('/logs', async (req: Request, res: Response) => {
+  if (!requireRole(req, ['admin'])) {
+    res.status(403).json({ success: false, error: '仅管理员可查看日志' })
+    return
+  }
+  const kind = String(req.query.kind ?? 'audit') === 'llm' ? 'llm' : 'audit'
+  const limit = Math.min(200, Math.max(1, Number(req.query.limit ?? 80)))
+
+  if (kind === 'llm') {
+    const { rows } = await query(
+      `SELECT c.id, c.user_id, u.name AS user_name, c.purpose, c.provider, c.model,
+              c.status, c.latency_ms, c.error_code, c.created_at
+       FROM llm_calls c
+       LEFT JOIN users u ON u.id = c.user_id
+       ORDER BY c.created_at DESC
+       LIMIT $1`,
+      [limit],
+    )
+    res.status(200).json({
+      success: true,
+      data: {
+        kind,
+        items: rows.map((r) => ({
+          id: r.id,
+          userId: r.user_id,
+          userName: r.user_name ?? '—',
+          type: r.purpose,
+          provider: r.provider,
+          model: r.model,
+          status: r.status,
+          latencyMs: Number(r.latency_ms ?? 0),
+          errorCode: r.error_code,
+          ok: r.status === 'success',
+          createdAt: r.created_at,
+        })),
+      },
+    })
+    return
+  }
+
+  const { rows } = await query(
+    `SELECT l.id, l.user_id, u.name AS user_name, l.action, l.meta_json, l.created_at
+     FROM ai_logs l
+     LEFT JOIN users u ON u.id = l.user_id
+     ORDER BY l.created_at DESC
+     LIMIT $1`,
+    [limit],
+  )
+  res.status(200).json({
+    success: true,
+    data: {
+      kind,
+      items: rows.map((r) => ({
+        id: r.id,
+        userId: r.user_id,
+        userName: r.user_name ?? '—',
+        type: r.action,
+        status: String(r.action).includes('timeout') || String(r.action).includes('error')
+          ? 'error'
+          : 'success',
+        ok: !(String(r.action).includes('timeout') || String(r.action).includes('error')),
+        meta: r.meta_json,
+        createdAt: r.created_at,
+      })),
+    },
+  })
 })
 
 export default wrapAsyncRouter(router)

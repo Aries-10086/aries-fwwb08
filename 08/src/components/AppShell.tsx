@@ -1,6 +1,7 @@
 import { Link, useLocation } from 'react-router-dom'
 import { cn } from '@/lib/utils'
 import { useAuthStore } from '@/store/auth'
+import { GlobalSearch } from '@/components/GlobalSearch'
 import { Button } from '@/components/Button'
 import {
   SignOut,
@@ -17,6 +18,7 @@ import {
   User,
   ChatCircleDots,
   GearSix,
+  ListChecks,
 } from '@phosphor-icons/react'
 
 const adminNav = [
@@ -30,6 +32,7 @@ const adminNav = [
   { to: '/admin/exams', label: '测验', icon: ClipboardText },
   { to: '/admin/ai-query', label: 'AI 查询', icon: Brain },
   { to: '/admin/ai-settings', label: 'AI 设置', icon: GearSix },
+  { to: '/admin/ai-logs', label: 'AI 日志', icon: ListChecks },
   { to: '/admin/chat', label: 'AI 助手', icon: ChatCircleDots },
   { to: '/account', label: '我的', icon: User },
 ] as const
@@ -84,6 +87,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           </Link>
 
           <div className="flex items-center gap-3">
+            <GlobalSearch />
             {user && (
               <div className="hidden items-center gap-2 rounded-full border border-[rgba(18,21,28,0.08)] bg-white px-3 py-1.5 text-sm shadow-[0_1px_2px_rgba(18,21,28,0.04)] md:flex">
                 <span className="h-1.5 w-1.5 rounded-full bg-[#9e1b2b]" aria-hidden />

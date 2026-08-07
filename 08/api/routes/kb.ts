@@ -68,6 +68,47 @@ router.post('/reindex/:contentId', async (req: Request, res: Response) => {
   res.status(200).json({ success: true, data: { jobId, status: 'succeeded' } })
 })
 
+/** 演示用：一键将全部学习内容写入/重建知识库索引 */
+router.post('/reindex-all', async (req: Request, res: Response) => {
+  if (!requireRole(req, ['admin'])) {
+    res.status(403).json({ success: false, error: '仅管理员可重建知识库索引' })
+    return
+  }
+  const { userId } = getUserContext(req)
+  const { rows } = await query(
+    `SELECT id, title FROM contents ORDER BY updated_at DESC LIMIT 100`,
+  )
+  const items: Array<{ contentId: string; title: string; jobId: string; status: string; error?: string }> = []
+  for (const row of rows) {
+    const contentId = String(row.id)
+    const title = String(row.title ?? '')
+    const jobId = await enqueueContentIndex(contentId)
+    try {
+      await processKBJob(jobId)
+      items.push({ contentId, title, jobId, status: 'succeeded' })
+    } catch (e) {
+      items.push({
+        contentId,
+        title,
+        jobId,
+        status: 'failed',
+        error: e instanceof Error ? e.message : '索引失败',
+      })
+    }
+  }
+  const succeeded = items.filter((x) => x.status === 'succeeded').length
+  const failed = items.length - succeeded
+  await audit(userId, 'kb.reindex_all', { total: items.length, succeeded, failed })
+  res.status(failed > 0 && succeeded === 0 ? 503 : 200).json({
+    success: succeeded > 0 || items.length === 0,
+    error:
+      failed > 0 && succeeded === 0
+        ? '知识库索引全部失败：请确认已配置向量密钥，且 AI 服务可用（未安装 AI 时主流程仍可用）'
+        : undefined,
+    data: { total: items.length, succeeded, failed, items },
+  })
+})
+
 router.get('/jobs/:id', async (req: Request, res: Response) => {
   if (!requireRole(req, ['admin'])) {
     res.status(403).json({ success: false, error: '仅管理员可查看索引任务' })

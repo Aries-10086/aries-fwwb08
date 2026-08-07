@@ -8,6 +8,9 @@ export type QuestionType = 'single' | 'multiple' | 'tf'
 
 export type ExamStatus = 'draft' | 'published' | 'closed'
 
+/** quiz=日常测验；formal=正式考试 */
+export type ExamKind = 'quiz' | 'formal'
+
 export interface OrgUnit {
   id: string
   name: string
@@ -154,6 +157,10 @@ export interface Exam {
   passScore: number
   /** 最大作答次数；库表列 max_attempts */
   maxAttempts: number
+  /** quiz | formal；库表列 exam_type */
+  type?: ExamKind
+  /** 开考说明 */
+  openNotice?: string
   status: ExamStatus
   createdAt?: string
   /** 当前用户已作答次数（列表/详情附加） */
@@ -228,6 +235,13 @@ export interface AIQuestionExplanation {
   approach?: string
   knowledgePoints: string[]
   reviewTips: string[]
+  /** 题库只读标准答案原文 */
+  correctAnswer?: unknown
+  /** 题库标准答案展示文案 */
+  correctAnswerLabel?: string
+  userAnswerLabel?: string
+  answerSource?: 'question_bank'
+  answerMutable?: false
 }
 
 export interface AIExamFeedback {

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/Card'
 import { Button } from '@/components/Button'
 import { apiFetch, apiUpload } from '@/utils/api'
@@ -14,6 +14,8 @@ import {
   Trash,
   X,
   MagnifyingGlass,
+  ClipboardText,
+  ListChecks,
 } from '@phosphor-icons/react'
 import type { Content, ContentAttachment } from '../../shared/types'
 
@@ -191,6 +193,18 @@ export default function AdminContents() {
           <h1 className="page-title text-3xl md:text-4xl">学习内容</h1>
         </div>
         <div className="flex items-center gap-2">
+          <Link to="/admin/exams">
+            <Button variant="secondary">
+              <ClipboardText className="h-4 w-4" />
+              新建测验
+            </Button>
+          </Link>
+          <Link to="/admin/tasks">
+            <Button variant="secondary">
+              <ListChecks className="h-4 w-4" />
+              派发任务
+            </Button>
+          </Link>
           <Button variant="ghost" onClick={() => load()} disabled={loading}>
             <ArrowsClockwise className={loading ? 'h-4 w-4 animate-spin' : 'h-4 w-4'} />
             刷新

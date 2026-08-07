@@ -42,7 +42,7 @@ export async function callAIService<T>(
   if (!apiKey) throw new AIServiceError('AI 服务鉴权未配置（缺少 AI_INTERNAL_API_KEY）')
 
   const controller = new AbortController()
-  const timeoutMs = Math.max(1_000, Number(process.env.AI_SERVICE_TIMEOUT_MS ?? 30_000))
+  const timeoutMs = Math.max(1_000, Number(process.env.AI_SERVICE_TIMEOUT_MS ?? process.env.LLM_TIMEOUT_MS ?? 9_000))
   const timer = setTimeout(() => controller.abort(new Error('AI 服务请求超时')), timeoutMs)
   const abort = () => controller.abort(signal?.reason)
   signal?.addEventListener('abort', abort, { once: true })

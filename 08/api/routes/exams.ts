@@ -25,6 +25,27 @@ function getMaxAttempts(exam: Record<string, unknown>) {
   return Number.isFinite(n) && n > 0 ? Math.floor(n) : DEFAULT_MAX_ATTEMPTS
 }
 
+function getExamType(exam: Record<string, unknown>): 'quiz' | 'formal' {
+  return String(exam?.exam_type ?? 'quiz') === 'formal' ? 'formal' : 'quiz'
+}
+
+function mapExamRow(r: Record<string, unknown>, extra?: Record<string, unknown>) {
+  return {
+    id: r.id,
+    orgUnitId: r.org_unit_id,
+    paperId: r.paper_id,
+    title: r.title,
+    durationMin: Number(r.duration_min ?? 0),
+    passScore: Number(r.pass_score ?? 0),
+    maxAttempts: getMaxAttempts(r),
+    type: getExamType(r),
+    openNotice: String(r.open_notice ?? ''),
+    status: r.status,
+    createdAt: r.created_at,
+    ...extra,
+  }
+}
+
 async function countAttempts(examId: string, userId: string, client?: TransactionClient) {
   const result = await (client ?? { query }).query(
     'SELECT COUNT(1) as c FROM exam_attempts WHERE exam_id = $1 AND user_id = $2',
@@ -99,21 +120,6 @@ async function getPaperWithQuestions(paperId: string, client?: TransactionClient
       score: Number(r.score ?? 0),
       orderNo: Number(r.order_no ?? 0),
     })),
-  }
-}
-
-function mapExamRow(r: Record<string, unknown>, extra?: Record<string, unknown>) {
-  return {
-    id: r.id,
-    orgUnitId: r.org_unit_id,
-    paperId: r.paper_id,
-    title: r.title,
-    durationMin: Number(r.duration_min ?? 0),
-    passScore: Number(r.pass_score ?? 0),
-    maxAttempts: getMaxAttempts(r),
-    status: r.status,
-    createdAt: r.created_at,
-    ...extra,
   }
 }
 
@@ -346,7 +352,7 @@ router.get('/', async (req: Request, res: Response) => {
 
   if (role === 'admin') {
     const { rows } = await query(
-      'SELECT id, org_unit_id, paper_id, title, duration_min, pass_score, max_attempts, status, created_at FROM exams ORDER BY created_at DESC',
+      'SELECT id, org_unit_id, paper_id, title, duration_min, pass_score, max_attempts, exam_type, open_notice, status, created_at FROM exams ORDER BY created_at DESC',
     )
     res.status(200).json({ success: true, data: rows.map((r) => mapExamRow(r)) })
     return
@@ -355,7 +361,7 @@ router.get('/', async (req: Request, res: Response) => {
   if (role === 'member' || role === 'secretary') {
     const orgUnitId = await getOrgUnitIdForUser(userId)
     const { rows } = await query(
-      `SELECT id, org_unit_id, paper_id, title, duration_min, pass_score, max_attempts, status, created_at
+      `SELECT id, org_unit_id, paper_id, title, duration_min, pass_score, max_attempts, exam_type, open_notice, status, created_at
        FROM exams WHERE org_unit_id = $1 AND status = $2 ORDER BY created_at DESC`,
       [orgUnitId, 'published'],
     )
@@ -395,7 +401,7 @@ router.get('/:id', async (req: Request, res: Response) => {
 
   const exam = (
     await query(
-      `SELECT id, org_unit_id, paper_id, title, duration_min, pass_score, max_attempts, status, created_at
+      `SELECT id, org_unit_id, paper_id, title, duration_min, pass_score, max_attempts, exam_type, open_notice, status, created_at
        FROM exams WHERE id = $1`,
       [id],
     )
@@ -439,12 +445,15 @@ router.post('/', async (req: Request, res: Response) => {
   const { userId } = getUserContext(req)
   const ts = nowIso()
   const id = `exam_${nanoid(10)}`
-  const maxAttempts = Math.max(1, Number(req.body?.maxAttempts ?? DEFAULT_MAX_ATTEMPTS) || DEFAULT_MAX_ATTEMPTS)
+  const examType = String(req.body?.type ?? 'quiz') === 'formal' ? 'formal' : 'quiz'
+  const defaultAttempts = examType === 'formal' ? 1 : DEFAULT_MAX_ATTEMPTS
+  const maxAttempts = Math.max(1, Number(req.body?.maxAttempts ?? defaultAttempts) || defaultAttempts)
+  const openNotice = String(req.body?.openNotice ?? '')
 
   await query(
     `INSERT INTO exams
-      (id, org_unit_id, paper_id, title, duration_min, pass_score, status, created_at, max_attempts)
-     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
+      (id, org_unit_id, paper_id, title, duration_min, pass_score, status, created_at, max_attempts, exam_type, open_notice)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)`,
     [
       id,
       String(req.body?.orgUnitId ?? ''),
@@ -455,6 +464,8 @@ router.post('/', async (req: Request, res: Response) => {
       String(req.body?.status ?? 'draft'),
       ts,
       maxAttempts,
+      examType,
+      openNotice,
     ],
   )
 
@@ -470,11 +481,14 @@ router.put('/:id', async (req: Request, res: Response) => {
 
   const { userId } = getUserContext(req)
   const id = String(req.params.id)
-  const maxAttempts = Math.max(1, Number(req.body?.maxAttempts ?? DEFAULT_MAX_ATTEMPTS) || DEFAULT_MAX_ATTEMPTS)
+  const examType = String(req.body?.type ?? 'quiz') === 'formal' ? 'formal' : 'quiz'
+  const defaultAttempts = examType === 'formal' ? 1 : DEFAULT_MAX_ATTEMPTS
+  const maxAttempts = Math.max(1, Number(req.body?.maxAttempts ?? defaultAttempts) || defaultAttempts)
+  const openNotice = String(req.body?.openNotice ?? '')
 
   await query(
     `UPDATE exams SET org_unit_id = $1, paper_id = $2, title = $3, duration_min = $4,
-       pass_score = $5, status = $6, max_attempts = $7 WHERE id = $8`,
+       pass_score = $5, status = $6, max_attempts = $7, exam_type = $8, open_notice = $9 WHERE id = $10`,
     [
       String(req.body?.orgUnitId ?? ''),
       String(req.body?.paperId ?? ''),
@@ -483,6 +497,8 @@ router.put('/:id', async (req: Request, res: Response) => {
       Number(req.body?.passScore ?? 60),
       String(req.body?.status ?? 'draft'),
       maxAttempts,
+      examType,
+      openNotice,
       id,
     ],
   )
@@ -532,7 +548,7 @@ router.post('/:id/start', async (req: Request, res: Response) => {
     await client.query('SELECT pg_advisory_xact_lock(hashtext($1))', [`${examId}:${userId}`])
     const exam = (
       await client.query(
-        `SELECT id, org_unit_id, paper_id, title, duration_min, pass_score, max_attempts, status, created_at
+        `SELECT id, org_unit_id, paper_id, title, duration_min, pass_score, max_attempts, exam_type, open_notice, status, created_at
          FROM exams WHERE id = $1`,
         [examId],
       )
@@ -612,7 +628,7 @@ router.post('/:id/submit', async (req: Request, res: Response) => {
     await client.query('SELECT pg_advisory_xact_lock(hashtext($1))', [`${examId}:${userId}`])
     const exam = (
       await client.query(
-        `SELECT id, org_unit_id, paper_id, title, duration_min, pass_score, max_attempts, status
+        `SELECT id, org_unit_id, paper_id, title, duration_min, pass_score, max_attempts, exam_type, open_notice, status
          FROM exams WHERE id = $1`,
         [examId],
       )

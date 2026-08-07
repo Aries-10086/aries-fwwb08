@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/Card'
 import { Button } from '@/components/Button'
+import { SuccessToast, useSuccessToast } from '@/components/SuccessToast'
 import { apiFetch } from '@/utils/api'
 import { useAuthStore } from '@/store/auth'
 import {
@@ -50,7 +51,7 @@ export default function AdminTasks() {
   const [tasks, setTasks] = useState<Task[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [success, setSuccess] = useState<string | null>(null)
+  const { message: success, showSuccess } = useSuccessToast()
   const [editingId, setEditingId] = useState<string | null>(null)
   const [expandedId, setExpandedId] = useState<string | null>(null)
 
@@ -65,12 +66,6 @@ export default function AdminTasks() {
     if (!user) nav('/login')
     if (user && user.role !== 'admin' && user.role !== 'secretary') nav('/m/home')
   }, [nav, user])
-
-  useEffect(() => {
-    if (!success) return
-    const t = window.setTimeout(() => setSuccess(null), 3500)
-    return () => window.clearTimeout(t)
-  }, [success])
 
   const contentById = useMemo(() => new Map(contents.map((c) => [c.id, c])), [contents])
   const orgById = useMemo(() => new Map(orgs.map((o) => [o.id, o])), [orgs])
@@ -126,7 +121,7 @@ export default function AdminTasks() {
 
   async function save() {
     setError(null)
-    setSuccess(null)
+    showSuccess(null)
     const payload = {
       orgUnitId: isSecretary ? user?.orgUnitId || form.orgUnitId : form.orgUnitId,
       title: form.title.trim(),
@@ -136,10 +131,10 @@ export default function AdminTasks() {
     try {
       if (editingId) {
         await apiFetch<void>(`/api/tasks/${editingId}`, { method: 'PUT', body: JSON.stringify(payload) })
-        setSuccess(`任务「${payload.title}」已更新`)
+        showSuccess(`任务「${payload.title}」已更新`)
       } else {
         await apiFetch<{ id: string }>('/api/tasks', { method: 'POST', body: JSON.stringify(payload) })
-        setSuccess(`任务「${payload.title}」已发布`)
+        showSuccess(`任务「${payload.title}」已发布`)
       }
       resetForm()
       await load()
@@ -151,13 +146,13 @@ export default function AdminTasks() {
   async function remove(id: string) {
     if (!confirm('确认删除该学习任务？')) return
     setError(null)
-    setSuccess(null)
+    showSuccess(null)
     const title = tasks.find((x) => x.id === id)?.title ?? '任务'
     try {
       await apiFetch<void>(`/api/tasks/${id}`, { method: 'DELETE' })
       if (editingId === id) resetForm()
       await load()
-      setSuccess(`「${title}」已删除`)
+      showSuccess(`「${title}」已删除`)
     } catch (e: any) {
       setError(e?.message ?? '删除失败')
     }

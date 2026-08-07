@@ -21,7 +21,11 @@ export default function Home() {
   const [tasks, setTasks] = useState<Task[]>([])
   const [contents, setContents] = useState<Content[]>([])
   const [q, setQ] = useState('')
-  const [rec, setRec] = useState<Content[]>([])
+  const [rec, setRec] = useState<{
+    items: Array<Content & { reason?: string }>
+    coldStart?: boolean
+    text?: string
+  } | null>(null)
   const [error, setError] = useState<string | null>(null)
 
   async function load(search = '') {
@@ -35,11 +39,14 @@ export default function Home() {
       setTasks(t)
       setContents(c)
       if (!search.trim()) {
-        const r = await apiFetch<{ items?: Content[] }>('/api/ai/recommend', {
-          method: 'POST',
-          body: JSON.stringify({ userId: user?.id }),
-        })
-        setRec(r.items ?? [])
+        const r = await apiFetch<{ items?: Array<Content & { reason?: string }>; coldStart?: boolean; text?: string }>(
+          '/api/ai/recommend',
+          {
+            method: 'POST',
+            body: JSON.stringify({ userId: user?.id }),
+          },
+        )
+        setRec({ items: r.items ?? [], coldStart: r.coldStart, text: r.text })
       }
     } catch (e: any) {
       setError(e?.message ?? '加载失败')
@@ -110,15 +117,33 @@ export default function Home() {
         </div>
       </section>
 
-      {!q.trim() && rec.length > 0 && (
+      {!q.trim() && (
+        <div className="mt-4">
+          <Link to="/chat">
+            <Button variant="secondary" className="w-full">
+              AI 助手
+            </Button>
+          </Link>
+        </div>
+      )}
+
+      {!q.trim() && (rec?.items?.length ?? 0) > 0 && (
         <section className="mt-6">
           <h2 className="text-sm font-semibold text-ink">为你推荐</h2>
+          {rec?.coldStart && (
+            <div className="mt-2 rounded-xl bg-seal/10 px-3 py-2 text-xs text-seal-deep">
+              新用户默认推荐：公共/必学内容
+            </div>
+          )}
           <div className="mt-2 grid gap-2">
-            {rec.slice(0, 4).map((c) => (
+            {rec!.items.slice(0, 4).map((c) => (
               <Link key={c.id} to={`/content/${c.id}`} className="m-card flex items-center justify-between gap-3 p-4">
                 <div>
                   <div className="text-sm font-medium">{c.title}</div>
-                  <div className="mt-1 text-xs text-ink/45">{c.category}</div>
+                  <div className="mt-1 text-xs text-ink/45">
+                    {c.category}
+                    {c.reason ? ` · ${c.reason}` : ''}
+                  </div>
                 </div>
                 <ArrowRight className="text-seal" size={16} />
               </Link>

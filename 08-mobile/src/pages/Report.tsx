@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { Link } from 'react-router-dom'
 import { Button } from '@/components/Button'
 import { apiFetch } from '@/utils/api'
 import { useAuthStore } from '@/store/auth'
@@ -14,7 +15,15 @@ type Report = {
     passCount: number
   }
   ranking?: { branchRank: number | null; branchMemberCount: number | null }
+  comparison?: {
+    myAvgExamScore: number | null
+    branchAvgExamScore: number | null
+    branchMaxExamScore: number | null
+  }
+  suggestions?: Array<{ contentId: string; title: string; reason: string }>
   comment: string
+  degraded?: boolean
+  degradedReason?: string | null
 }
 
 export default function Report() {
@@ -55,6 +64,11 @@ export default function Report() {
         </Button>
       </div>
       {error && <div className="mt-3 rounded-xl bg-seal/10 px-3 py-2 text-sm text-seal-deep">{error}</div>}
+      {report?.degraded && (
+        <div className="mt-3 rounded-xl bg-[#8a6a2f]/15 px-3 py-2 text-xs text-[#6b5320]">
+          {report.degradedReason || '已使用离线评语 / 降级结果'}
+        </div>
+      )}
       {report && (
         <>
           <div className="m-card mt-4 p-5 text-center">
@@ -81,6 +95,31 @@ export default function Report() {
               </div>
             ))}
           </div>
+          {report.comparison && (
+            <div className="mt-3 grid grid-cols-3 gap-2 text-center">
+              {[
+                ['我的均分', report.comparison.myAvgExamScore],
+                ['支部均分', report.comparison.branchAvgExamScore],
+                ['支部最高', report.comparison.branchMaxExamScore],
+              ].map(([k, v]) => (
+                <div key={String(k)} className="m-card py-3">
+                  <div className="text-[10px] text-ink/40">{k}</div>
+                  <div className="mt-1 text-sm font-bold">{v ?? '—'}</div>
+                </div>
+              ))}
+            </div>
+          )}
+          {(report.suggestions?.length ?? 0) > 0 && (
+            <div className="mt-3 grid gap-2">
+              <div className="text-xs font-medium text-ink/45">可执行建议</div>
+              {report.suggestions!.map((s) => (
+                <Link key={s.contentId} to={`/content/${s.contentId}`} className="m-card p-3">
+                  <div className="text-sm font-medium">{s.title}</div>
+                  <div className="mt-0.5 text-xs text-ink/45">{s.reason}</div>
+                </Link>
+              ))}
+            </div>
+          )}
           <div className="m-card mt-3 p-4 text-sm leading-7 text-ink/75 whitespace-pre-wrap">{report.comment}</div>
         </>
       )}

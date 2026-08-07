@@ -11,6 +11,7 @@ type Exam = {
   remainingAttempts: number
   canAttempt: boolean
   bestScore: number | null
+  type?: 'quiz' | 'formal'
 }
 
 type HistoryItem = {
@@ -50,7 +51,18 @@ export default function Exams() {
       <div className="mt-4 grid gap-3">
         {items.map((x) => (
           <div key={x.id} className="m-card p-4">
-            <div className="text-sm font-semibold text-ink">{x.title}</div>
+            <div className="flex flex-wrap items-center gap-2">
+              <div className="text-sm font-semibold text-ink">{x.title}</div>
+              <span
+                className={
+                  x.type === 'formal'
+                    ? 'rounded-full bg-seal/10 px-2 py-0.5 text-[10px] font-medium text-seal'
+                    : 'rounded-full bg-black/5 px-2 py-0.5 text-[10px] font-medium text-ink/45'
+                }
+              >
+                {x.type === 'formal' ? '正式考试' : '测验'}
+              </span>
+            </div>
             <div className="mt-1 text-xs text-ink/45">
               {x.durationMin} 分钟 · 及格 {x.passScore} · 剩余 {x.remainingAttempts} 次
               {x.bestScore != null ? ` · 最好 ${x.bestScore}` : ''}

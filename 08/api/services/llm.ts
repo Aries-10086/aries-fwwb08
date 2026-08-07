@@ -1,6 +1,6 @@
 import { createHash } from 'crypto'
 import { nanoid } from 'nanoid'
-import { nowIso, query } from '../db.js'
+import { audit, nowIso, query } from '../db.js'
 import { resolveAiProviderSettings } from './ai-settings.js'
 import { AIServiceError, callAIService } from './ai-service.js'
 
@@ -28,6 +28,14 @@ export interface LlmTextOutput<T = string> {
   model: string
   usage: unknown
   latencyMs: number
+  /** 超时或不可用时走本地兜底则为 true */
+  degraded?: boolean
+  degradedReason?: string
+}
+
+/** 演示默认 9s；可用环境变量覆盖 */
+export function llmTimeoutMs() {
+  return Math.max(1_000, Number(process.env.LLM_TIMEOUT_MS ?? 9_000))
 }
 
 export class LlmError extends Error {
@@ -126,7 +134,7 @@ async function callDirectOpenAI(input: LlmTextInput, signal: AbortSignal) {
   const message = choices?.[0]?.message as Record<string, unknown> | undefined
   return {
     data: message?.content,
-    meta: { model: payload?.model ?? model, usage: payload?.usage },
+    meta: { model: String(payload?.model ?? model), usage: payload?.usage },
   }
 }
 
@@ -159,7 +167,7 @@ export async function llmText<T = string>(input: LlmTextInput): Promise<LlmTextO
   const started = Date.now()
   let provider = process.env.AI_SERVICE_URL ? 'ai-service' : 'openai-compatible'
   const controller = new AbortController()
-  const timeoutMs = Math.max(1_000, Number(process.env.LLM_TIMEOUT_MS ?? 30_000))
+  const timeoutMs = llmTimeoutMs()
   const timer = setTimeout(() => controller.abort(new Error('模型请求超时')), timeoutMs)
   const abort = () => controller.abort(input.signal?.reason)
   input.signal?.addEventListener('abort', abort, { once: true })
@@ -223,10 +231,46 @@ export async function llmText<T = string>(input: LlmTextInput): Promise<LlmTextO
       latencyMs: Date.now() - started,
       errorCode: normalized.code,
     })
+    if (input.userId) {
+      try {
+        await audit(input.userId, aborted ? 'ai.timeout' : 'ai.error', {
+          purpose: input.purpose,
+          code: normalized.code,
+          message: normalized.message,
+          latencyMs: Date.now() - started,
+        })
+      } catch {
+        /* 审计失败不影响主错误抛出 */
+      }
+    }
     throw normalized
   } finally {
     clearTimeout(timer)
     input.signal?.removeEventListener('abort', abort)
+  }
+}
+
+/** 超时/不可用时返回本地兜底，并标记 degraded（仍写入 llm_calls / ai_logs） */
+export async function llmTextOrDegrade<T = string>(
+  input: LlmTextInput,
+  fallback: { text: string; data: T },
+): Promise<LlmTextOutput<T>> {
+  try {
+    return await llmText<T>(input)
+  } catch (error) {
+    const reason =
+      error instanceof LlmError && error.code === 'MODEL_TIMEOUT'
+        ? '模型请求超时，已使用离线评语'
+        : '模型不可用，已使用离线评语'
+    return {
+      text: fallback.text,
+      data: fallback.data,
+      model: 'offline',
+      usage: null,
+      latencyMs: 0,
+      degraded: true,
+      degradedReason: reason,
+    }
   }
 }
 

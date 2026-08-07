@@ -3,6 +3,7 @@ import { Link, useNavigate, useParams } from 'react-router-dom'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/Card'
 import { Button } from '@/components/Button'
 import { apiFetch } from '@/utils/api'
+import { friendlyAiError } from '@/utils/aiError'
 import { useAuthStore } from '@/store/auth'
 import { withAccessToken } from '@/utils/fileLink'
 import {
@@ -142,7 +143,7 @@ export default function ContentDetail() {
         quizQuestions: list(data.quizQuestions),
       })
     } catch (e) {
-      setAiError(e instanceof Error ? e.message : 'AI 导读生成失败')
+      setAiError(friendlyAiError(e instanceof Error ? e.message : 'AI 导读生成失败'))
     } finally {
       setAiLoading(false)
     }

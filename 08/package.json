@@ -19,7 +19,9 @@
     "mobile:dev": "npm --prefix ../08-mobile run dev",
     "mobile:install": "npm --prefix ../08-mobile install",
     "miniprogram:dev": "npm --prefix ../08-miniprogram run dev:weapp",
-    "miniprogram:install": "npm --prefix ../08-miniprogram install"
+    "miniprogram:install": "npm --prefix ../08-miniprogram install",
+    "demo:mobile": "concurrently -n api,pc,mobile -c blue,green,magenta \"npm run server:dev\" \"npm run client:dev\" \"npm run mobile:dev\"",
+    "demo:all": "npm run db:up && concurrently -n api,pc,mobile -c blue,green,magenta \"npm run server:dev\" \"npm run client:dev\" \"npm run mobile:dev\""
   },
   "dependencies": {
     "@phosphor-icons/react": "^2.1.10",

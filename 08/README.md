@@ -8,7 +8,27 @@ React + Vite 前端、Express API 和 PostgreSQL 数据库组成的本地全栈�
 - npm
 - Docker Desktop（用于本地 PostgreSQL）
 
-## 本地启动
+## 三分钟启动（答辩机验收）
+
+```bash
+cd 08
+npm install
+cp .env.example .env          # 首次
+npm run mobile:install        # 首次需要移动端依赖
+npm run demo:all              # 拉起 Postgres + API + PC + 移动端
+```
+
+约 1～3 分钟内应能打开：
+
+| 端 | 地址 |
+|----|------|
+| PC | http://localhost:5173 |
+| 移动端 H5 | http://localhost:5174 |
+| API | http://localhost:3001/api/health |
+
+初始账号见下方。不启动 Python / Milvus 也可完成学习—测验—统计—离线 AI 评语主流程。
+
+## 本地启动（分步）
 
 ```bash
 npm install
@@ -20,12 +40,14 @@ npm run dev
 启动后访问：
 
 - 前端（PC）：http://localhost:5173
-- 移动端（独立）：http://localhost:5174 （需另开 `npm run mobile:dev` 或进入 `../08-mobile`）
+- 移动端（独立）：http://localhost:5174 （或 `npm run demo:all` 一键含 DB）
 - 微信小程序（独立）：`../08-miniprogram`（`npm run miniprogram:dev`，用微信开发者工具打开）
 - API：http://localhost:3001/api
 - 健康检查：http://localhost:3001/api/health
 
 移动端 H5（`../08-mobile`）与微信小程序（`../08-miniprogram`）均为独立前端工程，与 PC 网页分离，共用同一 API。管理员请使用 PC 端。
+
+真机竖屏验收建议：Chrome 设备模拟 390×844，或局域网访问本机 `:5174`。
 
 应用启动时会等待数据库迁移完成；空数据库会在同一初始化流程中自动写入初始账号与样例数据。
 
@@ -46,13 +68,28 @@ npm run server:dev   # 仅启动 API
 npm run check        # TypeScript 类型检查
 npm run build        # 构建前端
 
-npm run db:up        # 启动并等待 PostgreSQL 健康
-npm run db:down      # 停止 PostgreSQL（保留命名卷数据）
-npm run db:logs      # 跟踪 PostgreSQL 日志
-npm run db:restart   # 重启 PostgreSQL
+npm run mobile:dev         # 仅启动独立移动端 H5
+npm run demo:mobile        # API + PC + 移动端（需 DB 已就绪）
+npm run demo:all           # db:up + API + PC + 移动端（三分钟启动）
+npm run miniprogram:dev    # 启动微信小程序开发编译
+npm run miniprogram:install
+npm run db:up              # 启动并等待 PostgreSQL 健康
+npm run db:down            # 停止 PostgreSQL（保留命名卷数据）
+npm run db:logs            # 跟踪 PostgreSQL 日志
+npm run db:restart         # 重启 PostgreSQL
 ```
 
 如需清空本地 PostgreSQL 数据，可手动运行 `docker compose down -v`。此命令会删除命名卷，不应在需要保留数据时使用。
+
+## 知识库轻量模式（无 Milvus / 答辩机）
+
+默认答辩机**不必**启动向量库：
+
+1. `.env` 可留空 `AI_SERVICE_URL`，或指向未启动的服务——报告/推荐等会直连模型或**离线评语降级**（`LLM_TIMEOUT_MS` 默认约 9s，超时写入 `llm_calls` / `ai_logs`）。
+2. 聊天 / 向量检索需要 Python `ai-service`；未安装时，学习、测验、成绩、管理端主流程仍可用，页面会提示降级。
+3. 需要完整 RAG 时再启动：`docker compose -f ai-service/docker-compose.milvus.yml --profile ai up -d`，配置嵌入密钥后在管理端「一键同步」知识库。
+
+轻量模式 = **Postgres + Node API + 前端**；向量库为可选增强，不是硬依赖。
 
 ## 配置
 

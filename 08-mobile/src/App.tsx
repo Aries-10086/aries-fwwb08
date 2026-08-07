@@ -12,6 +12,9 @@ import Account from '@/pages/Account'
 import ContentDetail from '@/pages/ContentDetail'
 import Dashboard from '@/pages/Dashboard'
 import Scores from '@/pages/Scores'
+import Chat from '@/pages/Chat'
+import Tasks from '@/pages/Tasks'
+import Members from '@/pages/Members'
 
 export default function App() {
   return (
@@ -28,9 +31,13 @@ export default function App() {
           <Route path="/exam-result/:attemptId" element={<ExamResult />} />
           <Route path="/wrong-book" element={<WrongBook />} />
           <Route path="/report" element={<Report />} />
+          <Route path="/chat" element={<Chat />} />
           <Route path="/account" element={<Account />} />
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/scores" element={<Scores />} />
+          <Route path="/tasks" element={<Tasks />} />
+          <Route path="/members" element={<Members />} />
+          <Route path="/members/:userId" element={<Members />} />
         </Route>
 
         <Route path="/" element={<Navigate to="/home" replace />} />

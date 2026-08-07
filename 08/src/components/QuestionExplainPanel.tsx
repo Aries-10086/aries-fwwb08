@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Brain, CircleNotch, Lightbulb, Sparkle } from '@phosphor-icons/react'
 import { Button } from '@/components/Button'
 import { apiFetch } from '@/utils/api'
+import { friendlyAiError } from '@/utils/aiError'
 import type { AIQuestionExplanation } from '../../shared/types'
 
 function stringList(value: unknown): string[] {
@@ -24,6 +25,11 @@ function normalizeExplanation(value: unknown): AIQuestionExplanation {
     approach: optionalString(data.approach ?? data.solution),
     knowledgePoints: stringList(data.knowledgePoints ?? data.points),
     reviewTips: stringList(data.reviewTips ?? data.suggestions ?? data.tips),
+    correctAnswer: data.correctAnswer,
+    correctAnswerLabel: optionalString(data.correctAnswerLabel),
+    userAnswerLabel: optionalString(data.userAnswerLabel),
+    answerSource: 'question_bank',
+    answerMutable: false,
   }
 }
 
@@ -31,14 +37,18 @@ export function QuestionExplainPanel({
   questionId,
   attemptId,
   compact = false,
+  correctAnswerLabel: correctAnswerLabelProp,
 }: {
   questionId: string
   attemptId?: string
   compact?: boolean
+  /** 父组件已展示的题库答案（可选，接口也会返回） */
+  correctAnswerLabel?: string
 }) {
   const [explanation, setExplanation] = useState<AIQuestionExplanation | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const bankLabel = explanation?.correctAnswerLabel || correctAnswerLabelProp
 
   async function explain() {
     setLoading(true)
@@ -50,7 +60,7 @@ export function QuestionExplainPanel({
       })
       setExplanation(normalizeExplanation(data))
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'AI 讲解生成失败')
+      setError(friendlyAiError(e instanceof Error ? e.message : 'AI 讲解生成失败'))
     } finally {
       setLoading(false)
     }
@@ -86,10 +96,23 @@ export function QuestionExplainPanel({
           重新生成
         </button>
       </div>
+      <div className="mt-2 rounded-lg bg-white/90 px-3 py-2 text-xs text-[rgba(18,21,28,0.65)] shadow-[inset_0_0_0_1px_rgba(0,0,0,0.05)]">
+        <span className="font-semibold text-[#12151c]">正确答案（题库只读）</span>
+        <span className="ml-2">{bankLabel || '—'}</span>
+        <div className="mt-1 text-[11px] text-[rgba(18,21,28,0.45)]">
+          AI 仅解释，不修改标准答案
+        </div>
+      </div>
       {error ? (
         <div className="mt-3 text-sm text-[#741220]">{error}</div>
       ) : (
         <div className="mt-3 grid gap-3 text-sm leading-7 text-[rgba(18,21,28,0.72)]">
+          {explanation?.userAnswerLabel && (
+            <div>
+              <span className="font-semibold text-[#12151c]">你的答案：</span>
+              {explanation.userAnswerLabel}
+            </div>
+          )}
           {explanation?.explanation && <p className="whitespace-pre-wrap">{explanation.explanation}</p>}
           {explanation?.errorReason && (
             <div><span className="font-semibold text-[#12151c]">错误原因：</span>{explanation.errorReason}</div>

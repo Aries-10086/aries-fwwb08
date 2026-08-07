@@ -32,6 +32,7 @@ type Exam = {
   attempts: Attempt[]
   status: string
   createdAt: string
+  type?: 'quiz' | 'formal'
 }
 
 type HistoryItem = {
@@ -118,7 +119,18 @@ export default function MobileExams() {
               >
                 <div className="flex items-start justify-between gap-3">
                   <div>
-                    <div className="text-sm font-medium text-[#12151c]">{x.title}</div>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <div className="text-sm font-medium text-[#12151c]">{x.title}</div>
+                      <span
+                        className={
+                          x.type === 'formal'
+                            ? 'rounded-full bg-[rgba(158,27,43,0.1)] px-2 py-0.5 text-[10px] font-medium text-[#9e1b2b]'
+                            : 'rounded-full bg-black/5 px-2 py-0.5 text-[10px] font-medium text-zinc-500'
+                        }
+                      >
+                        {x.type === 'formal' ? '正式考试' : '测验'}
+                      </span>
+                    </div>
                     <div className="mt-1 text-xs text-zinc-500">
                       {x.durationMin} 分钟 · 及格 {x.passScore} 分 · 已考 {x.attemptCount}/
                       {x.maxAttempts} 次

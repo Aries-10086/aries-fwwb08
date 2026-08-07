@@ -62,7 +62,14 @@ export default function MobileHome() {
   const [progress, setProgress] = useState<ProgressItem[]>([])
   const [query, setQuery] = useState('')
   const [searching, setSearching] = useState(false)
-  const [rec, setRec] = useState<{ text: string; items: Content[]; weakCategories: string[] } | null>(null)
+  const [rec, setRec] = useState<{
+    text: string
+    items: Array<Content & { reason?: string; reasonKind?: string }>
+    weakCategories: string[]
+    coldStart?: boolean
+    degraded?: boolean
+    degradedReason?: string | null
+  } | null>(null)
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
@@ -438,6 +445,16 @@ export default function MobileHome() {
           <CardContent>
             {rec ? (
               <div className="grid gap-4">
+                {rec.coldStart && (
+                  <div className="rounded-xl bg-[rgba(158,27,43,0.06)] px-3 py-2 text-xs text-[#741220]">
+                    新用户冷启动：以下为「默认推荐」的公共/必学内容
+                  </div>
+                )}
+                {rec.degraded && (
+                  <div className="rounded-xl bg-[rgba(138,106,47,0.12)] px-3 py-2 text-xs text-[#6b521f]">
+                    {rec.degradedReason || '已使用离线评语 / 降级结果'}
+                  </div>
+                )}
                 <div className="list-surface text-sm leading-relaxed text-[rgba(18,21,28,0.72)]">{rec.text}</div>
                 <div className="grid gap-2">
                   {rec.items.slice(0, 5).map((c) => (
@@ -451,6 +468,7 @@ export default function MobileHome() {
                         <div className="mt-1 text-xs text-[rgba(18,21,28,0.55)]">
                           {c.category}
                           {completedSet.has(c.id) ? ' · 已完成' : ''}
+                          {c.reason ? ` · ${c.reason}` : ''}
                         </div>
                       </div>
                       <ArrowRight className="h-4 w-4 text-[rgba(18,21,28,0.4)]" />
