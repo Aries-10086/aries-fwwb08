@@ -372,6 +372,46 @@ const migrations: Migration[] = [
         ADD COLUMN IF NOT EXISTS open_notice TEXT NOT NULL DEFAULT '';
     `,
   },
+  {
+    version: 6,
+    name: 'wrong_book_progress',
+    sql: `
+      CREATE TABLE wrong_book_progress (
+        user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        question_id TEXT NOT NULL REFERENCES questions(id) ON DELETE CASCADE,
+        review_correct_count INTEGER NOT NULL DEFAULT 0 CHECK (review_correct_count >= 0 AND review_correct_count <= 1),
+        updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        PRIMARY KEY (user_id, question_id)
+      );
+      CREATE INDEX idx_wrong_book_progress_user ON wrong_book_progress(user_id);
+    `,
+  },
+  {
+    version: 7,
+    name: 'wrong_book_progress_graduated',
+    sql: `
+      ALTER TABLE wrong_book_progress
+        DROP CONSTRAINT IF EXISTS wrong_book_progress_review_correct_count_check;
+      ALTER TABLE wrong_book_progress
+        ADD CONSTRAINT wrong_book_progress_review_correct_count_check
+        CHECK (review_correct_count >= 0 AND review_correct_count <= 2);
+    `,
+  },
+  {
+    version: 8,
+    name: 'learning_opinions',
+    sql: `
+      CREATE TABLE learning_opinions (
+        id TEXT PRIMARY KEY,
+        user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        org_unit_id TEXT NOT NULL REFERENCES org_units(id) ON DELETE CASCADE,
+        content TEXT NOT NULL CHECK (char_length(content) >= 1 AND char_length(content) <= 2000),
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      );
+      CREATE INDEX idx_learning_opinions_org ON learning_opinions(org_unit_id, created_at DESC);
+      CREATE INDEX idx_learning_opinions_user ON learning_opinions(user_id, created_at DESC);
+    `,
+  },
 ]
 
 async function runMigrations(): Promise<void> {

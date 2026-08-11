@@ -26,10 +26,14 @@ type WrongBookItem = {
   lastAttemptId: string
   lastUserAnswerLabel: string
   correctAnswerLabel: string
+  reviewStatus: 'pending' | 'mastered'
+  reviewCorrectCount: number
 }
 
 type WrongBookData = {
   totalCount: number
+  pendingCount: number
+  masteredCount: number
   categories: { name: string; count: number }[]
   items: WrongBookItem[]
 }
@@ -57,6 +61,13 @@ type PracticeResult = {
   correctCount: number
   wrongCount: number
   details: PracticeDetail[]
+  progressUpdates?: Array<{
+    questionId: string
+    reviewStatus: 'pending' | 'mastered'
+    removed: boolean
+    toMastered: boolean
+    backToPending: boolean
+  }>
 }
 
 function QuestionInputs({
@@ -155,7 +166,7 @@ export default function MobileWrongBook() {
   const nav = useNavigate()
   const { user } = useAuthStore()
   const [book, setBook] = useState<WrongBookData | null>(null)
-  const [category, setCategory] = useState<string>('全部')
+  const [statusTab, setStatusTab] = useState<'all' | 'pending' | 'mastered'>('all')
   const [expandedId, setExpandedId] = useState<string | null>(null)
   const [view, setView] = useState<'list' | 'practice' | 'result'>('list')
   const [practiceQs, setPracticeQs] = useState<PracticeQuestion[]>([])
@@ -188,9 +199,19 @@ export default function MobileWrongBook() {
 
   const filteredItems = useMemo(() => {
     if (!book) return []
-    if (category === '全部') return book.items
-    return book.items.filter((it) => (it.category || '未分类') === category)
-  }, [book, category])
+    if (statusTab === 'pending') return book.items.filter((it) => it.reviewStatus === 'pending')
+    if (statusTab === 'mastered') return book.items.filter((it) => it.reviewStatus === 'mastered')
+    return book.items
+  }, [book, statusTab])
+
+  const progressSummary = useMemo(() => {
+    if (!result?.progressUpdates?.length) return null
+    return {
+      toMastered: result.progressUpdates.filter((u) => u.toMastered).length,
+      removed: result.progressUpdates.filter((u) => u.removed).length,
+      backToPending: result.progressUpdates.filter((u) => u.backToPending).length,
+    }
+  }, [result])
 
   async function startPractice(questionIds?: string[]) {
     setError(null)
@@ -315,6 +336,14 @@ export default function MobileWrongBook() {
           ))}
         </div>
 
+        {progressSummary && (progressSummary.toMastered > 0 || progressSummary.removed > 0 || progressSummary.backToPending > 0) && (
+          <div className="rounded-xl bg-[rgba(31,107,74,0.06)] px-4 py-3 text-sm text-[#1f6b4a] shadow-[inset_0_0_0_1px_rgba(31,107,74,0.12)]">
+            {progressSummary.toMastered > 0 && <div>{progressSummary.toMastered} 题已进入「已掌握」</div>}
+            {progressSummary.removed > 0 && <div>{progressSummary.removed} 题已移出错题本</div>}
+            {progressSummary.backToPending > 0 && <div>{progressSummary.backToPending} 题已回到「待复习」</div>}
+          </div>
+        )}
+
         <div className="grid gap-3">
           {result.details.map((d, idx) => (
             <div
@@ -378,7 +407,9 @@ export default function MobileWrongBook() {
         <div>
           <div className="page-eyebrow">党员端</div>
           <h1 className="page-title text-3xl md:text-4xl">错题本</h1>
-          <div className="page-subtitle mt-2 max-w-2xl">汇总历次测验错题，支持独立重练</div>
+          <div className="page-subtitle mt-2 max-w-2xl">
+            汇总历次测验错题；重练答对 1 次进「已掌握」，再对 1 次移出；已掌握时再错则回到「待复习」
+          </div>
         </div>
         {book && book.totalCount > 0 && (
           <Button onClick={() => void startPractice()} disabled={submitting || loading}>
@@ -413,31 +444,25 @@ export default function MobileWrongBook() {
       ) : (
         <>
           <div className="flex flex-wrap gap-2">
-            <button
-              type="button"
-              onClick={() => setCategory('全部')}
-              className={[
-                'rounded-full px-3 py-1.5 text-xs transition',
-                category === '全部'
-                  ? 'bg-[#9e1b2b] text-white'
-                  : 'bg-white/90 text-zinc-600 shadow-[inset_0_0_0_1px_rgba(0,0,0,0.06)]',
-              ].join(' ')}
-            >
-              全部 ({book.totalCount})
-            </button>
-            {book.categories.map((c) => (
+            {(
+              [
+                ['all', '全部', book.totalCount],
+                ['pending', '待复习', book.pendingCount ?? 0],
+                ['mastered', '已掌握', book.masteredCount ?? 0],
+              ] as const
+            ).map(([key, label, count]) => (
               <button
-                key={c.name}
+                key={key}
                 type="button"
-                onClick={() => setCategory(c.name)}
+                onClick={() => setStatusTab(key)}
                 className={[
                   'rounded-full px-3 py-1.5 text-xs transition',
-                  category === c.name
+                  statusTab === key
                     ? 'bg-[#9e1b2b] text-white'
                     : 'bg-white/90 text-zinc-600 shadow-[inset_0_0_0_1px_rgba(0,0,0,0.06)]',
                 ].join(' ')}
               >
-                {c.name} ({c.count})
+                {label} ({count})
               </button>
             ))}
           </div>
@@ -471,6 +496,10 @@ export default function MobileWrongBook() {
                             <span>错 {item.wrongCount} 次</span>
                             <span>·</span>
                             <span>{item.lastExamTitle}</span>
+                            <span>·</span>
+                            <span className={item.reviewStatus === 'mastered' ? 'text-[#1f6b4a]' : 'text-[#9e1b2b]'}>
+                              {item.reviewStatus === 'mastered' ? '已掌握' : '待复习'}
+                            </span>
                           </div>
                         </div>
                         <span className="shrink-0 text-xs text-[#9e1b2b]">{open ? '收起' : '详情'}</span>

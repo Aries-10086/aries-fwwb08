@@ -5,7 +5,7 @@ import { getUserContext, requireAuth, requireRole, rejectUnauthorized } from '..
 import { parseJson, json, toIso } from '../utils/json.js'
 import type { QuestionType } from '../../shared/types.js'
 import { wrapAsyncRouter } from '../utils/async-router.js'
-import { checkPracticeAnswers, getPracticeQuestions, listWrongBookForUser } from '../utils/wrong-book.js'
+import { checkPracticeAnswers, getPracticeQuestions, listWrongBookForUser, syncWrongBookFromExam } from '../utils/wrong-book.js'
 
 const router = Router()
 const SUBMIT_GRACE_MS = 60_000
@@ -287,7 +287,10 @@ router.get('/wrong-book/mine', async (req: Request, res: Response) => {
   }
 
   const { userId } = getUserContext(req)
-  const data = await listWrongBookForUser(userId)
+  const statusRaw = typeof req.query.status === 'string' ? req.query.status.trim() : 'all'
+  const status =
+    statusRaw === 'pending' || statusRaw === 'mastered' ? statusRaw : ('all' as const)
+  const data = await listWrongBookForUser(userId, status)
   res.status(200).json({ success: true, data })
 })
 
@@ -717,6 +720,10 @@ router.post('/:id/submit', async (req: Request, res: Response) => {
   const { exam, paper, attemptId, attemptCount, maxAttempts, totalScore, passScore, isPass, details } =
     result
   const wrongDetails = details.filter((detail) => !detail.isCorrect)
+  await syncWrongBookFromExam(
+    userId,
+    wrongDetails.map((d) => String(d.questionId)),
+  )
   await audit(userId, 'exam.submit', { examId, totalScore, isPass, sessionId })
   res.status(200).json({
     success: true,
