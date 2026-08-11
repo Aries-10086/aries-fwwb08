@@ -5,6 +5,11 @@ import { Button } from '@/components/Button'
 import { PageShell } from '@/components/PageShell'
 import { apiFetch } from '@/utils/api'
 import { useAuthStore } from '@/store/auth'
+import {
+  BranchScoresSection,
+  type BranchExamScore,
+  type BranchScoresSummary,
+} from '@/components/BranchScoresSection'
 import './index.scss'
 
 type Dash = {
@@ -29,6 +34,8 @@ type Dash = {
 export default function DashboardPage() {
   const user = useAuthStore((s) => s.user)
   const [data, setData] = useState<Dash | null>(null)
+  const [scores, setScores] = useState<BranchScoresSummary | null>(null)
+  const [exams, setExams] = useState<BranchExamScore[]>([])
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
 
@@ -42,9 +49,16 @@ export default function DashboardPage() {
     setLoading(true)
     setError(null)
     try {
-      setData(await apiFetch<Dash>('/api/stats/branch-dashboard'))
+      const [dash, memberScores, branchExams] = await Promise.all([
+        apiFetch<Dash>('/api/stats/branch-dashboard'),
+        apiFetch<BranchScoresSummary>('/api/stats/member-scores'),
+        apiFetch<{ exams: BranchExamScore[] }>('/api/stats/branch-exams'),
+      ])
+      setData(dash)
+      setScores(memberScores)
+      setExams(branchExams.exams ?? [])
     } catch (e: any) {
-      setError(e?.message ?? '加载失败')
+      setError(e?.message ?? '内容加载失败，请您稍后重试')
     } finally {
       setLoading(false)
     }
@@ -64,44 +78,31 @@ export default function DashboardPage() {
           <Text className="m-sub">{data?.orgName ?? '本支部数据'}</Text>
         </View>
         <Button variant="ghost" className="dash-refresh" disabled={loading} onClick={() => void load()}>
-          刷新
+          请刷新
         </Button>
       </View>
       {error && <View className="m-error">{error}</View>}
 
       {s && (
         <View className="dash-grid">
-          {[
-            ['党员', s.memberCount],
-            ['总时长', `${s.durationHours}h`],
-            ['人均', `${s.avgDurationHours ?? 0}h`],
-            ['任务完成', `${s.overallTaskCompletionRate}%`],
-            ['测验均分', s.avgExamScore],
-            ['通过率', `${s.passRate}%`],
-          ].map(([k, v]) => (
-            <View key={String(k)} className="m-card dash-metric">
+          {(
+            [
+              ['党员', s.memberCount],
+              ['已参考', scores?.summary.attemptedMemberCount ?? '-'],
+              ['总时长', `${s.durationHours}h`],
+              ['人均', `${s.avgDurationHours ?? 0}h`],
+              ['任务完成', `${s.overallTaskCompletionRate}%`],
+              ['测验均分', scores?.summary.avgScore ?? s.avgExamScore],
+              ['通过率', `${scores?.summary.passRate ?? s.passRate}%`],
+            ] as const
+          ).map(([k, v]) => (
+            <View key={k} className="m-card dash-metric">
               <Text className="dash-metric__k">{k}</Text>
               <Text className="dash-metric__v">{v}</Text>
             </View>
           ))}
         </View>
       )}
-
-      <View className="dash-actions">
-        <Button
-          variant="secondary"
-          className="dash-actions__btn"
-          onClick={() => Taro.redirectTo({ url: '/pages/scores/index' })}
-        >
-          成绩明细
-        </Button>
-        <Button
-          className="dash-actions__btn"
-          onClick={() => Taro.redirectTo({ url: '/pages/home/index' })}
-        >
-          去学习
-        </Button>
-      </View>
 
       <Text className="m-section-title">任务完成</Text>
       <View className="dash-tasks">
@@ -126,8 +127,12 @@ export default function DashboardPage() {
             )}
           </View>
         ))}
-        {(data?.tasks?.length ?? 0) === 0 && <View className="m-empty">暂无任务</View>}
+        {(data?.tasks?.length ?? 0) === 0 && (
+          <View className="m-empty">暂无任务，请您稍后再来查看</View>
+        )}
       </View>
+
+      <BranchScoresSection data={scores} exams={exams} />
     </PageShell>
   )
 }

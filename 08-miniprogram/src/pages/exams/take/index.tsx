@@ -65,7 +65,7 @@ export default function ExamTakePage() {
       })
       Taro.redirectTo({ url: `/pages/exams/result/index?attemptId=${data.attemptId}` })
     } catch (e: any) {
-      setError(e?.message ?? '交卷失败')
+      setError(e?.message ?? '交卷未成功，请您稍后重试')
       setSubmitting(false)
     }
   }
@@ -78,7 +78,7 @@ export default function ExamTakePage() {
         setExam(data)
         Taro.setNavigationBarTitle({ title: data.title || '测验' })
         if (!data.canAttempt) {
-          setError('已达最大作答次数')
+          setError('您已达最大作答次数')
           return
         }
         const session = await apiFetch<{ sessionId: string; expiresAt: string }>(
@@ -88,7 +88,7 @@ export default function ExamTakePage() {
         setSessionId(session.sessionId)
         setRemainMs(Math.max(0, new Date(session.expiresAt).getTime() - Date.now()))
       } catch (e: any) {
-        setError(e?.message ?? '加载失败')
+        setError(e?.message ?? '内容加载失败，请您稍后重试')
       }
     })()
   }, [examId])
@@ -115,7 +115,7 @@ export default function ExamTakePage() {
     <PageShell>
       <View className="take-top">
         <Text className="back" onClick={() => Taro.redirectTo({ url: '/pages/exams/index' })}>
-          ← 退出
+          ← 请退出
         </Text>
         {remainMs != null && <Text className="take-timer">{formatRemain(remainMs)}</Text>}
       </View>
@@ -186,7 +186,7 @@ export default function ExamTakePage() {
       {sessionId && (
         <View className="take-submit">
           <Button loading={submitting} onClick={() => void submit(false)}>
-            {submitting ? '交卷中…' : '提交答卷'}
+            {submitting ? '正在交卷…' : '请提交答卷'}
           </Button>
         </View>
       )}

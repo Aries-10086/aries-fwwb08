@@ -39,7 +39,7 @@ export async function apiFetch<T>(path: string, init?: RequestInitLike): Promise
 
   const json = (res.data ?? {}) as { success?: boolean; data?: T; error?: string }
   if (res.statusCode >= 400 || !json?.success) {
-    throw new Error(json?.error ?? '请求失败')
+    throw new Error(json?.error ?? '请求未成功，请您稍后重试')
   }
   return json.data as T
 }

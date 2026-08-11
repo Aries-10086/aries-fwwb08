@@ -1,5 +1,6 @@
 import { View, Text } from '@tarojs/components'
 import { useEffect, useState } from 'react'
+import Taro, { useRouter } from '@tarojs/taro'
 import { Button } from '@/components/Button'
 import { PageShell } from '@/components/PageShell'
 import { apiFetch } from '@/utils/api'
@@ -20,7 +21,11 @@ type Report = {
 }
 
 export default function ReportPage() {
+  const router = useRouter()
   const user = useAuthStore((s) => s.user)
+  const fromScores = router.params.from === 'scores'
+  const isSecretary = user?.role === 'secretary' || user?.role === 'admin'
+  const tabPath = fromScores && isSecretary ? '/pages/scores/index' : '/pages/report/index'
   const [report, setReport] = useState<Report | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -35,7 +40,7 @@ export default function ReportPage() {
       })
       setReport(data)
     } catch (e: any) {
-      setError(e?.message ?? '加载失败')
+      setError(e?.message ?? '报告加载失败，请您稍后重试')
     } finally {
       setLoading(false)
     }
@@ -46,14 +51,19 @@ export default function ReportPage() {
   }, [])
 
   return (
-    <PageShell tabPath="/pages/report/index">
+    <PageShell tabPath={tabPath}>
+      {fromScores && isSecretary && (
+        <Text className="report-back" onClick={() => Taro.navigateBack()}>
+          ← 请返回学习服务
+        </Text>
+      )}
       <View className="report-head">
         <View>
           <Text className="m-title">AI 报告</Text>
-          <Text className="m-sub">学习综合评价</Text>
+          <Text className="m-sub">您的学习综合评价</Text>
         </View>
         <Button variant="ghost" className="report-refresh" disabled={loading} onClick={() => void load()}>
-          刷新
+          请刷新
         </Button>
       </View>
       {error && <View className="m-error">{error}</View>}
@@ -90,7 +100,9 @@ export default function ReportPage() {
           </View>
         </>
       )}
-      {!report && !error && <View className="m-empty">{loading ? '生成中…' : '暂无报告'}</View>}
+      {!report && !error && (
+        <View className="m-empty">{loading ? '正在为您生成报告…' : '暂无报告，请您稍后再试'}</View>
+      )}
     </PageShell>
   )
 }

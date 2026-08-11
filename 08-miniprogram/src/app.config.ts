@@ -8,6 +8,7 @@ export default defineAppConfig({
     'pages/account/index',
     'pages/dashboard/index',
     'pages/scores/index',
+    'pages/opinions/index',
     'pages/admin-tip/index',
     'pages/content/detail/index',
     'pages/exams/take/index',

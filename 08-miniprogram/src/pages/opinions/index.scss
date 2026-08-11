@@ -1,0 +1,55 @@
+.op-back {
+  display: block;
+  margin-bottom: 8px;
+  font-size: 13px;
+  color: rgba(18, 21, 28, 0.55);
+}
+
+.op-form {
+  margin-top: 12px;
+  padding: 16px;
+}
+
+.op-form__input {
+  width: 100%;
+  min-height: 120px;
+  padding: 12px;
+  border-radius: 12px;
+  background: #f4f6f8;
+  font-size: 14px;
+  line-height: 1.55;
+  box-sizing: border-box;
+}
+
+.op-list {
+  margin-top: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.op-card {
+  padding: 16px;
+}
+
+.op-card__author {
+  display: block;
+  font-size: 14px;
+  font-weight: 600;
+  color: #12151c;
+}
+
+.op-card__content {
+  display: block;
+  margin-top: 6px;
+  font-size: 14px;
+  line-height: 1.55;
+  color: #12151c;
+}
+
+.op-card__time {
+  display: block;
+  margin-top: 8px;
+  font-size: 12px;
+  color: rgba(18, 21, 28, 0.4);
+}

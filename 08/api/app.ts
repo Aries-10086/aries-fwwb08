@@ -23,6 +23,7 @@ import aiRoutes from './routes/ai.js'
 import fileRoutes from './routes/files.js'
 import chatRoutes from './routes/chat.js'
 import kbRoutes from './routes/kb.js'
+import opinionsRoutes from './routes/opinions.js'
 import aiSettingsRoutes from './routes/ai-settings.js'
 import { checkDatabaseHealth, initializeDatabase } from './db.js'
 import { attachAuth } from './utils/http.js'
@@ -100,6 +101,7 @@ app.use('/api/ai/settings', aiSettingsRoutes)
 app.use('/api/ai', aiRoutes)
 app.use('/api/chat', chatRoutes)
 app.use('/api/kb', kbRoutes)
+app.use('/api/opinions', opinionsRoutes)
 
 /**
  * health

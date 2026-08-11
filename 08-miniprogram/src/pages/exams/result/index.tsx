@@ -26,7 +26,7 @@ export default function ExamResultPage() {
       try {
         setData(await apiFetch<Review>(`/api/exams/attempts/${attemptId}`))
       } catch (e: any) {
-        setError(e?.message ?? '加载失败')
+        setError(e?.message ?? '内容加载失败，请您稍后重试')
       }
     })()
   }, [attemptId])
@@ -47,12 +47,12 @@ export default function ExamResultPage() {
         </View>
       )}
       <View className="result-actions">
-        <Button onClick={() => Taro.redirectTo({ url: '/pages/exams/index' })}>返回测验</Button>
+        <Button onClick={() => Taro.redirectTo({ url: '/pages/exams/index' })}>请返回测验</Button>
         <Button
           variant="secondary"
           onClick={() => Taro.redirectTo({ url: '/pages/wrong-book/index' })}
         >
-          查看错题本
+          请查看错题本
         </Button>
       </View>
     </PageShell>

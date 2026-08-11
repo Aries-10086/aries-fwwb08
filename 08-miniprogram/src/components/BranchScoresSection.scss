@@ -1,0 +1,95 @@
+.branch-scores {
+  margin-top: 24px;
+}
+
+.branch-scores__tabs {
+  margin-top: 12px;
+  display: flex;
+  gap: 8px;
+}
+
+.branch-scores__tab {
+  border-radius: 999px;
+  padding: 8px 14px;
+  font-size: 13px;
+  background: #fff;
+  box-shadow: inset 0 0 0 1px rgba(18, 21, 28, 0.06);
+  color: #12151c;
+}
+
+.branch-scores__tab.is-on {
+  background: #9e1b2b;
+  color: #fff;
+  box-shadow: none;
+}
+
+.branch-scores__list {
+  margin-top: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.branch-scores__member {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+}
+
+.branch-scores__rank {
+  width: 32px;
+  height: 32px;
+  border-radius: 999px;
+  background: rgba(158, 27, 43, 0.1);
+  color: #9e1b2b;
+  font-size: 12px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.branch-scores__member-main {
+  flex: 1;
+  min-width: 0;
+}
+
+.branch-scores__member-name {
+  display: block;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.branch-scores__member-meta {
+  display: block;
+  margin-top: 2px;
+  font-size: 12px;
+  color: rgba(18, 21, 28, 0.45);
+}
+
+.branch-scores__exam {
+  padding: 16px;
+}
+
+.branch-scores__exam-title {
+  display: block;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.branch-scores__exam-meta {
+  display: block;
+  margin-top: 4px;
+  font-size: 12px;
+  color: rgba(18, 21, 28, 0.45);
+}
+
+.branch-scores__miss {
+  margin-top: 8px;
+  border-radius: 8px;
+  background: rgba(158, 27, 43, 0.05);
+  padding: 8px 12px;
+  font-size: 12px;
+  color: #741220;
+}

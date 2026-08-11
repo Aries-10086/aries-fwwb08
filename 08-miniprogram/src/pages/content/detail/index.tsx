@@ -38,7 +38,7 @@ export default function ContentDetailPage() {
         setCompleted(!!progress?.isCompleted)
         Taro.setNavigationBarTitle({ title: data.title || '内容详情' })
       } catch (e: any) {
-        setError(e?.message ?? '加载失败')
+        setError(e?.message ?? '内容加载失败，请您稍后重试')
       }
     })()
   }, [id])
@@ -54,7 +54,7 @@ export default function ContentDetailPage() {
       })
       setCompleted(true)
     } catch (e: any) {
-      setError(e?.message ?? '保存失败')
+      setError(e?.message ?? '保存未成功，请您稍后重试')
     } finally {
       setSaving(false)
     }
@@ -63,7 +63,7 @@ export default function ContentDetailPage() {
   return (
     <PageShell>
       <Text className="back" onClick={() => Taro.navigateBack()}>
-        ← 返回
+        ← 请返回
       </Text>
       {error && <View className="m-error">{error}</View>}
       {content && (
@@ -75,10 +75,10 @@ export default function ContentDetailPage() {
           </View>
           <View className="detail-actions">
             {completed ? (
-              <Text className="ok">已完成学习</Text>
+              <Text className="ok">您已完成本内容学习</Text>
             ) : (
               <Button loading={saving} onClick={() => void markDone()}>
-                {saving ? '保存中…' : '标记完成'}
+                {saving ? '正在保存…' : '请标记完成'}
               </Button>
             )}
           </View>
@@ -86,7 +86,7 @@ export default function ContentDetailPage() {
             className="detail-link seal"
             onClick={() => Taro.redirectTo({ url: '/pages/exams/index' })}
           >
-            去测验 →
+            请前往测验 →
           </Text>
         </>
       )}

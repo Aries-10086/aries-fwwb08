@@ -39,7 +39,7 @@ export default function ExamsPage() {
         setItems(exams)
         setHistory(hist)
       } catch (e: any) {
-        setError(e?.message ?? '加载失败')
+        setError(e?.message ?? '内容加载失败，请您稍后重试')
       }
     })()
   }, [])
@@ -47,7 +47,7 @@ export default function ExamsPage() {
   return (
     <PageShell tabPath="/pages/exams/index">
       <Text className="m-title">测验</Text>
-      <Text className="m-sub">本支部已发布的测验</Text>
+      <Text className="m-sub">以下为支部已发布的测验，欢迎您按需参加</Text>
       {error && <View className="m-error">{error}</View>}
 
       <View className="exam-list">
@@ -65,15 +65,15 @@ export default function ExamsPage() {
                     Taro.navigateTo({ url: `/pages/exams/take/index?examId=${x.id}` })
                   }
                 >
-                  开始作答
+                  请开始作答
                 </Button>
               ) : (
-                <Button disabled>次数已用尽</Button>
+                <Button disabled>作答次数已用尽</Button>
               )}
             </View>
           </View>
         ))}
-        {items.length === 0 && <View className="m-empty">暂无可参与测验</View>}
+        {items.length === 0 && <View className="m-empty">暂无可参加的测验，请您稍后再来查看</View>}
       </View>
 
       <Text className="m-section-title">我的成绩</Text>
@@ -93,7 +93,7 @@ export default function ExamsPage() {
             <Text className={h.isPass ? 'ok score' : 'seal score'}>{h.totalScore} 分</Text>
           </View>
         ))}
-        {history.length === 0 && <View className="m-empty">暂无成绩</View>}
+        {history.length === 0 && <View className="m-empty">暂无成绩记录，欢迎您先完成一次测验</View>}
       </View>
     </PageShell>
   )

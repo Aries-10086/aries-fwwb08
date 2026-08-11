@@ -24,7 +24,7 @@ export default function LoginPage() {
       await login(username.trim(), password)
       redirectAfterLogin()
     } catch (err: any) {
-      setError(err?.message ?? '登录失败')
+      setError(err?.message ?? '登录未成功，请您核对账号密码后重试')
     } finally {
       setLoading(false)
     }
@@ -39,13 +39,13 @@ export default function LoginPage() {
       </View>
 
       <View className="login__card">
-        <Text className="login__card-title">账号登录</Text>
+        <Text className="login__card-title">欢迎您登录</Text>
         <View className="login__field">
           <Text className="login__label">账号</Text>
           <Input
             className="m-input login__input"
             value={username}
-            placeholder="请输入账号"
+            placeholder="请输入您的账号"
             placeholderStyle="color:#9aa0a6;font-size:16px;line-height:48px;"
             onInput={(e) => setUsername(e.detail.value)}
           />
@@ -56,7 +56,7 @@ export default function LoginPage() {
             className="m-input login__input"
             password
             value={password}
-            placeholder="请输入密码"
+            placeholder="请输入您的密码"
             placeholderStyle="color:#9aa0a6;font-size:16px;line-height:48px;"
             onInput={(e) => setPassword(e.detail.value)}
           />
@@ -64,10 +64,10 @@ export default function LoginPage() {
         {error && <View className="m-error">{error}</View>}
         <View className="login__actions">
           <Button loading={loading} onClick={() => void onSubmit()}>
-            {loading ? '登录中…' : '进入学习'}
+            {loading ? '正在登录…' : '请进入学习'}
           </Button>
         </View>
-        <Text className="login__tip">本端为党员/书记小程序，管理后台请用 PC 端</Text>
+        <Text className="login__tip">请您知悉：本端面向党员与支部书记，管理后台请使用 PC 端</Text>
       </View>
     </View>
   )

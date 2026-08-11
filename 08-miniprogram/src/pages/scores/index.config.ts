@@ -1,3 +1,3 @@
 export default definePageConfig({
-  navigationBarTitleText: '支部成绩',
+  navigationBarTitleText: '学习服务',
 })

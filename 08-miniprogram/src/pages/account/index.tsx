@@ -27,6 +27,7 @@ const roleLabel: Record<string, string> = {
 
 export default function AccountPage() {
   const logout = useAuthStore((s) => s.logout)
+  const user = useAuthStore((s) => s.user)
   const [data, setData] = useState<MyCenter | null>(null)
   const [pwd, setPwd] = useState({ oldPassword: '', newPassword: '', confirmPassword: '' })
   const [msg, setMsg] = useState<string | null>(null)
@@ -37,7 +38,7 @@ export default function AccountPage() {
       try {
         setData(await apiFetch<MyCenter>('/api/stats/my-center'))
       } catch (e: any) {
-        setErr(e?.message ?? '加载失败')
+        setErr(e?.message ?? '内容加载失败，请您稍后重试')
       }
     })()
   }, [])
@@ -46,7 +47,7 @@ export default function AccountPage() {
     setMsg(null)
     setErr(null)
     if (pwd.newPassword !== pwd.confirmPassword) {
-      setErr('两次新密码不一致')
+      setErr('两次新密码不一致，请您核对后重试')
       return
     }
     try {
@@ -57,10 +58,10 @@ export default function AccountPage() {
           newPassword: pwd.newPassword,
         }),
       })
-      setMsg('密码已更新')
+      setMsg('密码已更新，感谢您的配合')
       setPwd({ oldPassword: '', newPassword: '', confirmPassword: '' })
     } catch (e: any) {
-      setErr(e?.message ?? '改密失败')
+      setErr(e?.message ?? '改密未成功，请您稍后重试')
     }
   }
 
@@ -120,10 +121,18 @@ export default function AccountPage() {
         ))}
         {err && <Text className="seal" style={{ fontSize: '13px' }}>{err}</Text>}
         {msg && <Text className="ok" style={{ fontSize: '13px' }}>{msg}</Text>}
-        <Button onClick={() => void changePassword()}>确认改密</Button>
+        <Button onClick={() => void changePassword()}>请确认改密</Button>
       </View>
 
       <View className="account-logout">
+        {user?.role === 'member' && (
+          <Button
+            variant="secondary"
+            onClick={() => Taro.navigateTo({ url: '/pages/opinions/index' })}
+          >
+            向书记提学习意见
+          </Button>
+        )}
         <Button
           variant="danger"
           onClick={async () => {
@@ -131,7 +140,7 @@ export default function AccountPage() {
             Taro.redirectTo({ url: '/pages/login/index' })
           }}
         >
-          退出登录
+          请退出登录
         </Button>
       </View>
     </PageShell>

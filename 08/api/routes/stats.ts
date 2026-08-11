@@ -645,12 +645,11 @@ router.get('/branch-exams', async (req: Request, res: Response) => {
     const placeholders = examIds.map((_, i) => `$${i + 1}`).join(',')
     const { rows: attempts } = await query(
       `SELECT DISTINCT ON (att.exam_id, att.user_id)
-              att.id, att.exam_id, att.user_id, att.total_score, att.submitted_at, e.pass_score
+              att.id, att.exam_id, att.user_id, att.total_score, att.created_at, e.pass_score
        FROM exam_attempts att
        JOIN exams e ON e.id = att.exam_id
        WHERE att.exam_id IN (${placeholders})
-         AND att.submitted_at IS NOT NULL
-       ORDER BY att.exam_id, att.user_id, att.submitted_at DESC`,
+       ORDER BY att.exam_id, att.user_id, att.created_at DESC`,
       examIds,
     )
     for (const a of attempts) {
@@ -666,7 +665,7 @@ router.get('/branch-exams', async (req: Request, res: Response) => {
       byUser.set(uid, {
         score,
         isPass: score >= passScore,
-        at: toIso(a.submitted_at),
+        at: toIso(a.created_at),
         attemptId: String(a.id),
       })
     }

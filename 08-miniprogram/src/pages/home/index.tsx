@@ -48,7 +48,7 @@ export default function HomePage() {
         }
       }
     } catch (e: any) {
-      setError(e?.message ?? '加载失败')
+      setError(e?.message ?? '内容加载失败，请您稍后重试')
     }
   }
 
@@ -61,7 +61,7 @@ export default function HomePage() {
   return (
     <PageShell tabPath="/pages/home/index">
       <Text className="seal" style={{ fontSize: '12px', fontWeight: 500 }}>
-        你好，{user?.name}
+        您好，{user?.name}同志
       </Text>
       <Text className="m-title" style={{ display: 'block', marginTop: '4px' }}>
         今日学习
@@ -71,11 +71,11 @@ export default function HomePage() {
         <Input
           className="m-input home-search__input"
           value={q}
-          placeholder="搜索学习内容"
+          placeholder="请搜索学习内容"
           onInput={(e) => setQ(e.detail.value)}
         />
         <Button className="home-search__btn" onClick={() => void load(q)}>
-          搜索
+          请搜索
         </Button>
       </View>
 
@@ -102,19 +102,19 @@ export default function HomePage() {
                       Taro.navigateTo({ url: `/pages/content/detail/index?id=${next.id}` })
                     }
                   >
-                    继续
+                    请继续学习
                   </Button>
                 )}
               </View>
             </View>
           )
         })}
-        {openTasks.length === 0 && <View className="m-empty">暂无未完成任务</View>}
+        {openTasks.length === 0 && <View className="m-empty">暂无未完成任务，感谢您的认真完成</View>}
       </View>
 
       {!q.trim() && rec.length > 0 && (
         <>
-          <Text className="m-section-title">为你推荐</Text>
+          <Text className="m-section-title">为您推荐</Text>
           <View className="home-list">
             {rec.slice(0, 4).map((c) => (
               <View
@@ -150,7 +150,7 @@ export default function HomePage() {
             <Text className="seal">›</Text>
           </View>
         ))}
-        {contents.length === 0 && <View className="m-empty">暂无内容</View>}
+        {contents.length === 0 && <View className="m-empty">暂无相关内容，请您换个关键词试试</View>}
       </View>
     </PageShell>
   )

@@ -1,4 +1,4 @@
-import { create } from 'zustand'
+import { useSyncExternalStore } from 'react'
 import Taro from '@tarojs/taro'
 import { API_BASE } from '@/utils/config'
 
@@ -45,60 +45,94 @@ function save(token: string | null, user: AuthUser | null) {
   }
 }
 
-export const useAuthStore = create<AuthState>((set, get) => ({
-  ...loadInitial(),
-  clearLocal: () => {
-    set({ token: null, user: null })
-    save(null, null)
-  },
-  login: async (username, password) => {
-    if (!username || !password) {
-      throw new Error('请输入账号和密码')
+let data = loadInitial()
+const listeners = new Set<() => void>()
+
+function notify() {
+  listeners.forEach((listener) => listener())
+}
+
+function subscribe(listener: () => void) {
+  listeners.add(listener)
+  return () => {
+    listeners.delete(listener)
+  }
+}
+
+function clearLocal() {
+  data = { token: null, user: null }
+  save(null, null)
+  notify()
+}
+
+async function login(username: string, password: string) {
+  if (!username || !password) {
+    throw new Error('请您输入账号和密码')
+  }
+  let res: Awaited<ReturnType<typeof Taro.request>>
+  try {
+    res = await Taro.request({
+      url: `${API_BASE}/api/auth/login`,
+      method: 'POST',
+      header: { 'content-type': 'application/json' },
+      data: { username, password },
+      timeout: 15000,
+    })
+  } catch (err: any) {
+    const msg = String(err?.errMsg || err?.message || '')
+    if (msg.includes('url not in domain') || msg.includes('不在以下')) {
+      throw new Error('请在开发者工具勾选「不校验合法域名」')
     }
-    let res: Awaited<ReturnType<typeof Taro.request>>
-    try {
-      res = await Taro.request({
-        url: `${API_BASE}/api/auth/login`,
-        method: 'POST',
-        header: { 'content-type': 'application/json' },
-        data: { username, password },
-        timeout: 15000,
-      })
-    } catch (err: any) {
-      const msg = String(err?.errMsg || err?.message || '')
-      if (msg.includes('url not in domain') || msg.includes('不在以下')) {
-        throw new Error('请在开发者工具勾选「不校验合法域名」')
-      }
-      throw new Error(`无法连接服务器（${API_BASE}），请确认 08 后端已启动`)
-    }
-    const json = (res.data ?? {}) as {
-      success?: boolean
-      error?: string
-      data?: { token: string; user: AuthUser }
-    }
-    if (res.statusCode >= 400 || !json?.success || !json?.data?.user || !json?.data?.token) {
-      throw new Error(json?.error ?? `登录失败（HTTP ${res.statusCode}）`)
-    }
-    const { token, user } = json.data
-    set({ token, user })
-    save(token, user)
-  },
-  logout: async () => {
-    const token = get().token
-    try {
-      await Taro.request({
-        url: `${API_BASE}/api/auth/logout`,
-        method: 'POST',
-        header: {
-          'content-type': 'application/json',
-          ...(token ? { authorization: `Bearer ${token}` } : {}),
-        },
-        data: {},
-      })
-    } catch {
-      // ignore network errors on logout
-    }
-    set({ token: null, user: null })
-    save(null, null)
-  },
-}))
+    throw new Error(`暂时无法连接服务器（${API_BASE}），请您确认后端已启动后重试`)
+  }
+  const json = (res.data ?? {}) as {
+    success?: boolean
+    error?: string
+    data?: { token: string; user: AuthUser }
+  }
+  if (res.statusCode >= 400 || !json?.success || !json?.data?.user || !json?.data?.token) {
+    throw new Error(json?.error ?? `登录未成功（HTTP ${res.statusCode}），请您稍后重试`)
+  }
+  const { token, user } = json.data
+  data = { token, user }
+  save(token, user)
+  notify()
+}
+
+async function logout() {
+  const token = data.token
+  try {
+    await Taro.request({
+      url: `${API_BASE}/api/auth/logout`,
+      method: 'POST',
+      header: {
+        'content-type': 'application/json',
+        ...(token ? { authorization: `Bearer ${token}` } : {}),
+      },
+      data: {},
+    })
+  } catch {
+    // ignore network errors on logout
+  }
+  clearLocal()
+}
+
+function getState(): AuthState {
+  return {
+    token: data.token,
+    user: data.user,
+    login,
+    logout,
+    clearLocal,
+  }
+}
+
+function useAuthStoreHook<T>(selector: (state: AuthState) => T): T {
+  return useSyncExternalStore(
+    subscribe,
+    () => selector(getState()),
+    () => selector(getState()),
+  )
+}
+
+export const useAuthStore = Object.assign(useAuthStoreHook, { getState })
