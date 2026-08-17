@@ -146,6 +146,17 @@ export default function AdminUsers() {
   }
 
   async function remove(id: string) {
+    const target = items.find((item) => item.id === id)
+    if (target?.role === 'admin') {
+      setError('系统管理员账号不可删除')
+      return
+    }
+    if (user?.id && id === user.id) {
+      setError('不能删除当前登录账号')
+      return
+    }
+    if (!window.confirm(`确认删除「${target?.name ?? id}」？删除后无法恢复。`)) return
+
     setError(null)
     try {
       await apiFetch<void>(`/api/users/${id}`, { method: 'DELETE' })
@@ -431,7 +442,13 @@ export default function AdminUsers() {
                   <Button variant="secondary" className="px-3 py-2 text-xs" onClick={() => setSelectedId(u.id)}>
                     编辑
                   </Button>
-                  <Button variant="danger" className="px-3 py-2 text-xs" onClick={() => remove(u.id)}>
+                  <Button
+                    variant="danger"
+                    className="px-3 py-2 text-xs"
+                    disabled={u.role === 'admin' || u.id === user?.id}
+                    title={u.role === 'admin' ? '系统管理员账号不可删除' : u.id === user?.id ? '不能删除当前登录账号' : undefined}
+                    onClick={() => remove(u.id)}
+                  >
                     <Trash className="h-3.5 w-3.5" />
                     删除
                   </Button>
