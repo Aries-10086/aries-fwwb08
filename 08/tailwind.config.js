@@ -22,13 +22,13 @@ export default {
         paper: "#f4f6f8",
       },
       fontFamily: {
-        display: ['"IBM Plex Sans SC"', '"Noto Sans SC"', '"PingFang SC"', '"Hiragino Sans GB"', "sans-serif"],
-        serif: ['"IBM Plex Sans SC"', '"Noto Sans SC"', '"PingFang SC"', '"Hiragino Sans GB"', "sans-serif"],
-        sans: ['"IBM Plex Sans SC"', '"Noto Sans SC"', '"PingFang SC"', '"Hiragino Sans GB"', "sans-serif"],
+        display: ['"PingFang SC"', '"Hiragino Sans GB"', '"Microsoft YaHei"', '"Noto Sans SC"', "sans-serif"],
+        serif: ['"PingFang SC"', '"Hiragino Sans GB"', '"Microsoft YaHei"', '"Noto Sans SC"', "sans-serif"],
+        sans: ['"PingFang SC"', '"Hiragino Sans GB"', '"Microsoft YaHei"', '"Noto Sans SC"', "sans-serif"],
       },
       borderRadius: {
-        soft: "12px",
-        card: "16px",
+        soft: "4px",
+        card: "4px",
       },
     },
   },

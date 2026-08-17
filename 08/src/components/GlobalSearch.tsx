@@ -75,11 +75,14 @@ export function GlobalSearch() {
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="hidden items-center gap-2 rounded-full border border-[rgba(18,21,28,0.08)] bg-white px-3 py-1.5 text-xs text-[rgba(18,21,28,0.45)] shadow-[0_1px_2px_rgba(18,21,28,0.04)] transition hover:border-[rgba(158,27,43,0.25)] hover:text-[#9e1b2b] lg:inline-flex"
+        className="site-search hidden lg:flex"
       >
-        <MagnifyingGlass size={14} />
-        搜组织 / 人员
-        <kbd className="rounded bg-black/5 px-1.5 py-0.5 font-mono text-[10px]">⌘K</kbd>
+        <span className="flex flex-1 items-center px-3 text-left text-[13px] text-[rgba(18,21,28,0.4)]">
+          搜组织 / 人员
+        </span>
+        <span className="grid h-[30px] w-[30px] place-items-center rounded-full bg-[#9e1b2b] text-white">
+          <MagnifyingGlass size={14} />
+        </span>
       </button>
 
       {open && (
@@ -88,7 +91,7 @@ export function GlobalSearch() {
           onClick={() => setOpen(false)}
         >
           <div
-            className="rise-in w-full max-w-lg overflow-hidden rounded-2xl bg-white shadow-[0_20px_50px_rgba(18,21,28,0.22)]"
+            className="w-full max-w-lg overflow-hidden border border-[#e8ecf1] bg-white"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center gap-2 border-b border-black/5 px-4 py-3">
@@ -118,7 +121,7 @@ export function GlobalSearch() {
                       key={o.id}
                       type="button"
                       className={cn(
-                        'flex w-full items-center gap-2 rounded-xl px-3 py-2.5 text-left text-sm hover:bg-[rgba(158,27,43,0.06)]',
+                        'flex w-full items-center gap-2 px-3 py-2.5 text-left text-sm hover:bg-[rgba(158,27,43,0.06)]',
                       )}
                       onClick={() => {
                         setOpen(false)
@@ -142,7 +145,7 @@ export function GlobalSearch() {
                     <button
                       key={p.id}
                       type="button"
-                      className="flex w-full items-center gap-2 rounded-xl px-3 py-2.5 text-left text-sm hover:bg-[rgba(158,27,43,0.06)]"
+                      className="flex w-full items-center gap-2 px-3 py-2.5 text-left text-sm hover:bg-[rgba(158,27,43,0.06)]"
                       onClick={() => {
                         setOpen(false)
                         setQ('')

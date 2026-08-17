@@ -156,12 +156,27 @@ export default function AdminDashboard() {
   }, [data])
 
   return (
-    <div className="grid gap-6">
-      <div className="hero-frame px-6 py-7 md:px-8">
-        <div className="flex flex-wrap items-end justify-between gap-4">
+    <div className="grid gap-4">
+      <nav className="text-sm text-[rgba(18,21,28,0.45)]">
+        <Link to="/" className="hover:text-[#9e1b2b]">
+          首页
+        </Link>
+        <span className="mx-1.5">/</span>
+        <span>管理后台</span>
+        <span className="mx-1.5">/</span>
+        <span className="text-[#12151c]">统计看板</span>
+      </nav>
+
+      <div className="border border-[#e8ecf1] bg-white px-5 py-4">
+        <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
-            <div className="page-eyebrow">管理中枢</div>
-            <h1 className="page-title text-3xl md:text-4xl">统计看板</h1>
+            <h1 className="text-xl font-semibold text-[#12151c]">统计看板</h1>
+            {data && (
+              <div className="mt-1 text-xs text-[rgba(18,21,28,0.5)]">
+                当前范围：{data.rangeLabel}
+                {orgUnitId ? ` / ${orgs.find((o) => o.id === orgUnitId)?.name ?? '所选支部'}` : ' / 全部支部'}
+              </div>
+            )}
           </div>
           <div className="flex flex-wrap items-center gap-2">
             <Link to="/admin/exams">
@@ -203,32 +218,26 @@ export default function AdminDashboard() {
             </Button>
           </div>
         </div>
-        {data && (
-          <div className="mt-3 text-xs text-[rgba(18,21,28,0.5)]">
-            当前范围：{data.rangeLabel}
-            {orgUnitId ? ` · ${orgs.find((o) => o.id === orgUnitId)?.name ?? '所选支部'}` : ' · 全部支部'}
-          </div>
-        )}
         {loading && !data ? (
-          <div className="mt-6 grid gap-3 md:grid-cols-4">
+          <div className="mt-4 grid grid-cols-2 divide-x divide-[#e8ecf1] border-t border-[#e8ecf1] md:grid-cols-4">
             {[0, 1, 2, 3].map((i) => (
-              <div key={i} className="panel-muted px-4 py-4">
+              <div key={i} className="px-4 py-4">
                 <div className="skeleton h-3 w-16" />
-                <div className="skeleton mt-4 h-8 w-24" />
+                <div className="skeleton mt-3 h-7 w-20" />
               </div>
             ))}
           </div>
         ) : data ? (
-          <div className="mt-6 grid gap-3 md:grid-cols-4">
+          <div className="mt-4 grid grid-cols-2 divide-x divide-[#e8ecf1] border-t border-[#e8ecf1] md:grid-cols-4">
             {[
               ['成员规模', `${data.memberCount}`],
               ['学习时长', `${data.durationHours}h`],
               ['测验均分', `${data.avgExamScore}`],
               ['通过率', `${data.passRate}%`],
             ].map(([label, value]) => (
-              <div key={label} className="panel-muted px-4 py-4">
-                <div className="text-[11px] tracking-[0.16em] text-[#9e1b2b]">{label}</div>
-                <div className="metric-value mt-3 text-[#12151c]">{value}</div>
+              <div key={label} className="px-4 py-4">
+                <div className="text-sm text-[rgba(18,21,28,0.5)]">{label}</div>
+                <div className="metric-value mt-1">{value}</div>
               </div>
             ))}
           </div>
