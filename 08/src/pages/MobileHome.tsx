@@ -120,11 +120,11 @@ export default function MobileHome() {
 
   return (
     <div className="grid gap-6">
-      <div className="hero-frame px-6 py-7 md:px-8">
+      <div className="border border-[#e8ecf1] bg-white px-5 py-4">
         <div className="flex flex-wrap items-end justify-between gap-4">
           <div>
             <div className="page-eyebrow">党员端</div>
-            <h1 className="page-title text-3xl md:text-5xl">学习首页</h1>
+            <h1 className="page-title">学习首页</h1>
           </div>
           <div className="flex items-center gap-2">
             <Link to="/m/exams">
@@ -148,7 +148,7 @@ export default function MobileHome() {
             ['AI 推荐', rec ? `${rec.items.length}` : '…'],
           ].map(([label, value]) => (
             <div key={label} className="panel-muted px-4 py-4">
-              <div className="text-[11px] tracking-[0.16em] text-[#9e1b2b]">{label}</div>
+              <div className="text-sm text-[rgba(18,21,28,0.5)]">{label}</div>
               <div className="metric-value mt-3 text-[#12151c]">{value}</div>
             </div>
           ))}

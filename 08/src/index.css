@@ -1,14 +1,11 @@
-@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+SC:wght@400;500;600;700&family=Noto+Sans+SC:wght@400;500;600;700&display=swap');
-
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 :root {
-  /* 朱砂配色保留；字体与形态参考力扣式产品 UI */
-  --font-display: "IBM Plex Sans SC", "Noto Sans SC", "PingFang SC", "Hiragino Sans GB", sans-serif;
-  --font-serif: "IBM Plex Sans SC", "Noto Sans SC", "PingFang SC", "Hiragino Sans GB", sans-serif;
-  --font-sans: "IBM Plex Sans SC", "Noto Sans SC", "PingFang SC", "Hiragino Sans GB", sans-serif;
+  --font-display: "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Noto Sans SC", sans-serif;
+  --font-serif: "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Noto Sans SC", sans-serif;
+  --font-sans: "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Noto Sans SC", sans-serif;
 
   --ink: #12151c;
   --ink-soft: rgba(18, 21, 28, 0.68);
@@ -24,7 +21,7 @@
   --line: rgba(18, 21, 28, 0.08);
   --line-seal: rgba(158, 27, 43, 0.18);
   --shadow-tint: rgba(18, 21, 28, 0.06);
-  --shadow-soft: 0 1px 2px rgba(18, 21, 28, 0.04), 0 8px 24px rgba(18, 21, 28, 0.06);
+  --shadow-soft: 0 1px 2px rgba(18, 21, 28, 0.04);
 
   --bg: var(--paper);
   --text-main: var(--ink);
@@ -34,13 +31,12 @@
   --accent-strong: #b82436;
   --accent-ink: var(--seal-ink);
 
-  --radius-sm: 8px;
-  --radius-md: 12px;
-  --radius-lg: 16px;
+  --radius-sm: 2px;
+  --radius-md: 4px;
+  --radius-lg: 4px;
   --radius-xl: 20px;
   --z-skip: 100;
   --z-header: 40;
-  --z-grain: 60;
 
   font-family: var(--font-sans);
   line-height: 1.6;
@@ -53,10 +49,6 @@
   -moz-osx-font-smoothing: grayscale;
 }
 
-html {
-  scroll-behavior: smooth;
-}
-
 html,
 body {
   height: 100%;
@@ -67,37 +59,10 @@ body {
   min-width: 320px;
   background: var(--paper);
   color: var(--ink);
-  position: relative;
-}
-
-body::before,
-body::after {
-  content: "";
-  position: fixed;
-  inset: 0;
-  pointer-events: none;
-  z-index: 0;
-}
-
-body::before {
-  background:
-    radial-gradient(ellipse 70% 42% at 50% -6%, rgba(158, 27, 43, 0.09), transparent 58%),
-    radial-gradient(ellipse 40% 30% at 100% 0%, rgba(158, 27, 43, 0.03), transparent 50%),
-    linear-gradient(180deg, #f7f8fa 0%, #f1f3f6 100%);
-}
-
-body::after {
-  z-index: var(--z-grain);
-  opacity: 0.18;
-  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.45'/%3E%3C/svg%3E");
-  background-size: 180px 180px;
-  mix-blend-mode: multiply;
 }
 
 #root {
   min-height: 100%;
-  position: relative;
-  z-index: 1;
 }
 
 h1,
@@ -105,12 +70,7 @@ h2,
 h3 {
   font-family: var(--font-display);
   font-weight: 600;
-  letter-spacing: -0.01em;
-  text-wrap: balance;
-}
-
-p {
-  text-wrap: pretty;
+  letter-spacing: 0;
 }
 
 ::selection {
@@ -139,6 +99,15 @@ p {
   background-clip: padding-box;
 }
 
+@keyframes shimmer {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+
 @keyframes rise-in {
   from {
     opacity: 0;
@@ -162,25 +131,6 @@ p {
   }
 }
 
-@keyframes rule-draw {
-  from {
-    transform: scaleX(0);
-  }
-  to {
-    transform: scaleX(1);
-  }
-}
-
-@keyframes shimmer {
-  0% {
-    background-position: 200% 0;
-  }
-  100% {
-    background-position: -200% 0;
-  }
-}
-
-/* 参考 PP API Get API Key：旋转锥形描边 + 毛玻璃内层，色调用本站朱砂/白色 */
 @property --border-angle {
   syntax: "<angle>";
   initial-value: 0deg;
@@ -278,13 +228,12 @@ p {
     left: 1rem;
     top: -100px;
     z-index: var(--z-skip);
-    padding: 0.65rem 1rem;
+    padding: 0.5rem 0.85rem;
     background: var(--seal);
     color: #fff;
     font-size: 0.875rem;
     font-weight: 600;
-    border-radius: var(--radius-md);
-    transition: top 0.2s ease;
+    border-radius: var(--radius-sm);
   }
 
   .skip-link:focus {
@@ -293,11 +242,9 @@ p {
     outline-offset: 2px;
   }
 
-  .font-display {
-    font-family: var(--font-display);
-  }
-
-  .font-serif {
+  .font-display,
+  .font-serif,
+  .brand-mark {
     font-family: var(--font-display);
   }
 
@@ -322,39 +269,25 @@ p {
   }
 
   .page-eyebrow {
-    @apply inline-flex items-center gap-2 text-xs font-medium;
+    @apply text-sm;
     color: var(--seal);
-    letter-spacing: 0.02em;
-  }
-
-  .page-eyebrow::before {
-    content: "";
-    display: block;
-    width: 6px;
-    height: 6px;
-    border-radius: 999px;
-    background: var(--seal);
   }
 
   .page-title {
-    @apply mt-2 text-3xl font-semibold md:text-4xl;
+    @apply mt-1 text-2xl font-semibold md:text-[26px];
     font-family: var(--font-display);
     color: var(--ink);
-    letter-spacing: -0.02em;
-    line-height: 1.25;
-    text-wrap: balance;
+    line-height: 1.35;
   }
 
   .page-subtitle {
-    @apply mt-2.5 max-w-[65ch] text-sm leading-7 md:text-[15px];
+    @apply mt-2 max-w-[65ch] text-sm leading-7;
     color: var(--ink-soft);
   }
 
   .section-title {
     @apply text-base font-semibold;
-    font-family: var(--font-display);
     color: var(--ink);
-    letter-spacing: -0.01em;
   }
 
   .section-note {
@@ -363,35 +296,26 @@ p {
   }
 
   .decorative-rule {
-    height: 1px;
-    background: linear-gradient(90deg, var(--seal), rgba(158, 27, 43, 0.12), transparent);
-    transform-origin: left center;
-    animation: rule-draw 0.85s cubic-bezier(0.22, 1, 0.36, 1) both;
+    height: 2px;
+    width: 32px;
+    background: var(--seal);
   }
 
   .panel-muted {
     background: #fff;
     border: 1px solid var(--line);
     border-radius: var(--radius-md);
-    box-shadow: var(--shadow-soft);
-    transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
-  }
-
-  .panel-muted:hover {
-    border-color: var(--line-seal);
-    box-shadow: 0 2px 8px rgba(158, 27, 43, 0.06), 0 12px 28px rgba(18, 21, 28, 0.06);
   }
 
   .data-pill {
-    @apply inline-flex items-center gap-2 px-2.5 py-1 text-xs font-medium;
+    @apply inline-flex items-center gap-1.5 px-2 py-0.5 text-xs;
     background: rgba(158, 27, 43, 0.06);
     color: var(--seal-ink);
-    border: 1px solid transparent;
-    border-radius: 999px;
+    border-radius: var(--radius-sm);
   }
 
   .list-surface {
-    @apply px-4 py-3.5 transition duration-200;
+    @apply px-4 py-3;
     background: #fff;
     border: 1px solid var(--line);
     border-radius: var(--radius-md);
@@ -400,58 +324,39 @@ p {
   .list-surface:hover {
     border-color: var(--line-seal);
     background: rgba(158, 27, 43, 0.03);
-    box-shadow: var(--shadow-soft);
   }
 
   .field-label {
-    @apply text-xs font-medium;
+    @apply text-sm;
     color: var(--ink-soft);
-    letter-spacing: 0.01em;
   }
 
   .input-shell {
-    @apply border-0 px-4 py-2.5 text-sm outline-none transition duration-200;
-    background: #f7f8fa;
-    border-radius: var(--radius-md);
-    box-shadow: inset 0 0 0 1px transparent;
+    @apply border-0 px-3 py-2 text-sm outline-none;
+    background: #fff;
+    border-radius: var(--radius-sm);
+    box-shadow: inset 0 0 0 1px #d9dee6;
   }
 
   .input-shell:hover {
-    background: #f2f4f7;
+    box-shadow: inset 0 0 0 1px #c5ccd6;
   }
 
   .input-shell:focus,
   .input-shell:focus-within {
-    background: #fff;
-    box-shadow:
-      inset 0 0 0 1px rgba(158, 27, 43, 0.4),
-      0 0 0 3px rgba(158, 27, 43, 0.1);
+    box-shadow: inset 0 0 0 1px var(--seal);
   }
 
   .hero-frame {
     position: relative;
-    overflow: hidden;
-    border-radius: var(--radius-xl);
     background: #fff;
     border: 1px solid var(--line);
-    box-shadow: var(--shadow-soft);
-  }
-
-  .hero-frame::before {
-    content: "";
-    position: absolute;
-    inset: 0;
-    background:
-      linear-gradient(135deg, rgba(158, 27, 43, 0.04), transparent 48%),
-      radial-gradient(circle at 96% 0%, rgba(158, 27, 43, 0.05), transparent 36%);
-    pointer-events: none;
+    border-radius: var(--radius-md);
   }
 
   .metric-value {
-    @apply text-3xl font-semibold;
-    font-family: var(--font-display);
+    @apply text-2xl font-semibold;
     color: var(--seal);
-    letter-spacing: -0.02em;
     font-variant-numeric: tabular-nums;
   }
 
@@ -472,8 +377,7 @@ p {
   }
 
   .empty-state-title {
-    @apply text-lg font-semibold;
-    font-family: var(--font-display);
+    @apply text-base font-semibold;
     color: var(--ink);
   }
 
@@ -696,24 +600,27 @@ p {
   }
 
   .nav-link {
-    @apply relative inline-flex items-center gap-1.5 px-3.5 py-2 text-sm font-medium transition duration-200;
-    color: var(--ink-soft);
-    border-radius: 999px;
+    @apply relative inline-flex items-center gap-1.5 px-3 py-2 text-sm transition;
+    color: var(--ink);
   }
 
   .nav-link:hover {
     color: var(--seal);
-    background: rgba(158, 27, 43, 0.06);
   }
 
   .nav-link-active {
     color: var(--seal);
-    background: rgba(158, 27, 43, 0.1);
     font-weight: 600;
   }
 
   .nav-link-active::after {
-    display: none;
+    content: "";
+    position: absolute;
+    left: 12px;
+    right: 12px;
+    bottom: 0;
+    height: 2px;
+    background: var(--seal);
   }
 
   .auth-panel {
@@ -745,37 +652,13 @@ p {
     background: #fff;
     border: 1px solid var(--line);
     border-radius: var(--radius-md);
-    box-shadow: var(--shadow-soft);
-    transition: border-color 0.2s ease, box-shadow 0.2s ease;
-  }
-
-  .feature-rail-item:hover {
-    border-color: var(--line-seal);
-    box-shadow: 0 2px 8px rgba(158, 27, 43, 0.06), 0 12px 28px rgba(18, 21, 28, 0.06);
-  }
-
-  @media (min-width: 768px) {
-    .feature-rail-item {
-      grid-template-columns: 5rem 1fr;
-      align-items: center;
-      gap: 1.25rem;
-      padding: 1.25rem 1.5rem;
-    }
   }
 
   .feature-tile {
     border: 1px solid var(--line);
     background: #fff;
     border-radius: var(--radius-lg);
-    box-shadow: var(--shadow-soft);
     padding: 1.5rem 1.35rem;
-    transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
-  }
-
-  .feature-tile:hover {
-    border-color: var(--line-seal);
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(158, 27, 43, 0.06), 0 16px 32px rgba(18, 21, 28, 0.07);
   }
 
   .feature-tile-accent {
@@ -788,21 +671,64 @@ p {
     border-radius: var(--radius-xl);
     background: #fff;
     border: 1px solid var(--line);
-    box-shadow: var(--shadow-soft);
     padding: 2.25rem 1.75rem;
   }
 
-  .cta-band::before {
-    content: "";
-    position: absolute;
-    inset: 0;
-    background: linear-gradient(120deg, rgba(158, 27, 43, 0.08), transparent 55%);
-    pointer-events: none;
+  .course-cover {
+    background:
+      linear-gradient(160deg, rgba(18, 21, 28, 0.08), rgba(74, 13, 22, 0.35)),
+      linear-gradient(135deg, var(--seal) 0%, var(--seal-deep) 100%);
   }
 
-  @media (min-width: 768px) {
-    .cta-band {
-      padding: 2.75rem 3rem;
-    }
+  .site-search {
+    display: flex;
+    align-items: center;
+    height: 36px;
+    padding: 3px 3px 3px 16px;
+    border: 0;
+    background: #f3f4f6;
+    border-radius: 999px;
+  }
+
+  .site-search input,
+  .site-search > span:first-child {
+    width: 132px;
+    border: 0;
+    background: transparent;
+    padding: 0 8px 0 0;
+    font-size: 13px;
+    outline: none;
+  }
+
+  .site-search button,
+  .site-search > span:last-child {
+    display: grid;
+    width: 30px;
+    height: 30px;
+    place-items: center;
+    border: 0;
+    border-radius: 999px;
+    background: var(--seal);
+    color: #fff;
+  }
+
+  .site-search button:hover,
+  .site-search > span:last-child:hover {
+    background: var(--seal-deep);
+  }
+
+  .mooc-nav {
+    @apply inline-flex items-center rounded-full px-3.5 py-1.5 text-[15px] text-[#555] transition;
+  }
+
+  .mooc-nav:hover {
+    color: var(--seal);
+    background: rgba(158, 27, 43, 0.06);
+  }
+
+  .mooc-nav-active {
+    color: var(--seal);
+    font-weight: 600;
+    background: rgba(158, 27, 43, 0.08);
   }
 }
