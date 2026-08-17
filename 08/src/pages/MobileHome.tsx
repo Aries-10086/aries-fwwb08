@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/Card'
 import { Button } from '@/components/Button'
 import { apiFetch } from '@/utils/api'
@@ -56,11 +56,13 @@ type ProgressItem = {
 
 export default function MobileHome() {
   const nav = useNavigate()
+  const [searchParams, setSearchParams] = useSearchParams()
   const { user } = useAuthStore()
+  const urlQ = searchParams.get('q') ?? ''
   const [tasks, setTasks] = useState<Task[]>([])
   const [contents, setContents] = useState<Content[]>([])
   const [progress, setProgress] = useState<ProgressItem[]>([])
-  const [query, setQuery] = useState('')
+  const [query, setQuery] = useState(urlQ)
   const [searching, setSearching] = useState(false)
   const [rec, setRec] = useState<{
     text: string
@@ -105,8 +107,9 @@ export default function MobileHome() {
   }
 
   useEffect(() => {
-    load()
-  }, [])
+    setQuery(urlQ)
+    void load(urlQ)
+  }, [urlQ])
 
   const reminders = useTaskReminders(tasks, !!user && user.role !== 'admin')
 
@@ -157,7 +160,8 @@ export default function MobileHome() {
           className="mt-6 flex flex-wrap gap-2"
           onSubmit={(e) => {
             e.preventDefault()
-            void load(query)
+            const q = query.trim()
+            setSearchParams(q ? { q } : {}, { replace: true })
           }}
         >
           <div className="input-shell flex min-w-[240px] flex-1 items-center gap-2 px-3">
@@ -178,7 +182,7 @@ export default function MobileHome() {
               variant="secondary"
               onClick={() => {
                 setQuery('')
-                void load('')
+                setSearchParams({}, { replace: true })
               }}
             >
               清空
