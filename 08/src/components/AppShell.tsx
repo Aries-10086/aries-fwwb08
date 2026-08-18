@@ -134,15 +134,26 @@ function NavDropdown({ item, pathname }: { item: { label: string; children: NavL
 
 function MemberSearch() {
   const nav = useNavigate()
+  const location = useLocation()
+  const params = new URLSearchParams(location.search)
+  const urlQ = location.pathname === '/m/home' ? (params.get('q') ?? '') : ''
+
   return (
     <form
       className="site-search hidden md:flex"
       onSubmit={(e) => {
         e.preventDefault()
-        nav('/m/home')
+        const q = String(new FormData(e.currentTarget).get('q') ?? '').trim()
+        nav(q ? `/m/home?q=${encodeURIComponent(q)}` : '/m/home')
       }}
     >
-      <input name="q" placeholder="搜索学习内容" aria-label="搜索学习内容" />
+      <input
+        key={urlQ}
+        name="q"
+        defaultValue={urlQ}
+        placeholder="搜索学习内容"
+        aria-label="搜索学习内容"
+      />
       <button type="submit" aria-label="搜索">
         <MagnifyingGlass size={14} />
       </button>

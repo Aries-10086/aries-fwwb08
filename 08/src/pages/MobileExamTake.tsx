@@ -39,11 +39,23 @@ type ExamDetail = {
   paper: { id: string; questions: Question[] } | null
 }
 
+const typeLabel: Record<QuestionType, string> = {
+  single: '单选',
+  multiple: '多选',
+  tf: '判断',
+}
+
 function formatRemain(ms: number) {
   const s = Math.max(0, Math.floor(ms / 1000))
   const m = Math.floor(s / 60)
   const r = s % 60
   return `${String(m).padStart(2, '0')}:${String(r).padStart(2, '0')}`
+}
+
+function isAnswered(type: QuestionType, value: unknown) {
+  if (type === 'multiple') return Array.isArray(value) && value.length > 0
+  if (type === 'tf') return value === true || value === false
+  return value != null && value !== ''
 }
 
 export default function MobileExamTake() {
@@ -131,6 +143,22 @@ export default function MobileExamTake() {
   }, [remainMs != null, !!result])
 
   const qs = useMemo(() => exam?.paper?.questions ?? [], [exam])
+  const unansweredCount = useMemo(
+    () => qs.filter((q) => !isAnswered(q.type, answers[q.id])).length,
+    [qs, answers],
+  )
+
+  function requestSubmit() {
+    if (submitting || result || !sessionId || qs.length === 0) return
+    const message =
+      unansweredCount === qs.length
+        ? '还没有作答任何题目，确认交空白卷？'
+        : unansweredCount > 0
+          ? `还有 ${unansweredCount} 题未作答，确认交卷？`
+          : '确认交卷并判分？'
+    if (!window.confirm(message)) return
+    void submit(false)
+  }
 
   async function submit(auto = false) {
     if (!examId || !sessionId || submitting || result) return
@@ -332,7 +360,14 @@ export default function MobileExamTake() {
                     </div>
                     <div className="text-xs text-[#9e1b2b]">分值 {q.score}</div>
                   </div>
-                  <div className="mt-1 text-xs text-zinc-500">{q.category}</div>
+                  <div className="mt-1 flex flex-wrap items-center gap-1.5 text-xs text-zinc-500">
+                    <span>{q.category}</span>
+                    <span>·</span>
+                    <span className={q.type === 'multiple' ? 'font-medium text-[#9e1b2b]' : undefined}>
+                      {typeLabel[q.type]}
+                    </span>
+                    {q.type === 'multiple' ? <span className="text-[rgba(18,21,28,0.45)]">可选择多项</span> : null}
+                  </div>
 
                   {q.type === 'tf' && (
                     <div className="mt-3 grid grid-cols-2 gap-2">
@@ -384,11 +419,13 @@ export default function MobileExamTake() {
                                   setAnswers((p) => ({ ...p, [q.id]: op.key }))
                                   return
                                 }
-                                const prev = Array.isArray(selected) ? selected : []
-                                const next = prev.includes(op.key)
-                                  ? prev.filter((x) => x !== op.key)
-                                  : [...prev, op.key]
-                                setAnswers((p) => ({ ...p, [q.id]: next }))
+                                setAnswers((p) => {
+                                  const prev = Array.isArray(p[q.id]) ? (p[q.id] as string[]) : []
+                                  const next = prev.includes(op.key)
+                                    ? prev.filter((x) => x !== op.key)
+                                    : [...prev, op.key]
+                                  return { ...p, [q.id]: next }
+                                })
                               }}
                               className="mt-1 accent-[#9e1b2b]"
                             />
@@ -406,7 +443,12 @@ export default function MobileExamTake() {
 
               {qs.length === 0 && <div className="py-10 text-sm text-zinc-400">暂无题目</div>}
 
-              <Button onClick={() => submit(false)} disabled={submitting || qs.length === 0} className="w-full">
+              {unansweredCount > 0 && (
+                <div className="text-center text-xs text-[rgba(18,21,28,0.5)]">
+                  还有 {unansweredCount} 题未作答
+                </div>
+              )}
+              <Button onClick={requestSubmit} disabled={submitting || qs.length === 0} className="w-full">
                 {submitting ? (
                   <>
                     <CircleNotch className="h-4 w-4 animate-spin" />

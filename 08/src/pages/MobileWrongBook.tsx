@@ -86,7 +86,14 @@ function QuestionInputs({
           <div className="text-sm font-medium text-[#12151c]">
             {idx + 1}. {q.stem}
           </div>
-          <div className="mt-1 text-xs text-zinc-500">{q.category}</div>
+          <div className="mt-1 flex flex-wrap items-center gap-1.5 text-xs text-zinc-500">
+            <span>{q.category}</span>
+            <span>·</span>
+            <span className={q.type === 'multiple' ? 'font-medium text-[#9e1b2b]' : undefined}>
+              {q.type === 'tf' ? '判断' : q.type === 'multiple' ? '多选' : '单选'}
+            </span>
+            {q.type === 'multiple' ? <span className="text-[rgba(18,21,28,0.45)]">可选择多项</span> : null}
+          </div>
 
           {q.type === 'tf' && (
             <div className="mt-3 grid grid-cols-2 gap-2">
@@ -139,11 +146,13 @@ function QuestionInputs({
                           setAnswers((p) => ({ ...p, [q.questionId]: op.key }))
                           return
                         }
-                        const prev = Array.isArray(selected) ? selected : []
-                        const next = prev.includes(op.key)
-                          ? prev.filter((x) => x !== op.key)
-                          : [...prev, op.key]
-                        setAnswers((p) => ({ ...p, [q.questionId]: next }))
+                        setAnswers((p) => {
+                          const prev = Array.isArray(p[q.questionId]) ? (p[q.questionId] as string[]) : []
+                          const next = prev.includes(op.key)
+                            ? prev.filter((x) => x !== op.key)
+                            : [...prev, op.key]
+                          return { ...p, [q.questionId]: next }
+                        })
                       }}
                       className="mt-1 accent-[#9e1b2b]"
                     />

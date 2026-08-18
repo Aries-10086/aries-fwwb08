@@ -201,8 +201,18 @@ router.delete('/:id', async (req: Request, res: Response) => {
   const { userId } = getUserContext(req)
   const id = String(req.params.id)
 
-  if (id === 'u_admin_demo') {
-    res.status(400).json({ success: false, error: '系统内置管理员不可删除' })
+  const { rows: targetRows } = await query('SELECT id, role FROM users WHERE id = $1', [id])
+  const target = targetRows[0]
+  if (!target) {
+    res.status(404).json({ success: false, error: '用户不存在' })
+    return
+  }
+  if (String(target.role) === 'admin' || id === 'u_admin_demo') {
+    res.status(400).json({ success: false, error: '系统管理员账号不可删除' })
+    return
+  }
+  if (userId && id === userId) {
+    res.status(400).json({ success: false, error: '不能删除当前登录账号' })
     return
   }
 
